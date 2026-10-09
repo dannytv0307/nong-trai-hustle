@@ -28,6 +28,8 @@
 | ART-POR-001…009 | `portraits/portrait-hero-a-smirk.png` … `portrait-hero-i-money-eyes.png` (từ `raw/hero-expressions/final/`) |
 | ART-TIL-001 / 002 | `tiles/tile-grass-test.png`, `tiles/tile-dirt-test.png` (256×256 = 4×4 ô, từ `raw/tile-test/tiletest-*-256_256.png`) |
 
+| ART-CHR-004 | {ten} — chu trình bước đi 4 khung × 4 hướng (bậc 1, sau đó bậc 2–4) | CHR | 64×96/khung | 4/hướng | Bản đồ | Must | Planned (chặng 4, D-020) | — |
+
 ## Changelog
 
 - 2026-10-09 — Tạo danh sách.

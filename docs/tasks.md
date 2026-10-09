@@ -23,6 +23,8 @@ Mỗi task được `qa-tester` kiểm (Playwright chụp màn hình + đọc tr
 
 **Tổng ước lượng:** 2 L + 7 M ≈ **40–46 giờ** (S = 1–2 giờ, M = 3–4 giờ, L = 6–8 giờ), cộng thời gian bạn thử và góp ý. Với **15 giờ/tuần**: khoảng **3 tuần** cho bước 3.3.
 
+> Chặng 4 (đã lên lịch, D-020): chu trình bước đi thật 4 khung × 4 hướng cho {ten} (AI gen + chỉnh), áp dụng lần lượt cho 4 bậc ngoại hình — `art-director` + `game-dev`.
+
 ## Chi tiết task
 
 ### T-001 — Dựng bản đồ Vườn thử, va chạm và camera đi theo
@@ -36,11 +38,12 @@ Mỗi task được `qa-tester` kiểm (Playwright chụp màn hình + đọc tr
 - [ ] Bản đồ Vườn **48 × 32 ô** (GDD §5), dựng bằng code (chưa cần Tiled). Nền cỏ bằng tile thử; có **khối nhà** (hình chữ nhật, có ô cửa và giường bên trong), **vài khối cây**, **một ao nước**, **hàng rào** quanh mép, **vùng ruộng 3×3** (9 ô, `startPlots`) gần nhà; chừa chỗ đặt thùng bán và sạp hạt (T-006).
 - [ ] Nhân vật dùng **Arcade Physics**, hộp va chạm nhỏ ở chân (`playerFootHitbox`): đi sát nhà, cây, ao, rào thì dừng lại, trượt dọc theo cạnh (không bị kẹt). Đi được 8 hướng, đi chéo không nhanh hơn đi thẳng.
 - [ ] Nhân vật đi sau cây/nhà đúng lớp (depth theo trục Y).
+- [ ] **Hoạt ảnh đi bằng code (D-020)** để hết cảm giác "trượt": khi đi, sprite nảy theo nhịp bước (`walkBobHeight`, `walkBobRate`), nghiêng nhẹ theo hướng đi (`walkTiltDeg`), co giãn nhẹ khi đặt chân, bụi chân mỗi vài bước; khi đứng yên thì "thở" nhẹ (scale Y ±2%); đổi hướng có cú lật/xoay ngắn. Nhịp nảy khớp tốc độ đi.
 - [ ] Camera đi theo mượt (`cameraLerp`), dừng ở mép bản đồ, không lộ khoảng đen.
 - [ ] Gợi ý phím góc dưới phải: "WASD: đi".
 - [ ] Trạng thái cho QA đọc: vị trí nhân vật (ô), cờ `gardenReady`.
 
-**Thông số / ghi chú:** dùng `walkSpeed`, `tileSize`. Thêm vào `gameConfig.ts`: `cameraLerp` (0.12), `playerFootHitbox` ([40, 20] px), `gardenMapSize` ([48, 32] ô). Asset: chỉ tile thử cỏ/đất và sprite Tý 4 hướng có sẵn; nhà, cây, ao là hình khối màu theo `palette.ts`.
+**Thông số / ghi chú:** dùng `walkSpeed`, `tileSize`. Thêm vào `gameConfig.ts`: `walkBobHeight` (6 px), `walkBobRate` (bước/giây khớp `walkSpeed`), `walkTiltDeg` (4), `cameraLerp` (0.12), `playerFootHitbox` ([40, 20] px), `gardenMapSize` ([48, 32] ô). Asset: chỉ tile thử cỏ/đất và sprite Tý 4 hướng có sẵn; nhà, cây, ao là hình khối màu theo `palette.ts`.
 
 **Bạn thử thế nào:** chạy `web/start.bat`, mở http://localhost:5173. Bấm W A S D đi một vòng quanh vườn. Phải thấy: camera chạy theo, đụng nhà/cây/ao/rào thì đứng lại, đi ra sau cây thì cây che người. Tự hỏi: đi **nhanh quá hay chậm quá**? Ghi lại để T-009 chỉnh.
 
