@@ -1,0 +1,23 @@
+# Python
+.venv/
+__pycache__/
+
+# Asset thô do AI gen (lớn, tạo lại được) — ảnh mẫu trong art-source/reference/ vẫn được commit
+art-source/raw/
+audio-source/raw/
+
+
+# Bí mật
+*.keystore
+*.jks
+.env*
+!.env.example
+
+# Web
+node_modules/
+web/**/dist/
+web/e2e/screenshots/
+web/e2e/test-results/
+web/e2e/playwright-report/
+web/server/src/generated/
+*.tsbuildinfo

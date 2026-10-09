@@ -1,0 +1,7 @@
+[
+  { "id": "rau-cai", "name": "Rau cải", "season": "dry", "unlockLevel": 1, "seedPrice": 4, "growDays": 1, "sellPrice": 10, "harvestXp": 2, "note": "Cây tập sự" },
+  { "id": "khoai-lang", "name": "Khoai lang", "season": "both", "unlockLevel": 1, "seedPrice": 8, "growDays": 2, "sellPrice": 22, "harvestXp": 2, "note": "Ăn được, nướng ngon" },
+  { "id": "rau-muong", "name": "Rau muống", "season": "rainy", "unlockLevel": 1, "seedPrice": 4, "growDays": 1, "sellPrice": 11, "harvestXp": 2, "note": "Cây tập sự mùa mưa" },
+  { "id": "dua-hau", "name": "Dưa hấu", "season": "dry", "unlockLevel": 3, "seedPrice": 20, "growDays": 3, "sellPrice": 70, "harvestXp": 5, "note": "Lời nhất mùa nắng" },
+  { "id": "lua-nep", "name": "Lúa nếp", "season": "rainy", "unlockLevel": 5, "seedPrice": 15, "growDays": 3, "sellPrice": 45, "harvestXp": 5, "note": "Nguyên liệu rượu nếp (lễ vật)" }
+]

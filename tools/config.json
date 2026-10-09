@@ -1,0 +1,22 @@
+{
+  "gcp_project": "hp-ecommerce-v2",
+  "image": {
+    "location": "global",
+    "model": "gemini-3.1-flash-image",
+    "model_hq": "gemini-3-pro-image"
+  },
+  "music": {
+    "location": "us-central1",
+    "model": "lyria-002"
+  },
+  "budget_usd": {
+    "approved": 160,
+    "cap": 220
+  },
+  "prices_usd": {
+    "_note": "Giá tham khảo 2026-10, kiểm lại ở cloud.google.com/vertex-ai/generative-ai/pricing",
+    "gemini-3.1-flash-image": 0.067,
+    "gemini-3-pro-image": 0.134,
+    "lyria-002": 0.08
+  }
+}

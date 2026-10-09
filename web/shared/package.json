@@ -1,0 +1,19 @@
+{
+  "name": "@bph/shared",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Type dùng chung client/server: request/response API, schema save",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.3"
+  }
+}

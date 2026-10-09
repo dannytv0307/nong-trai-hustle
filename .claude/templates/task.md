@@ -1,0 +1,13 @@
+### T-NNN — <Việc cần làm, bắt đầu bằng động từ>
+
+**Bước:** 3.3 · **Ai làm:** game-dev / backend-dev / art-director / audio-director / game-planner · **Size:** S (1–2h) / M (3–4h) / L (1 ngày) · **Cần trước:** T-…
+
+**Mục tiêu:** một câu — xong task này người chơi thấy/làm được gì.
+
+**Điều kiện xong** (kiểm chứng được, ưu tiên thấy được trong trình duyệt):
+- [ ] …
+- [ ] …
+
+**Thông số / ghi chú:** tham số nào thêm vào `gameConfig.ts`, asset nào cần.
+
+**Bạn thử thế nào:** chạy `npm run dev`, mở http://localhost:5173, làm …, phải thấy …

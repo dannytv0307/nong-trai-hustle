@@ -1,0 +1,31 @@
+{
+  "name": "bph-web",
+  "private": true,
+  "description": "Bride Price Hustle — gốc npm workspaces cho web/: shared (type chung), server (Fastify), client (Phaser), e2e (Playwright)",
+  "workspaces": [
+    "shared",
+    "server",
+    "client",
+    "e2e"
+  ],
+  "scripts": {
+    "postinstall": "npm run build -w @bph/shared",
+    "db:up": "docker compose up -d db",
+    "db:down": "docker compose stop db",
+    "dev:server": "npm run dev -w @bph/server",
+    "dev:client": "npm run dev -w @bph/client",
+    "build": "npm run build -w @bph/shared && npm run build -w @bph/server && npm run build -w @bph/client",
+    "test": "npm run test -w @bph/server && npm run test -w @bph/client",
+    "test:e2e": "npm run test -w @bph/e2e",
+    "lint": "npm run lint -w @bph/client"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "allowScripts": {
+    "ffmpeg-static@5.3.0": true,
+    "@prisma/engines@7.10.0": true,
+    "esbuild@0.28.2": true,
+    "prisma@7.10.0": true
+  }
+}

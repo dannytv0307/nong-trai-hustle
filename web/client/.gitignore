@@ -1,0 +1,3 @@
+# OGG/MP3 sinh tự động từ WAV bằng `npm run audio:convert` (chạy trước dev/build)
+public/assets/audio/**/*.ogg
+public/assets/audio/**/*.mp3

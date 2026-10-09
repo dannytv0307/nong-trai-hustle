@@ -1,0 +1,32 @@
+{
+  "name": "@bph/client",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Bride Price Hustle — client chạy trên trình duyệt (Phaser 3 + TypeScript + Vite)",
+  "scripts": {
+    "predev": "npm run audio:convert",
+    "dev": "vite",
+    "prebuild": "npm run audio:convert",
+    "build": "tsc --noEmit && vite build && node scripts/strip-wav.mjs",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "audio:convert": "node scripts/audio-convert.mjs"
+  },
+  "dependencies": {
+    "@bph/shared": "*",
+    "phaser": "3.90.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.12.0",
+    "ffmpeg-static": "^5.3.0",
+    "globals": "^17.13.0",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.71.1",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.3"
+  }
+}

@@ -1,0 +1,27 @@
+# Postgres chạy local cho server (chỉ dùng khi phát triển trên máy).
+# Mật khẩu dưới đây là giá trị DEV công khai, chỉ cho máy local — production dùng Cloud SQL + Secret Manager.
+# Muốn đổi: tạo file web/.env (gitignore) với POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB / POSTGRES_PORT.
+name: bph
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: bph-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-bph}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bph_dev_only}
+      POSTGRES_DB: ${POSTGRES_DB:-bph}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - bph-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+volumes:
+  bph-db-data:

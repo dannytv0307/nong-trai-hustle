@@ -1,0 +1,75 @@
+// Sơ đồ CSDL của server Bride Price Hustle.
+// Sửa file này rồi chạy `npx prisma migrate dev --name <ten-thay-doi>` để tạo migration mới.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+  moduleFormat = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AuthProvider {
+  email
+  google
+  facebook
+}
+
+/// Một người chơi. Có thể đăng nhập bằng nhiều cách (AuthAccount).
+model User {
+  id          String        @id @default(uuid()) @db.Uuid
+  /// Email chuẩn hóa chữ thường; null nếu nhà cung cấp OAuth không trả email.
+  email       String?       @unique
+  displayName String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  accounts    AuthAccount[]
+  sessions    Session[]
+  save        Save?
+}
+
+/// Một cách đăng nhập của User: email+mật khẩu, Google hoặc Facebook.
+model AuthAccount {
+  id             String       @id @default(uuid()) @db.Uuid
+  userId         String       @db.Uuid
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider       AuthProvider
+  /// email: chính email (chữ thường); google/facebook: id người dùng phía nhà cung cấp.
+  providerUserId String
+  /// Chỉ có với provider = email (hash argon2id, không bao giờ lưu mật khẩu gốc).
+  passwordHash   String?
+  createdAt      DateTime     @default(now())
+
+  @@unique([provider, providerUserId])
+  @@index([userId])
+}
+
+/// Phiên đăng nhập. Cookie giữ session ID ngẫu nhiên; DB chỉ lưu hash của nó.
+model Session {
+  id         String   @id @default(uuid()) @db.Uuid
+  /// SHA-256 (hex) của session ID trong cookie.
+  idHash     String   @unique
+  userId     String   @db.Uuid
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+/// Save game trên mây — 1 bản / tài khoản. `data` là JSON do client định nghĩa.
+model Save {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @unique @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Phiên bản định dạng save (client quyết định).
+  version   Int
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
