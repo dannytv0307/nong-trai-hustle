@@ -456,7 +456,7 @@ Câu mẫu:
 1. "Ơ anh {ten}! Em không nghe gì đâu. …Tưới có ba ô à?"
 2. "Em chỉ nhặt rau thôi. Nhặt từ sáng. Rau nó dai."
 3. "Hôm qua anh nói mơ gọi tên cô Bưởi ba lần. Em đếm hộ."
-4. (sau khi gặp cô Bưởi, Lv 6+) "Cô Bưởi bên Sung xinh thế mà ưng anh à? Em phải đi… nhặt rau."
+4. (đã cưới) "Cô Bưởi xinh thế mà ưng anh à? Em đi… nhặt rau đây."
 
 **Handoff cho Art:** Phụ nữ khoảng 25, gầy, **cổ dài nghển lên**, mắt to tròn liếc ngang, miệng chúm. Tóc búi tó củ hành cài trâm tre (khác khăn mỏ quạ của U và bà mối). Áo cánh hồng nhạt (hoặc màu nhạt gần nhất trong màu khóa), yếm trắng ngà, váy nâu. Tay trái ôm **rổ rau muống**, tay phải **khum sau tai**. Cần: sprite đứng sau rào tre thấp (chỉ cần thấy rõ nửa trên) 2 khung: nhìn thẳng / nghiêng đầu ghé tai. Should: 1 khung đứng cả người cho lúc ở giếng.
 
@@ -797,7 +797,9 @@ Giọng: lầy, ngắn, như dân làng bình luận. Chữ to ≤ 30 ký tự, 
 | **{ten}** | Tên người chơi tự đặt (mặc định Tý). Placeholder trong mọi câu thoại |
 | **Làng Lầy** | Làng của {ten}: đất trũng, mưa là lầy; dân làng "lầy" (thích trêu, đồn, khoe) |
 | **Làng Sung** | Làng giàu bên kia đường làng (sung túc). Có chợ và nhà cụ Bá Kẹo. Trong GDD gọi là "Chợ làng bên" |
-| **Đầu ngõ** | Chỗ ngõ xóm nhà {ten} đổ ra đường cái, dưới gốc đa. Có quán hạt, lò rèn, xưởng mộc, giếng, nhìn ra đình |
+| **Xóm làng Lầy** | Khu nhà của {ten} (bản đồ trung tâm, D-021): nhà {ten}, hàng xóm, giếng, Đầu ngõ, đình, ao đình, bao bởi lũy tre |
+| **Đầu ngõ** | Chỗ ngõ xóm nhà {ten} đổ ra đường cái, dưới gốc đa. Có quán hạt, quán chè, lò rèn, xưởng mộc, nhìn ra đình |
+| **Trẻ trâu** | Cách gọi trẻ con nghịch ngợm (Sún, Hĩm, Cò) |
 | **Đình làng** | Nơi làng họp và mở hội. Nơi {ten} lỡ mồm khoe (intro). Trang trí, không vào được |
 | **Khoác** | Biệt danh làng đặt cho {ten}: "thằng {ten} Khoác" = khoác lác |
 | **Quan** | Đơn vị tiền (xâu tiền đồng) |
@@ -819,7 +821,7 @@ Giọng: lầy, ngắn, như dân làng bình luận. Chữ to ≤ 30 ký tự, 
 | **Meme nhái** | Khoảnh khắc hài nhái cảm xúc/câu nói của meme mạng, do nhân vật làng Lầy đóng (GDD §3.15, D-017) |
 | **Sĩ diện (số trừ)** | Số "−37 SĨ DIỆN" bay lên khi bị chê. Chỉ để cười, không phải chỉ số thật |
 | **Mèo Mướp** | Mèo nhà ông Gật, chỉ xuất hiện trong thẻ meme, "nói" tiếng mèo có phụ đề |
-| Nhân vật | U Hến, Bà Ba Trầu, Cụ Bá Kẹo, Cô Bưởi, Ông Bễ, Chú Đục, Chị Thóc, Bà Cân, Ông Gật, gà Mái Mơ, mèo Mướp (chỉ trong meme); con: bé Cả / Hai / Út; gia súc: trâu Ì, gà Đỏ và Đen, lợn Phệ; bản 1.1: cô Thơm (ông Lái Chép), cô Lanh |
+| Nhân vật | U Hến, Bà Ba Trầu, Cụ Bá Kẹo, Cô Bưởi, Ông Bễ, Chú Đục, Chị Thóc, Bà Cân, Ông Gật, gà Mái Mơ, mèo Mướp (chỉ trong meme); dân làng phụ (D-021): bà Chém, ông Khướt (+ bà Khướt chỉ được nhắc tên), cô Ngóng, anh Tráng, trẻ trâu Cu Sún / Cái Hĩm / Thằng Cò, ông Mõ (Could); con: bé Cả / Hai / Út; gia súc: trâu Ì, gà Đỏ và Đen, lợn Phệ; bản 1.1: cô Thơm (ông Lái Chép), cô Lanh |
 
 ## 8. Giả định đã đặt (bước 1.3)
 
@@ -833,6 +835,7 @@ Giọng: lầy, ngắn, như dân làng bình luận. Chữ to ≤ 30 ký tự, 
 - Màn đặt tên trên web là ô nhập chữ HTML đè lên game (để gõ được tiếng Việt có dấu bằng bộ gõ Unikey/EVKey) — Giả định, xem GDD §12 (D-011).
 - Con không có giới tính riêng (1 kiểu sprite), gọi bé Cả / Hai / Út.
 - (D-015) Bộ đồ bậc 2 bán ở quán chị Thóc, bậc 3–4 ở sạp bà Cân: không thêm NPC thợ may. Áo the bậc 4 màu nâu đỏ sẫm để khác cụ Bá Kẹo. Túi tiền bậc 3 màu nâu. U, ông Bễ không đổi cách gọi theo bậc (để làm câu đùa).
+- (D-021) **U Hến ở chung nhà với {ten}**, không tách nhà riêng. Ông Khướt không bao giờ rời gốc đa (kể cả ban đêm) — vừa là câu đùa vừa đỡ code. Anh Tráng là một trong đám trai làng chê {ten} ở intro và là người dọn cây đổ mở Núi (không thêm câu vào intro, chỉ thêm 1 câu ở lúc mở Núi). Dân làng phụ không có chân dung, không giao nhiệm vụ.
 - (D-017) Thêm **mèo Mướp** (nhà ông Gật) chỉ để đóng meme mèo phụ đề; không có sprite trên bản đồ. Thẻ meme "chọn / không chọn" và "Ổn mà" luôn vẽ {ten} bậc 1. Tiếng mèo dùng vài tiếng đệm "ja, nein, kaputt, sehr" pha tiếng bịa, không nhại cả câu tiếng nước nào.
 
 ## Changelog
@@ -843,3 +846,4 @@ Giọng: lầy, ngắn, như dân làng bình luận. Chữ to ≤ 30 ký tự, 
 - 2026-10-09 — D-013: đổi visual hook của {ten} từ khăn xếp đỏ sang **nón lá rách một mảnh, quai đỏ, đội lệch** (khăn xếp đỏ bị AI vẽ thành turban). Cập nhật bảng + Handoff cho Art của {ten}, câu đùa mào gà Mái Mơ (mào lệch, sứt một miếng), con lớn đội nón rách cũ, intro khung 1/2/4, "Làng đồn: … cái nón lành", cảnh cưới đội nón mới lành lặn, mục kể chuyện qua môi trường, thuật ngữ (thêm "Nón lá"). Khăn xếp của cụ Bá Kẹo giữ nguyên, thêm mô tả hình dáng chống turban.
 - 2026-10-09 — D-015: v1.1, **4 bậc ngoại hình của {ten}**. Thêm §3.1a (bảng 4 bậc, Handoff cho Art từng bậc có ghi chú chống turban cho khăn xếp bậc 4, giữ chi tiết đỏ son ở mọi bậc, ngân sách art: sprite Must, 14 chân dung Should + quy tắc dùng biểu cảm gần nghĩa cùng bậc, Handoff Audio, 15 câu thoại lên bậc + câu U tặng đồ cưới). §2.1 "làng nhìn áo mà gọi". §3.0 bảng xưng hô đổi sang theo bậc (U, ông Bễ không đổi). §3.11 con lớn lấy nón cũ trên vách. §5.3 cảnh cưới mặc bộ bậc 3, U tặng đồ cưới nếu chưa có. §5.5, §7 thuật ngữ (bậc ngoại hình, Phú ông, áo the), §8 giả định. Ngân sách chữ ~316 câu.
 - 2026-10-09 — D-017: v1.2, **meme nhái**. Thêm 2 dòng Nên/Không nên cho meme (§1), dòng ngân sách 35 câu (tổng ~351), nhân vật **mèo Mướp** + Handoff Art/Audio (§3.10), **§6.5 chữ đi kèm 15 meme** (phụ đề mèo, khóc, zoom, ổn mà, lãi/lỗ, chọn/không chọn, cụ cười gượng, ối dồi ôi, còn cái nịt, ét o ét, trừ sĩ diện, gét gô, đỉnh nóc, vỗ tay chậm), §7 thuật ngữ, §8 giả định.
+- 2026-10-09 — D-021: v1.3, **Xóm làng Lầy** (chặng 4; prototype chặng 3 không đổi). §2.2 khu trung tâm thành Xóm 60×40: bố cục, nhà ông Gật và nhà cô Ngóng hai bên, giếng giữa xóm, quán chè bà Chém, đình + sân đình, ao đình "cấm câu", lũy tre. §1: anh Tráng dọn cây đổ mở Núi; ngân sách chữ +45 câu (~396). Thêm **§3.13 dân làng phụ** (bà Chém, ông Khướt, cô Ngóng, anh Tráng, trẻ trâu Sún–Hĩm–Cò; ông Mõ Could) với tính cách, mong muốn/nỗi sợ, visual hook, 4 câu mẫu, Handoff Art/Audio; **§3.14** câu đóng cửa / theo giờ của NPC chính. U Hến và ông Gật có sprite Must. §7 thuật ngữ, §8 giả định.

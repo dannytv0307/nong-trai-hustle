@@ -7,7 +7,9 @@
 
 > **📝 Ghi chú dừng phiên (2026-10-09):** đang ở T-001 (bước 3.3).
 > - Đã xong: bản đồ Vườn, va chạm, camera, chu trình bước đi thật (ART-CHR-004, đã duyệt), favicon (BUG-002).
-> - Đang dở khi dừng: `game-dev` sửa BUG-001 (kẹt mối nối tường khi đi chéo) + gắn xong bước đi; `game-planner` viết thiết kế "Xóm làng Lầy" (D-021, chặng 4).
+> - **Đã DỪNG 2 agent giữa chừng theo yêu cầu người dùng** (code/tài liệu có thể đang dở):
+>   - `game-dev`: đang gắn bước đi thật + sửa BUG-001 (kẹt mối nối tường khi đi chéo) — dừng ở lúc sửa config/assets/preload → **có thể build đang lỗi**, phải kiểm và làm nốt.
+>   - `game-planner`: đang viết thiết kế "Xóm làng Lầy" (GDD §5, story-bible §2.2, D-021 chưa ghi) — dừng giữa chừng, phải đọc lại và viết nốt.
 > - Người dùng quyết: **bỏ QA vòng lại cho T-001**; sửa xong thì để người dùng tự thử.
 > - Lần tới (`/next`): kiểm tra code đã build/test xanh chưa (`cd web && npm run build && npm run test`), hoàn tất phần dở nếu agent bị ngắt, nhờ người dùng đi thử → đánh dấu T-001 ✅ → tổng hợp thiết kế xóm làng → sang T-002.
 
