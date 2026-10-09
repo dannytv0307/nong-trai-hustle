@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Nón lá placeholder (BUG-002) — màu theo palette Art Bible: giấy điệp, mực, đỏ son -->
+  <path d="M32 6 L60 44 Q32 54 4 44 Z" fill="#efe4c8" stroke="#2e2118" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M18 25 L46 25 M12 34 L52 34" stroke="#b98550" stroke-width="2.5"/>
+  <path d="M12 46 Q32 64 52 46" fill="none" stroke="#a93226" stroke-width="4" stroke-linecap="round"/>
+</svg>

@@ -7,7 +7,15 @@ import { gameConfig } from '../config/gameConfig';
 import { palette } from '../config/palette';
 import { textStyles } from '../config/theme';
 import { InputController } from '../input/InputController';
-import { gardenLayout as L, houseWallRects, fenceRects, tileOf, type TileRect } from '../systems/garden';
+import {
+  cornerNudge,
+  fenceRects,
+  gardenLayout as L,
+  houseWallRects,
+  tileOf,
+  tileSolidGrid,
+  type TileRect,
+} from '../systems/garden';
 import { facingFromDirection, moveVelocity, type Facing } from '../systems/movement';
 import {
   createWalkAnimState,
@@ -105,6 +113,11 @@ export class GardenScene extends Phaser.Scene {
   /** Ảnh cây (để làm mờ tán khi nhân vật đứng sau). */
   private readonly trees: Phaser.GameObjects.Image[] = [];
 
+  /** Lưới ô chặn (không gồm cây) — dùng cho "nắn vào cửa". */
+  private solidGrid: boolean[][] = [];
+  /** Lớp va chạm Tilemap (công khai cho QA kiểm "không xuyên vật cản"). */
+  collisionLayer!: Phaser.Tilemaps.TilemapLayer;
+
   gardenReady = false;
 
   constructor() {
@@ -128,6 +141,7 @@ export class GardenScene extends Phaser.Scene {
 
     this.physics.world.setBounds(0, 0, mapW, mapH);
     this.physics.add.collider(this.feet, solids);
+    this.physics.add.collider(this.feet, this.buildCollisionLayer());
     if (physicsDebugFromSearch(window.location.search)) {
       this.physics.world.drawDebug = true;
       this.physics.world.createDebugGraphic();
@@ -198,7 +212,24 @@ export class GardenScene extends Phaser.Scene {
       .setDepth(DEPTH_GROUND_DECOR);
   }
 
-  /** Vẽ nhà, giường, ao, cây, rào và tạo hộp va chạm tĩnh cho chúng. Trả về danh sách hộp. */
+  /**
+   * Lớp va chạm Tilemap (vô hình): mỗi ô rào/tường/giường/ao là một ô "collides".
+   * Phaser bỏ qua mặt chung giữa hai ô chặn liền nhau → trượt dọc tường không vấp ở mối nối (BUG-001).
+   */
+  private buildCollisionLayer(): Phaser.Tilemaps.TilemapLayer {
+    this.solidGrid = tileSolidGrid(L);
+    const data = this.solidGrid.map((row) => row.map((solid) => (solid ? 0 : -1)));
+    const map = this.make.tilemap({ data, tileWidth: T, tileHeight: T });
+    // Cần một tileset để tạo layer; ảnh không quan trọng vì layer bị ẩn.
+    const ts = map.addTilesetImage('solid', 'tile-dirt-test', T, T, 0, 0, 0);
+    const layer = ts ? map.createLayer(0, ts, 0, 0) : null;
+    if (!layer) throw new Error('Không tạo được lớp va chạm Vườn');
+    layer.setVisible(false).setCollision(0);
+    this.collisionLayer = layer;
+    return layer;
+  }
+
+  /** Vẽ nhà, giường, ao, cây, rào; tạo hộp va chạm gốc cây. Trả về danh sách hộp. */
   private buildObstacles(): Phaser.GameObjects.Zone[] {
     const solids: Phaser.GameObjects.Zone[] = [];
     const addSolid = (x: number, y: number, w: number, h: number) => {
@@ -208,8 +239,8 @@ export class GardenScene extends Phaser.Scene {
     };
 
     // Rào quanh mép: va chạm theo cả cạnh (khối liền → trượt dọc không vấp), vẽ từng ô.
+    // Rào, tường, giường, ao chặn bằng lớp va chạm Tilemap (buildCollisionLayer); ở đây chỉ vẽ.
     for (const r of fenceRects(L.cols, L.rows)) {
-      addSolid(r.x * T, r.y * T, r.w * T, r.h * T);
       const horizontal = r.h === 1;
       for (let ty = r.y; ty < r.y + r.h; ty++) {
         for (let tx = r.x; tx < r.x + r.w; tx++) {
@@ -238,7 +269,6 @@ export class GardenScene extends Phaser.Scene {
       floorLines.lineBetween((h.x + 1) * T, ty * T + T / 2, (h.x + h.w - 1) * T, ty * T + T / 2);
     }
     for (const r of houseWallRects(h)) {
-      addSolid(r.x * T, r.y * T, r.w * T, r.h * T);
       // Vẽ từng ô một, mỗi ô depth riêng = đáy ô → đi cạnh tường dọc vẫn đúng lớp trước/sau.
       for (let ty = r.y; ty < r.y + r.h; ty++) {
         for (let tx = r.x; tx < r.x + r.w; tx++) {
@@ -249,12 +279,10 @@ export class GardenScene extends Phaser.Scene {
 
     // Giường trong nhà.
     const b = L.bed;
-    addSolid(b.x * T, b.y * T, b.w * T, b.h * T);
     this.add.image(b.x * T, b.y * T - 12, TEX.bed).setOrigin(0).setDepth((b.y + b.h) * T);
 
     // Ao nước: nằm sát đất, chặn cả khối.
     const p = L.pond;
-    addSolid(p.x * T, p.y * T, p.w * T, p.h * T);
     this.add.image(p.x * T, p.y * T, TEX.pond).setOrigin(0).setDepth(DEPTH_GROUND_DECOR);
 
     // Cây: chỉ gốc chặn (hộp nhỏ), tán cây vẽ cao → đi ra sau cây thì tán che người.
@@ -435,6 +463,14 @@ export class GardenScene extends Phaser.Scene {
 
     const dir = this.controls.moveDirection();
     const v = moveVelocity(dir, speed); // đi chéo đã chuẩn hoá, không nhanh hơn đi thẳng
+    // Nắn vào cửa: đi thẳng vào tường mà chỉ lệch mép khe ≤ cornerNudgePx → tự trượt ngang vào khe.
+    const b = this.feetBody;
+    const blockedAhead = (dir.y < 0 && b.blocked.up) || (dir.y > 0 && b.blocked.down) || (dir.x < 0 && b.blocked.left) || (dir.x > 0 && b.blocked.right);
+    if (blockedAhead) {
+      const nudge = cornerNudge(this.solidGrid, b, dir, T, gameConfig.cornerNudgePx);
+      if (nudge.x !== 0) v.x = nudge.x * speed;
+      if (nudge.y !== 0) v.y = nudge.y * speed;
+    }
     this.feetBody.setVelocity(v.x, v.y);
 
     // Tốc độ THẬT (sau va chạm) quyết định nhịp bước: bị tường chặn thì đứng, không giậm chân tại chỗ.

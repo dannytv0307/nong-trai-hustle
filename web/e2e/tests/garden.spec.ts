@@ -17,8 +17,9 @@ interface GardenState {
   moving: boolean;
   facing: string;
   bobOffset: number;
-  rotationDeg: number;
   steps: number;
+  textureKey: string;
+  anim: { key: string | null; frame: number; playing: boolean; timeScale: number };
   view: { x: number; y: number; w: number; h: number };
   zoom: number;
   mapPx: { w: number; h: number };
@@ -46,6 +47,27 @@ async function teleport(page: Page, tx: number, ty: number): Promise<void> {
     },
     [tx, ty],
   );
+}
+
+/** Tạm dừng / chạy lại scene Vườn để chụp đúng khung đang thấy (máy test vẽ chậm, chụp mất vài trăm ms). */
+async function setPaused(page: Page, paused: boolean): Promise<void> {
+  await page.evaluate((p) => {
+    const g = (window as unknown as { __game: { scene: { pause(k: string): void; resume(k: string): void } } }).__game;
+    if (p) g.scene.pause('Garden');
+    else g.scene.resume('Garden');
+  }, paused);
+}
+
+/** Giữ D tới khi anim đang ở khung thuộc `frames`, dừng scene, chụp, chạy tiếp. Trả về khung đã chụp. */
+async function snapFrame(page: Page, frames: number[], file: string): Promise<number> {
+  await expect
+    .poll(async () => frames.includes((await gardenState(page))?.anim.frame ?? -1), { timeout: 10_000, intervals: [10] })
+    .toBe(true);
+  await setPaused(page, true);
+  const s = (await gardenState(page))!;
+  await page.screenshot({ path: join(SCREENSHOT_DIR, file) });
+  await setPaused(page, false);
+  return s.anim.frame;
 }
 
 async function hold(page: Page, keys: string[], ms: number): Promise<void> {
@@ -82,29 +104,41 @@ test('vào thẳng Vườn 48×32, camera phóng to, đứng yên thì không n�
   await page.waitForTimeout(800); // để nhịp thở chạy một lúc
   const s2 = (await gardenState(page))!;
   expect(Math.abs(s2.bobOffset)).toBeLessThan(0.01);
+  expect(s2.anim.playing).toBe(false);
+  expect(s2.textureKey).toBe('hero-t1-down'); // dáng đứng chống nạnh
   await page.screenshot({ path: join(SCREENSHOT_DIR, 't001-garden-standing.png') });
 });
 
-test('giữ D: đi sang phải, có nảy bước, camera bám theo', async ({ page }) => {
+test('giữ D: đi sang phải bằng anim bước thật, camera bám theo, thả phím về dáng đứng', async ({ page }) => {
   const start = (await gardenState(page))!;
   await page.keyboard.down('KeyD');
-  // Chờ tới lúc đang nhấc chân gần đỉnh nảy rồi chụp ảnh "giữa bước".
-  await expect.poll(async () => (await gardenState(page))?.bobOffset ?? 0, { timeout: 5_000, intervals: [16] }).toBeLessThan(-2);
-  await page.screenshot({ path: join(SCREENSHOT_DIR, 't001-garden-walking.png') });
+  await expect.poll(async () => (await gardenState(page))?.anim.playing, { timeout: 5_000 }).toBe(true);
   const mid = (await gardenState(page))!;
   expect(mid.moving).toBe(true);
   expect(mid.facing).toBe('right');
-  await page.waitForTimeout(1200);
+  expect(mid.anim.key).toBe('hero-t1-walk-right');
+  expect(mid.textureKey).toBe('hero-t1-walk-right');
+  expect(mid.anim.timeScale).toBeGreaterThan(0.5);
+  expect(Math.abs(mid.bobOffset)).toBe(0); // đi ngang: không nảy bằng code (khung thật lo)
+
+  // Hai ảnh ở hai khung khác nhau: chạm gót (0/2) và nhấc chân (1/3).
+  const f1 = await snapFrame(page, [0, 2], 't001-garden-walking-a.png');
+  const f2 = await snapFrame(page, [1, 3], 't001-garden-walking-b.png');
+  expect(f1).not.toBe(f2);
+
+  await page.waitForTimeout(800);
   await page.keyboard.up('KeyD');
   const end = (await gardenState(page))!;
 
   expect(end.footX).toBeGreaterThan(start.footX + 4 * TILE);
   expect(Math.abs(end.footY - start.footY)).toBeLessThan(1);
-  expect(end.steps).toBeGreaterThanOrEqual(5);
+  expect(end.steps).toBeGreaterThanOrEqual(3); // có chạm gót (khung 0, 2)
   expect(end.view.x).toBeGreaterThan(start.view.x + 2 * TILE); // camera chạy theo
 
-  await page.waitForTimeout(600);
-  expect((await gardenState(page))!.moving).toBe(false);
+  await expect.poll(async () => (await gardenState(page))?.anim.playing, { timeout: 5_000 }).toBe(false);
+  const stopped = (await gardenState(page))!;
+  expect(stopped.moving).toBe(false);
+  expect(stopped.textureKey).toBe('hero-t1-right'); // về ảnh đứng chống nạnh hướng phải
 });
 
 test('đi thẳng vào tường nhà thì bị chặn, đi chéo thì trượt dọc tường', async ({ page }) => {
@@ -118,7 +152,9 @@ test('đi thẳng vào tường nhà thì bị chặn, đi chéo thì trượt d
   expect(blocked.footY).toBeGreaterThanOrEqual(wallBottom + 10 - 0.5); // mép trên hộp chân dừng ở chân tường
   expect(blocked.tileY).toBe(11);
   expect(Math.abs(blocked.footX - before.footX)).toBeLessThan(1);
-  expect(blocked.moving).toBe(false); // ép vào tường thì không nảy tại chỗ
+  expect(blocked.moving).toBe(false); // ép vào tường thì không giậm chân tại chỗ
+  expect(blocked.anim.playing).toBe(false);
+  expect(blocked.textureKey).toBe('hero-t1-up');
 
   // Giữ W+D (chéo lên-phải) tới khi đã dịch sang phải ≥ 40px. Đo theo trạng thái chứ không theo
   // thời gian vì máy test vẽ bằng CPU (FPS thấp, thời gian giữ phím không chính xác).

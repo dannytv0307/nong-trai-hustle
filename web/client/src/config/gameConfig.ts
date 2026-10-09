@@ -69,6 +69,8 @@ export const gameConfig = {
   gardenMapSize: [48, 32] as readonly [number, number],
   /** Hộp va chạm ở chân nhân vật [rộng, cao] (px). Nhỏ hơn 1 ô để lách qua cửa dễ. */
   playerFootHitbox: [40, 20] as readonly [number, number],
+  /** "Nắn vào cửa": đi thẳng vào vật cản mà lệch mép khe trống ≤ số px này thì tự trượt vào khe. */
+  cornerNudgePx: 16,
   /** Hộp va chạm gốc cây [rộng, cao] (px) — chỉ gốc chặn, tán cây đi ra sau được. */
   treeTrunkHitbox: [36, 22] as readonly [number, number],
   /**

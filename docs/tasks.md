@@ -218,6 +218,8 @@ Mỗi task được `qa-tester` kiểm (Playwright chụp màn hình + đọc tr
 
 | ID | Mô tả | Mức độ | Trạng thái |
 |---|---|---|---|
+| BUG-001 | (T-001) **Kẹt ở mối nối tường nhà khi đi chéo.** Đứng sát mặt ngoài **bên trái** nhà, giữ **D+W** (ép vào tường và đi lên): nhân vật đứng khựng ở y=650px (mối nối khối tường dưới ↔ tường trái, hàng 10/9) và thỉnh thoảng ở y≈266px (tường trái ↔ tường trên, hàng 4/3); `blocked.up` bật dù phía trên không có vật cản. Chỉ thả D mới đi tiếp. Lần chạy khác lại kẹt ở mặt **phải** nhà khi giữ **A+W** (dừng ở y=266px) — kẹt hay không tùy độ dài frame, nên người chơi sẽ gặp ngẫu nhiên ở mọi mối nối khi đi lên; chiều đi xuống chưa thấy kẹt. Nguyên nhân: tường nhà là nhiều hộp Arcade nằm nối mép ngoài thẳng hàng → va chạm "mép trong" của hộp kế bên. Tái hiện: `node web/e2e/diag-t001.mjs seam3` hoặc test `Q2` trong `web/e2e/tests/qa-t001.spec.ts`; ảnh `web/e2e/screenshots/qa-t001-stuck-1.png`. Gợi ý: dùng lớp va chạm Tilemap (`setCollision`, Phaser tự bỏ mép trong giữa các ô liền nhau); chỉ đổi cách chia hộp thì mối nối sẽ chuyển sang mặt khác. Thêm test trượt chéo cả 4 mặt ngoài nhà. Không đạt điều kiện "trượt dọc theo cạnh (không bị kẹt)". | Nhẹ | Mở |
+| BUG-002 | (T-001) **Console báo lỗi 404 `/favicon.ico`** ("Failed to load resource … 404") khi mở game — thấy trên Edge (Playwright kênh msedge), chromium headless không báo. Vi phạm mục "không console error". Tái hiện: `curl http://localhost:5173/favicon.ico` → 404; `node web/e2e/diag-edge.mjs`. Gợi ý: thêm favicon hoặc `<link rel="icon" href="data:,">` trong `web/client/index.html`. | Nhẹ | Mở |
 
 ## Changelog
 

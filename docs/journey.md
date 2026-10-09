@@ -5,6 +5,13 @@
 
 **Đang ở: 3.3**
 
+> **📝 Ghi chú dừng phiên (2026-10-09):** đang ở T-001 (bước 3.3).
+> - Đã xong: bản đồ Vườn, va chạm, camera, chu trình bước đi thật (ART-CHR-004, đã duyệt), favicon (BUG-002).
+> - Đang dở khi dừng: `game-dev` sửa BUG-001 (kẹt mối nối tường khi đi chéo) + gắn xong bước đi; `game-planner` viết thiết kế "Xóm làng Lầy" (D-021, chặng 4).
+> - Người dùng quyết: **bỏ QA vòng lại cho T-001**; sửa xong thì để người dùng tự thử.
+> - Lần tới (`/next`): kiểm tra code đã build/test xanh chưa (`cd web && npm run build && npm run test`), hoàn tất phần dở nếu agent bị ngắt, nhờ người dùng đi thử → đánh dấu T-001 ✅ → tổng hợp thiết kế xóm làng → sang T-002.
+
+
 Ký hiệu: 👤 việc của bạn · 🤖 agent phụ trách · ✅ điều kiện để coi là xong
 
 ---

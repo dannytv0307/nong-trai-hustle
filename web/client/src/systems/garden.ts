@@ -126,3 +126,68 @@ export function tileOf(px: number, py: number, tileSize: number): { x: number; y
 export function rectsOverlap(a: TileRect, b: TileRect): boolean {
   return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 }
+
+/**
+ * Lưới vật cản cho lớp va chạm Tilemap: rào, tường, giường, ao (KHÔNG gồm cây — cây dùng hộp gốc nhỏ).
+ * Dùng Tilemap thay vì nhiều hộp nối nhau vì Phaser tự tắt "mặt trong" giữa hai ô chặn liền nhau
+ * → đi trượt dọc tường không bị vấp ở chỗ nối (BUG-001).
+ */
+export function tileSolidGrid(layout: GardenLayout): boolean[][] {
+  const noTrees: GardenLayout = { ...layout, trees: [] };
+  return blockedGrid(noTrees);
+}
+
+// Kết quả cố định (không tạo object mới mỗi frame).
+const NUDGE_NONE = Object.freeze({ x: 0, y: 0 });
+const NUDGE_LEFT = Object.freeze({ x: -1, y: 0 });
+const NUDGE_RIGHT = Object.freeze({ x: 1, y: 0 });
+const NUDGE_UP = Object.freeze({ x: 0, y: -1 });
+const NUDGE_DOWN = Object.freeze({ x: 0, y: 1 });
+
+/** Hộp theo px (mép trái/trên/phải/dưới). */
+export interface Box {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+/**
+ * "Nắn vào cửa" (corner nudge): đang đi thẳng vào vật cản mà chỉ lệch ≤ maxPx so với một khe trống
+ * (ô cửa, khe giữa hai vật) thì trả về hướng trượt ngang/dọc để tự lọt vào khe.
+ * Trả về {x, y} mỗi trục -1/0/1. Chỉ xét khi đi thẳng một trục (đi chéo đã tự trượt rồi).
+ */
+export function cornerNudge(
+  grid: boolean[][],
+  box: Box,
+  dir: { x: number; y: number },
+  tileSize: number,
+  maxPx: number,
+): Readonly<{ x: number; y: number }> {
+  const blockedAt = (col: number, row: number) => grid[row]?.[col] ?? true;
+  const EPS = 0.001;
+  if (dir.y !== 0 && dir.x === 0) {
+    const row = dir.y < 0 ? Math.floor((box.top - 1) / tileSize) : Math.floor((box.bottom + 1) / tileSize);
+    const free = (l: number, r: number) => {
+      for (let c = Math.floor(l / tileSize); c <= Math.floor((r - EPS) / tileSize); c++) if (blockedAt(c, row)) return false;
+      return true;
+    };
+    if (free(box.left, box.right)) return NUDGE_NONE;
+    for (let d = 1; d <= maxPx; d++) {
+      if (free(box.left - d, box.right - d)) return NUDGE_LEFT;
+      if (free(box.left + d, box.right + d)) return NUDGE_RIGHT;
+    }
+  } else if (dir.x !== 0 && dir.y === 0) {
+    const col = dir.x < 0 ? Math.floor((box.left - 1) / tileSize) : Math.floor((box.right + 1) / tileSize);
+    const free = (t: number, b: number) => {
+      for (let r = Math.floor(t / tileSize); r <= Math.floor((b - EPS) / tileSize); r++) if (blockedAt(col, r)) return false;
+      return true;
+    };
+    if (free(box.top, box.bottom)) return NUDGE_NONE;
+    for (let d = 1; d <= maxPx; d++) {
+      if (free(box.top - d, box.bottom - d)) return NUDGE_UP;
+      if (free(box.top + d, box.bottom + d)) return NUDGE_DOWN;
+    }
+  }
+  return NUDGE_NONE;
+}
