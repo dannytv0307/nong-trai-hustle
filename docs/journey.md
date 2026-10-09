@@ -3,7 +3,7 @@
 > Bạn chỉ cần gõ **`/next`** — Claude sẽ làm bước đang tới, hỏi bạn những gì cần quyết định, rồi đánh dấu xong.
 > Gõ `/map` để xem bản đồ này kèm tiến độ.
 
-**Đang ở: 3.2**
+**Đang ở: 3.3**
 
 Ký hiệu: 👤 việc của bạn · 🤖 agent phụ trách · ✅ điều kiện để coi là xong
 
@@ -57,7 +57,7 @@ Ký hiệu: 👤 việc của bạn · 🤖 agent phụ trách · ✅ điều ki
   🤖 `game-dev` tạo `web/client` (Phaser 3 + TypeScript + Vite, màn 1920×1080, cấu trúc thư mục, `gameConfig.ts`, Playwright chụp màn hình); `backend-dev` tạo khung `web/server` (Fastify + Prisma + Postgres trong Docker, `/healthz`) và `web/shared`; chuyển các asset đã Approved đang nằm tạm ở `art-source/raw/` (bị gitignore) vào `web/client/public/assets/art/`; `git init` làm điểm lưu.
   ✅ `npm run dev` mở được trang game có scene trống; server trả `/healthz`; test chạy xanh.
 
-- [ ] **3.2 Lên kế hoạch prototype**
+- [x] **3.2 Lên kế hoạch prototype**
   Tại sao: chia nhỏ để mỗi buổi làm xong một phần chạy được.
   👤 Cho biết mỗi tuần làm được bao nhiêu giờ, duyệt danh sách task.
   🤖 `game-planner` tách core loop (đi lại, cuốc–gieo–tưới–hái, Sức, đồng hồ ngày, bán đồ, ngủ) thành task nhỏ vào `docs/tasks.md`.

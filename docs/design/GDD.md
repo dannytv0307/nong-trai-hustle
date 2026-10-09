@@ -2,7 +2,7 @@
 
 > Phụ đề tiếng Việt: *Làng Lầy Cưới Vợ*
 >
-> Chủ sở hữu: `game-planner` · Phiên bản: v0.9 (concept B, bản web trình duyệt PC — xem D-004 … D-017) · Tiến độ: xem [journey.md](../journey.md)
+> Chủ sở hữu: `game-planner` · Phiên bản: v0.10 (concept B, bản web trình duyệt PC — xem D-004 … D-019) · Tiến độ: xem [journey.md](../journey.md)
 
 ## 1. Tổng quan
 
@@ -945,9 +945,33 @@ Không có cho bản đầu tay (giả định). Chơi miễn phí trên web, kh
 
 ## 14. Scope (MoSCoW)
 
-Ước lượng: **27–35 tuần** với 6–10 giờ/tuần (gồm D-015: +2–3 tuần; D-017 meme Must: +1,5–2 tuần). Độ khó 3–4/5. (Giả định về số giờ, sẽ hỏi lại ở bước 3.2.) Bản 1.1 (nhiều vợ) thêm 2–3 tuần sau đó.
+Ước lượng: **khoảng 16–19 tuần với 15 giờ/tuần** (người dùng chốt ở bước 3.2, D-019), tính từ đầu chặng 3 (9/10/2026). Tổng khối lượng không đổi: khoảng **230–280 giờ** (trước đây ghi 27–35 tuần với 6–10 giờ/tuần, gồm D-015: +2–3 tuần; D-017 meme Must: +1,5–2 tuần). Độ khó 3–4/5. Bản 1.1 (nhiều vợ) thêm khoảng 1–2 tuần sau đó.
 
-Cách tính:
+### Lộ trình ngắn (15 giờ/tuần — D-019)
+
+| Chặng | Việc chính | Ước lượng | Gate dự kiến (Giả định: không nghỉ dài) |
+|---|---|---|---|
+| 3 — Prototype | 3.3 prototype "một ngày ở Vườn" (T-001…T-009, 40–46 giờ ≈ 3 tuần); 3.4 tài khoản + lưu server (25–35 giờ ≈ 2 tuần); 3.5 cho người khác chơi thử (≈ 0,5 tuần) | ≈ 6 tuần | **Xong 3.3: ~30/10/2026** · xong 3.4: ~13/11/2026 · **gate chặng 3: ~20/11/2026** (chậm nhất ~27/11) |
+| 4 — Làm game đầy đủ | Art/âm thanh thật, 3 khu còn lại, nhiệm vụ, mặc cả, gia đình, bậc ngoại hình, meme, juice | ≈ 8–10 tuần | ~22/01–05/02/2027. **Mốc giữa chặng 4 (~21/12/2026)**: quyết định có lùi về phạm vi A không (mục cắt 9) |
+| 5 — Hoàn thiện & phát hành | Sửa lỗi, cân bằng, trang quyền riêng tư, triển khai Cloud Run | ≈ 2–3 tuần | ~cuối 02/2027 – đầu 03/2027 (Tết Nguyên đán 06/02/2027 có thể đẩy lùi 1–2 tuần) |
+
+**Phạm vi prototype chặng 3 (D-019):** chỉ bản đồ Vườn bằng hình khối/tile thử; đi lại + va chạm, cuốc–gieo–tưới–hái (rau cải, khoai lang), thanh Sức + đuối + ăn khoai sống, đồng hồ ngày + màu trời, gùi 18 ô + hotbar (chưa kéo thả), thùng bán, **sạp hạt tạm** (hộp, không phải NPC), ngủ / ngủ gục, qua đêm (lớn, khát, héo), tổng kết ngày, tự lưu localStorage, 1 bong bóng chửi thề khi đuối/ngủ gục. Chưa có: NPC, mặc cả, khu khác, nấu ăn, thời tiết, level/nhiệm vụ, hướng dẫn ngày 1, meme, đăng nhập (3.4). Câu hỏi cần trả lời: "làm nông có vui không?".
+
+**Tham số mới cho prototype** (thêm vào `gameConfig.ts`):
+
+| Tham số | Giá trị | Đơn vị | Khoảng hợp lý | Ảnh hưởng |
+|---|---|---|---|---|
+| `gardenMapSize` | 48, 32 | ô | 34–56 × 20–36 | Bản đồ Vườn rộng cỡ nào (§5) |
+| `cameraLerp` | 0.12 | hệ số/khung | 0.05–0.3 | Camera bám sát (cao) hay trôi mềm (thấp) |
+| `playerFootHitbox` | 40, 20 | px | 24–56 × 12–32 | Hộp va chạm ở chân. To thì dễ kẹt giữa cây, nhỏ thì như đi xuyên vật |
+| `screenShakeLight` | 0.05 ô / 0.1 giây | ô, giây | 0.02–0.1 | Rung màn nhẹ khi cuốc (§8) |
+| `grumbleBubbleSeconds` | 2.5 | giây | 1.5–4 | Đã có ở §3.12, dùng sớm ở prototype |
+| `skyTintMaxAlpha` | 0.45 | độ mờ | 0.3–0.6 | Nửa đêm tối cỡ nào. Tối quá thì khó thấy ruộng |
+| `startSeeds` | cải 6, khoai 3 | hạt | — | Hạt có sẵn ngày 1 (prototype chưa có quán chị Thóc) |
+| `devCheatsEnabled` | true (dev) / false (bản build) | bật/tắt | — | Phím thử: G cây lớn qua đêm, F8 −20 Sức, F9 +1 giờ |
+
+### Cách tính khối lượng (theo tuần cũ 6–10 giờ/tuần — chia lại cho 15 giờ/tuần)
+
 - Trước D-007: 12–16 tuần.
 - D-007: thêm khoảng 30–40 giờ (gia đình, chửi thề, dữ liệu cô dâu).
 - D-008: thêm khoảng 6–8 giờ (độ bền và sửa nông cụ).
@@ -1075,3 +1099,4 @@ Cách tính:
 - 2026-10-09 — D-013: §9 đổi visual hook nhân vật chính sang nón lá rách một mảnh, quai đỏ, đội lệch (thay khăn xếp đỏ dễ bị AI vẽ thành turban). Chi tiết ở story bible.
 - 2026-10-09 — D-015: v0.8, **4 bậc ngoại hình** (Nghèo kiết xác → Người bình thường → Khá giả → Phú ông). Thêm §3.14 (mở bậc = level 1/3/7/12 + sắm bộ đồ 0/50/300/1500 quan, Phú ông cần đã cưới; giảm giá mua 5%/10% từ bậc 3; cụ Bá Kẹo bớt mức ưng 5%; cưới xong tự lên bậc 3; dữ liệu `OutfitData` → `outfits.json`; bảng tham số). Cập nhật §2 (meta loop, bảng level 3/7/11+, hậu cưới: Phú ông thay "Phú hộ"), §3.9 (mua bộ đồ, giảm giá), §3.10 (mặc cả theo bậc), §6, §7 (XP sắm đồ, danh hiệu = tên bậc), §8 (juice "lột xác"), §9, §11 (HUD, tab Sắm sửa), §14 (Must 4 bậc sprite; Should chân dung theo bậc + phản ứng NPC; bỏ Should "Phú hộ"/danh hiệu theo level; ước lượng 25–33 tuần; mục cắt 0b).
 - 2026-10-09 — D-017: v0.9, thêm **§3.15 Meme nhái**: 15 meme (8 Must, 5 Should, 2 Could), luật nhái (không ảnh/âm thanh gốc, không mặt người thật, không tên meme trong prompt), luật chạy (lần đầu luôn hiện, tối đa 4/ngày, cách 90 giây, meme thay câu chửi lần đó), bảng tham số, dữ liệu `MemeData` → `memes.json`. Cập nhật §3 (danh sách file dữ liệu), §6 nội dung, §7 tổng kết ngày (mũi tên lãi), §8 (6 dòng juice meme), §11 (vị trí thẻ meme + chữ meme, cài đặt Meme là Could), §14 (Must/Should/Could, ước lượng 27–35 tuần, ~10 ảnh + ~14 SFX, mục cắt 0c).
+- 2026-10-09 — Bước 3.2 (D-019): v0.10. §14: người dùng làm **15 giờ/tuần** → ước lượng còn khoảng 16–19 tuần (230–280 giờ); thêm **lộ trình ngắn** (gate chặng 3 ~20/11/2026, mốc giữa chặng 4 ~21/12/2026, phát hành ~cuối 02 – đầu 03/2027), phạm vi prototype "một ngày ở Vườn" và bảng tham số mới cho prototype (`gardenMapSize`, `cameraLerp`, `playerFootHitbox`, `screenShakeLight`, `skyTintMaxAlpha`, `startSeeds`, `devCheatsEnabled`). Task: `docs/tasks.md` T-001 … T-009.
