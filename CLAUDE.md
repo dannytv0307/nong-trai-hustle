@@ -83,5 +83,5 @@ Tài liệu viết **tiếng Việt có dấu**; prompt gen ảnh/nhạc viết 
 
 - Mỗi lần một bước/task nhỏ, game luôn chạy được; kiểm chứng trước khi báo xong và nói rõ cái gì đã kiểm, cái gì người dùng cần tự thử.
 - Ý tưởng ngoài scope → "Để sau" trong GDD. Từ chặng 4 trở đi hạn chế thêm tính năng.
-- Commit: khi `/next` hoàn thành một bước, tạo commit điểm lưu cục bộ (không bao giờ push). Ngoài ra chỉ commit khi người dùng yêu cầu.
+- Commit: khi `/next` hoàn thành một bước, tạo commit điểm lưu cục bộ (chỉ push lên GitHub `origin` khi người dùng yêu cầu). Ngoài ra chỉ commit khi người dùng yêu cầu.
 - Không tự thêm thư viện lớn, không tạo tài nguyên GCP tốn phí, không deploy khi chưa hỏi người dùng.
