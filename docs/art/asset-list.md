@@ -18,6 +18,7 @@
 | ART-CHR-003 | {ten} — bậc ngoại hình 2–4 (Người bình thường / Khá giả / Phú ông), hướng xuống, dáng chống nạnh | CHR | 64×96 | tĩnh, anim bằng code | Bản đồ, "lột xác", `--ref` cho 4 hướng + chân dung từng bậc | Must | Approved — sheet `art-source/raw/hero-tiers/tiers-sheet.png` | [ART-CHR-003](prompts/ART-CHR-003.md) |
 | ART-TIL-001 | Tile cỏ (thử nối liền) | TIL | 256 = 4×4 ô 64 | — | Bản đồ | Must | Generated (thử) | [ART-TIL-001](prompts/ART-TIL-001.md) |
 | ART-TIL-002 | Tile đất cuốc (thử nối liền) | TIL | 256 = 4×4 ô 64 | — | Ruộng | Must | Generated (thử) | [ART-TIL-001](prompts/ART-TIL-001.md) |
+| ART-CHR-004 | {ten} — chu trình bước đi 4 khung × 4 hướng (bậc 1, sau đó bậc 2–4) | CHR | 64×96/khung | 4/hướng | Bản đồ | Must | Planned (chặng 4, D-020) | — |
 
 **Vị trí file trong game** (bước 3.1, `game-dev` copy từ `art-source/raw/`; gốc `web/client/public/assets/art/`):
 
@@ -27,8 +28,6 @@
 | ART-CHR-003 | `characters/hero-tier1-down.png` … `hero-tier4-down.png` (từ `raw/hero-tiers/`) |
 | ART-POR-001…009 | `portraits/portrait-hero-a-smirk.png` … `portrait-hero-i-money-eyes.png` (từ `raw/hero-expressions/final/`) |
 | ART-TIL-001 / 002 | `tiles/tile-grass-test.png`, `tiles/tile-dirt-test.png` (256×256 = 4×4 ô, từ `raw/tile-test/tiletest-*-256_256.png`) |
-
-| ART-CHR-004 | {ten} — chu trình bước đi 4 khung × 4 hướng (bậc 1, sau đó bậc 2–4) | CHR | 64×96/khung | 4/hướng | Bản đồ | Must | Planned (chặng 4, D-020) | — |
 
 ## Changelog
 
