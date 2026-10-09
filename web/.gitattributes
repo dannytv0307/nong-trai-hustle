@@ -1,0 +1,3 @@
+# Script shell chạy trong container Linux phải giữ xuống dòng LF; file .bat của Windows cần CRLF.
+*.sh  text eol=lf
+*.bat text eol=crlf

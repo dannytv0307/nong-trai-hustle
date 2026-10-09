@@ -1,0 +1,29 @@
+# Image DEV cho server + client (chạy bằng docker compose, xem docker-compose.yml).
+# Mã nguồn web/ được gắn (mount) vào /app lúc chạy để sửa code là tự nạp lại (hot reload);
+# image chỉ chuẩn bị node_modules bản Linux (prisma, esbuild, ffmpeg-static cần file chạy Linux).
+FROM node:24-bookworm-slim
+
+# openssl: Prisma CLI (migrate) cần; ca-certificates: tải engine/ffmpeg khi cài.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends openssl ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Chỉ chép những gì `npm ci` cần (package.json + lock, shared để postinstall build,
+# sơ đồ Prisma để `prisma generate`) — sửa code game không làm cài lại thư viện.
+COPY package.json package-lock.json ./
+COPY shared/ ./shared/
+COPY server/package.json server/prisma.config.ts ./server/
+COPY server/prisma/ ./server/prisma/
+COPY client/package.json ./client/
+COPY e2e/package.json ./e2e/
+
+# DATABASE_URL giả chỉ để `prisma generate` lúc build (không kết nối, không lưu vào image).
+RUN DATABASE_URL=postgresql://build:build@localhost:5432/build npm ci --no-audit --no-fund \
+ && sha256sum package-lock.json | cut -d' ' -f1 > node_modules/.docker-lock-hash
+
+COPY docker/dev-entrypoint.sh /usr/local/bin/dev-entrypoint.sh
+RUN sed -i 's/\r$//' /usr/local/bin/dev-entrypoint.sh && chmod +x /usr/local/bin/dev-entrypoint.sh
+
+ENTRYPOINT ["dev-entrypoint.sh"]

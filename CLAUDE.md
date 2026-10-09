@@ -55,13 +55,20 @@ Tài liệu viết **tiếng Việt có dấu**; prompt gen ảnh/nhạc viết 
 
 > `game-dev` / `backend-dev` cập nhật mục này ở bước 3.1.
 
-- **Lệnh chuẩn, chạy từ `web/`** (npm workspaces: `shared`, `server`, `client`, `e2e`; một `package-lock.json` duy nhất ở `web/`):
-  - Lần đầu: `npm install` (tự build `@bph/shared`, sinh Prisma client, tải ffmpeg) → `npx playwright install chromium` → `npm run db:up` (Postgres 16, container `bph-db`, cổng 5432 chỉ trên máy, volume `bph_bph-db-data`) → `cd server && npx prisma migrate dev`
-  - Hằng ngày: `npm run db:up` · `npm run dev:server` (http://localhost:3000) · `npm run dev:client` (http://localhost:5173, mở trình duyệt vào đây)
+- **Cách chạy chuẩn: Docker (môi trường dev, có hot reload)** — một lệnh bật cả database + server + client:
+  - Bật: bấm đúp `web/start.bat` (chờ sẵn sàng rồi tự mở http://localhost:5173) hoặc `npm run up` ở `web/` · Dừng: `web/stop.bat` hoặc `npm run down` (dữ liệu DB giữ lại) · Xem log: `npm run logs` · Trạng thái: `npm run ps` · Khởi động lại server+client: `npm run restart`
+  - 3 container: `bph-db` (Postgres 16, 127.0.0.1:5432), `bph-server` (http://localhost:3000, tự `prisma migrate deploy` rồi `tsx watch`), `bph-client` (Vite http://localhost:5173, proxy `/api` → `http://server:3000`). Cấu hình: `web/docker-compose.yml`, `web/Dockerfile.dev`, `web/docker/dev-entrypoint.sh`
+  - Mã nguồn `web/` được gắn vào container → sửa code là server/client tự nạp lại (quét file định kỳ vì Docker trên Windows không báo file đổi). `node_modules` bản Linux nằm trong volume riêng (`bph_bph-nm-*`), không dùng chung với node_modules của Windows. Đổi `package-lock.json` (thêm thư viện) → container server tự `npm ci` lại lần khởi động sau (`npm run restart`); đổi `Dockerfile.dev` → `npm run up` (có `--build`)
+  - Chạy lệnh trong container: `docker compose exec server npx prisma migrate dev --name <ten>` (tạo migration) · `docker compose exec server npm run test -w @bph/server` · `docker compose exec server sh` (mở shell)
+  - Server trong Docker vẫn đọc bí mật (`SESSION_SECRET`…) từ `web/server/.env`; `HOST`, `DATABASE_URL` (trỏ `db:5432`), `CLIENT_ORIGIN` lấy từ `docker-compose.yml` (ưu tiên hơn `.env`)
+  - **Agent kiểm tra (`qa-tester`, e2e) dùng stack Docker**: `npm run up` rồi `npm run test:e2e` từ máy (Playwright dùng lại client đang chạy ở 5173)
+- **Lệnh npm, chạy từ `web/`** (npm workspaces: `shared`, `server`, `client`, `e2e`; một `package-lock.json` duy nhất ở `web/`):
+  - Lần đầu trên máy (cần cho test/build/e2e chạy ngoài Docker): `npm install` (tự build `@bph/shared`, sinh Prisma client, tải ffmpeg) → `npx playwright install chromium`
+  - Cách cũ không Docker (vẫn dùng được, đừng chạy song song với stack Docker vì trùng cổng): `npm run db:up` (chỉ DB) → `cd server && npx prisma migrate dev` → `npm run dev:server` (http://localhost:3000) · `npm run dev:client` (http://localhost:5173)
   - Kiểm: `npm run build` (shared → server → client) · `npm run test` (server + client; test server cần DB, `SKIP_DB_TESTS=1` để bỏ) · `npm run lint` · `npm run test:e2e` (Playwright, tự bật dev client nếu chưa chạy; ảnh chụp ở `web/e2e/screenshots/`) · `npm run db:down` dừng DB
   - Script cài đặt được phép (npm 11) khai trong `allowScripts` của `web/package.json` (ffmpeg-static, prisma, @prisma/engines, esbuild); nâng phiên bản thì chạy lại `npm install-scripts approve <gói>` ở `web/`
 - `web/client/` (`@bph/client`) — Phaser 3.90 + TypeScript 6 (strict) + Vite 8 + Vitest 5 + ESLint 10
-  - Lệnh riêng (`npm run <lệnh> -w @bph/client`): `dev` (cổng 5173 cố định; `/api` proxy sang http://localhost:3000) · `build` (tsc + vite → `dist/`, bỏ WAV) · `test` · `lint` · `audio:convert` (WAV → OGG + MP3 bằng ffmpeg-static; tự chạy trước dev/build; OGG/MP3 sinh ra bị gitignore, WAV gốc được commit có chủ ý)
+  - Lệnh riêng (`npm run <lệnh> -w @bph/client`): `dev` (cổng 5173 cố định; `/api` proxy sang http://localhost:3000; trong Docker đọc env `BPH_DEV_HOST`, `BPH_API_TARGET`, `BPH_USE_POLLING` ở `vite.config.ts`) · `build` (tsc + vite → `dist/`, bỏ WAV) · `test` · `lint` · `audio:convert` (WAV → OGG + MP3 bằng ffmpeg-static; tự chạy trước dev/build; OGG/MP3 sinh ra bị gitignore, WAV gốc được commit có chủ ý)
   - Thông số gameplay: `src/config/gameConfig.ts` · bảng màu: `src/config/palette.ts` · danh sách asset: `src/config/assets.ts` · dữ liệu nội dung: `src/data/*.json` (+ kiểu ở `src/data/types.ts`) · logic thuần TS + test: `src/systems/` · phím: `src/input/InputController.ts` · gọi server: `src/net/api.ts` (type API từ `@bph/shared`)
   - Scene: `Boot → Preload → Sandbox` (màn thử). Debug hook QA: `window.__game` (Phaser.Game); Sandbox đặt `registry.sandboxReady = true` khi sẵn sàng
 - `web/e2e/` (`@bph/e2e`) — Playwright (chromium), smoke test ở `tests/smoke.spec.ts`

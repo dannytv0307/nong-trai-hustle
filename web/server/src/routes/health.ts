@@ -12,6 +12,7 @@ export const healthRoutes: FastifyPluginAsync = async (app) => {
   });
 
   const opts = { config: { rateLimit: false as const } };
-  app.get('/healthz', opts, handler);
+  // /healthz bị Docker/Cloud Run gọi định kỳ -> không ghi log từng lần cho đỡ rác.
+  app.get('/healthz', { ...opts, logLevel: 'silent' }, handler);
   app.get('/api/health', opts, handler);
 };

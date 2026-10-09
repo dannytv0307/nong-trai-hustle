@@ -1,0 +1,11 @@
+# Không gửi vào image: thư viện của Windows, file build, bí mật, kết quả test.
+**/node_modules
+**/dist
+**/*.tsbuildinfo
+**/.env
+**/.env.*
+!**/.env.example
+server/src/generated
+e2e/test-results
+e2e/screenshots
+e2e/playwright-report

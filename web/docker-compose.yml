@@ -1,7 +1,28 @@
-# Postgres chạy local cho server (chỉ dùng khi phát triển trên máy).
-# Mật khẩu dưới đây là giá trị DEV công khai, chỉ cho máy local — production dùng Cloud SQL + Secret Manager.
+# Môi trường DEV chạy bằng Docker: một lệnh là có database + server + client.
+#   Bật:  bấm đúp start.bat   hoặc   npm run up      (trong thư mục web/)
+#   Mở:   http://localhost:5173   (client; /api được chuyển sang server)
+#   Log:  npm run logs            Dừng: bấm đúp stop.bat  hoặc  npm run down
+# Mã nguồn web/ được gắn vào container nên sửa code là tự nạp lại (hot reload).
+#
+# Mật khẩu DB dưới đây là giá trị DEV công khai, chỉ cho máy local — production dùng Cloud SQL + Secret Manager.
 # Muốn đổi: tạo file web/.env (gitignore) với POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB / POSTGRES_PORT.
+# Bí mật của server (SESSION_SECRET, OAuth...) vẫn đọc từ web/server/.env (được gắn vào container cùng mã nguồn);
+# các biến khai ở mục `environment` bên dưới được ưu tiên hơn giá trị trong file đó.
 name: bph
+
+x-node-dev: &node-dev
+  # Server và client dùng chung một image (chỉ service server khai `build` để không build 2 lần).
+  image: bph-dev:latest
+  restart: unless-stopped
+  working_dir: /app
+  volumes:
+    - .:/app
+    # node_modules bản Linux nằm trong volume riêng, che node_modules của Windows.
+    - bph-nm-root:/app/node_modules
+    - bph-nm-server:/app/server/node_modules
+    - bph-nm-client:/app/client/node_modules
+    - bph-nm-e2e:/app/e2e/node_modules
+    - bph-nm-shared:/app/shared/node_modules
 
 services:
   db:
@@ -23,5 +44,65 @@ services:
       retries: 10
       start_period: 5s
 
+  server:
+    <<: *node-dev
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: bph-server
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      HOST: 0.0.0.0
+      PORT: "3000"
+      DATABASE_URL: postgresql://${POSTGRES_USER:-bph}:${POSTGRES_PASSWORD:-bph_dev_only}@db:5432/${POSTGRES_DB:-bph}?schema=public
+      CLIENT_ORIGIN: http://localhost:5173
+      # Container server là nơi duy nhất được cài lại thư viện khi package-lock.json đổi.
+      BPH_INSTALL_DEPS: "1"
+      # Docker trên Windows không báo file thay đổi -> theo dõi bằng cách quét định kỳ.
+      CHOKIDAR_USEPOLLING: "true"
+      PRISMA_HIDE_UPDATE_MESSAGE: "1"
+    # migrate deploy: chỉ áp các migration đã có (an toàn, không xóa dữ liệu), rồi chạy dev (tsx watch).
+    command: ["sh", "-c", "npm run db:deploy -w @bph/server && npm run dev -w @bph/server"]
+    ports:
+      - "127.0.0.1:3000:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      start_interval: 3s
+      timeout: 5s
+      retries: 5
+      start_period: 300s
+
+  client:
+    <<: *node-dev
+    pull_policy: never
+    container_name: bph-client
+    depends_on:
+      server:
+        condition: service_healthy
+    environment:
+      # Đọc trong web/client/vite.config.ts.
+      BPH_DEV_HOST: "0.0.0.0"
+      BPH_API_TARGET: http://server:3000
+      BPH_USE_POLLING: "1"
+    command: ["npm", "run", "dev", "-w", "@bph/client"]
+    ports:
+      - "127.0.0.1:5173:5173"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5173/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      start_interval: 3s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
+
 volumes:
   bph-db-data:
+  bph-nm-root:
+  bph-nm-server:
+  bph-nm-client:
+  bph-nm-e2e:
+  bph-nm-shared:
