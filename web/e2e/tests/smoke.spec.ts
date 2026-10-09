@@ -61,7 +61,8 @@ test('Sandbox mở được, có nhạc sau click, Space phát tiếng xu, khôn
   });
   page.on('pageerror', (err) => errors.push(`[pageerror] ${err.message}`));
 
-  await page.goto('/');
+  // Từ T-001 trang chủ vào Vườn; sân thử 3.1 mở bằng ?scene=sandbox.
+  await page.goto('/?scene=sandbox');
   await page.waitForFunction(() => window.__game !== undefined, null, { timeout: 15_000 });
   await expect.poll(() => page.evaluate(probe).then((p) => p?.ready), { timeout: 30_000 }).toBe(true);
 

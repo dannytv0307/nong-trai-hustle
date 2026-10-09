@@ -11,7 +11,7 @@ Mỗi task được `qa-tester` kiểm (Playwright chụp màn hình + đọc tr
 
 | ID | Bước | Task | Ai làm | Size | Cần trước | Trạng thái |
 |---|---|---|---|---|---|---|
-| T-001 | 3.3 | Dựng bản đồ Vườn thử, va chạm và camera đi theo | game-dev | M | — | ⬜ |
+| T-001 | 3.3 | Dựng bản đồ Vườn thử, va chạm và camera đi theo | game-dev | M | — | 👀 |
 | T-002 | 3.3 | Chỉ ô bằng chuột, tầm với và cuốc đất (giữ chuột để cuốc cả luống) | game-dev | M | T-001 | ⬜ |
 | T-003 | 3.3 | Gieo, tưới, hái + hotbar 9 ô và gùi tối thiểu | game-dev | L | T-002 | ⬜ |
 | T-004 | 3.3 | Thanh Sức, "đuối", ăn khoai bằng chuột phải, bong bóng chửi thề | game-dev | M | T-003 | ⬜ |
@@ -34,16 +34,18 @@ Mỗi task được `qa-tester` kiểm (Playwright chụp màn hình + đọc tr
 **Mục tiêu:** đi bằng WASD trên một bản đồ Vườn lớn hơn màn hình, đụng nhà/cây/ao thì dừng lại, camera bám theo nhân vật — để cảm được "đi lại có sướng tay không".
 
 **Điều kiện xong** (kiểm chứng được, ưu tiên thấy được trong trình duyệt):
-- [ ] Mở game vào thẳng scene mới **`GardenScene`** (Vườn thử). Sandbox cũ vẫn mở được bằng `http://localhost:5173/?scene=sandbox`.
-- [ ] Bản đồ Vườn **48 × 32 ô** (GDD §5), dựng bằng code (chưa cần Tiled). Nền cỏ bằng tile thử; có **khối nhà** (hình chữ nhật, có ô cửa và giường bên trong), **vài khối cây**, **một ao nước**, **hàng rào** quanh mép, **vùng ruộng 3×3** (9 ô, `startPlots`) gần nhà; chừa chỗ đặt thùng bán và sạp hạt (T-006).
-- [ ] Nhân vật dùng **Arcade Physics**, hộp va chạm nhỏ ở chân (`playerFootHitbox`): đi sát nhà, cây, ao, rào thì dừng lại, trượt dọc theo cạnh (không bị kẹt). Đi được 8 hướng, đi chéo không nhanh hơn đi thẳng.
-- [ ] Nhân vật đi sau cây/nhà đúng lớp (depth theo trục Y).
-- [ ] **Hoạt ảnh đi bằng code (D-020)** để hết cảm giác "trượt": khi đi, sprite nảy theo nhịp bước (`walkBobHeight`, `walkBobRate`), nghiêng nhẹ theo hướng đi (`walkTiltDeg`), co giãn nhẹ khi đặt chân, bụi chân mỗi vài bước; khi đứng yên thì "thở" nhẹ (scale Y ±2%); đổi hướng có cú lật/xoay ngắn. Nhịp nảy khớp tốc độ đi.
-- [ ] Camera đi theo mượt (`cameraLerp`), dừng ở mép bản đồ, không lộ khoảng đen.
-- [ ] Gợi ý phím góc dưới phải: "WASD: đi".
-- [ ] Trạng thái cho QA đọc: vị trí nhân vật (ô), cờ `gardenReady`.
+- [x] Mở game vào thẳng scene mới **`GardenScene`** (Vườn thử). Sandbox cũ vẫn mở được bằng `http://localhost:5173/?scene=sandbox`.
+- [x] Bản đồ Vườn **48 × 32 ô** (GDD §5), dựng bằng code (chưa cần Tiled). Nền cỏ bằng tile thử; có **khối nhà** (hình chữ nhật, có ô cửa và giường bên trong), **vài khối cây**, **một ao nước**, **hàng rào** quanh mép, **vùng ruộng 3×3** (9 ô, `startPlots`) gần nhà; chừa chỗ đặt thùng bán và sạp hạt (T-006).
+- [x] Nhân vật dùng **Arcade Physics**, hộp va chạm nhỏ ở chân (`playerFootHitbox`): đi sát nhà, cây, ao, rào thì dừng lại, trượt dọc theo cạnh (không bị kẹt). Đi được 8 hướng, đi chéo không nhanh hơn đi thẳng.
+- [x] Nhân vật đi sau cây/nhà đúng lớp (depth theo trục Y).
+- [x] **Hoạt ảnh đi bằng code (D-020)** để hết cảm giác "trượt": khi đi, sprite nảy theo nhịp bước (`walkBobHeight`, `walkBobRate`), nghiêng nhẹ theo hướng đi (`walkTiltDeg`), co giãn nhẹ khi đặt chân, bụi chân mỗi vài bước; khi đứng yên thì "thở" nhẹ (scale Y ±2%); đổi hướng có cú lật/xoay ngắn. Nhịp nảy khớp tốc độ đi.
+- [x] Camera đi theo mượt (`cameraLerp`), dừng ở mép bản đồ, không lộ khoảng đen.
+- [x] Gợi ý phím góc dưới phải: "WASD: đi".
+- [x] Trạng thái cho QA đọc: vị trí nhân vật (ô), cờ `gardenReady`.
 
 **Thông số / ghi chú:** dùng `walkSpeed`, `tileSize`. Thêm vào `gameConfig.ts`: `walkBobHeight` (6 px), `walkBobRate` (bước/giây khớp `walkSpeed`), `walkTiltDeg` (4), `cameraLerp` (0.12), `playerFootHitbox` ([40, 20] px), `gardenMapSize` ([48, 32] ô). Asset: chỉ tile thử cỏ/đất và sprite Tý 4 hướng có sẵn; nhà, cây, ao là hình khối màu theo `palette.ts`.
+
+**Ghi chú khi làm (game-dev, 2026-10-09):** `cameraZoom` = 1.5 (ô hiện 96px, nhân vật 96×144px, thấy ~20×11 ô); tán cây mờ còn `treeFadeAlpha` khi đứng sau cây để không "mất" nhân vật; bố cục Vườn ở `web/client/src/data/gardenLayout.json`; `?debug=physics` vẽ hộp va chạm. E2E: `web/e2e/tests/garden.spec.ts`.
 
 **Bạn thử thế nào:** chạy `web/start.bat`, mở http://localhost:5173. Bấm W A S D đi một vòng quanh vườn. Phải thấy: camera chạy theo, đụng nhà/cây/ao/rào thì đứng lại, đi ra sau cây thì cây che người. Tự hỏi: đi **nhanh quá hay chậm quá**? Ghi lại để T-009 chỉnh.
 

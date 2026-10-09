@@ -6,11 +6,15 @@ Lệnh:
   sheet     Ghép nhiều ảnh thành 1 ảnh đánh số để so sánh
   preview   Xem asset ở kích thước thật trên nền sáng/tối + thang xám (kiểm tra độ đọc được)
   tiletest  Thu tile về N px rồi ghép lưới 3x3 (và bản dịch nửa ô) để soi đường nối
+  sheet-split  Cắt ảnh sprite sheet gen AI (N nhân vật một hàng) thành N khung đều ô:
+               tách nền, cùng tỉ lệ, căn đáy (chân) + căn giữa theo đầu/nón; xuất từng khung,
+               spritesheet ngang cho Phaser và GIF xem trước
 
 Ví dụ:
   python tools/process_image.py removebg in.png out.png
   python tools/process_image.py fit in.png game/Assets/Art/Characters/hero.png --size 256 --pivot bottom
   python tools/process_image.py preview game/Assets/Art/Characters/hero.png --display 128
+  python tools/process_image.py sheet-split walk.png --n 4 --cell 64x96 --out hero-walk-right.png --gif prev.gif
 """
 import argparse
 from pathlib import Path
@@ -198,6 +202,110 @@ def tiletest(src, dst, size=64, n=3, zoom=2):
     print(f"{dst}: {n}x{n} ô {size}px (trái: ghép thẳng | phải: lệch nửa ô), tile {small}")
 
 
+def _segments(alpha, n, min_frac=0.02):
+    """Tìm N dải cột có nhân vật (cách nhau bởi cột trống). Trả về [(x0, x1)]."""
+    cols = alpha.max(axis=0) > 0
+    segs, x = [], 0
+    W = len(cols)
+    while x < W:
+        if cols[x]:
+            x0 = x
+            while x < W and cols[x]:
+                x += 1
+            segs.append([x0, x])
+        x += 1
+    # bỏ mẩu vụn, gộp dải hẹp vào dải gần nhất
+    segs = [g for g in segs if alpha[:, g[0]:g[1]].sum() > 0]
+    minw = W * min_frac
+    while len(segs) > 1 and min(g[1] - g[0] for g in segs) < minw and len(segs) > n:
+        i = min(range(len(segs)), key=lambda k: segs[k][1] - segs[k][0])
+        j = i - 1 if i == len(segs) - 1 or (i > 0 and segs[i][0] - segs[i - 1][1] < segs[i + 1][0] - segs[i][1]) else i + 1
+        a, b = sorted((i, j))
+        segs[a] = [segs[a][0], segs[b][1]]
+        del segs[b]
+    if len(segs) != n:
+        print(f"  Cảnh báo: tìm thấy {len(segs)} dải, cần {n} -> chia đều theo bề ngang")
+        segs = [[round(W * k / n), round(W * (k + 1) / n)] for k in range(n)]
+    return [tuple(g) for g in segs]
+
+
+def sheet_split(src, out, n, cell=(64, 96), pad=1, height=None, color=None, tol=70, holes=30,
+                despill=True, head_frac=0.3, flip=False, gif=None, fps=8, order=None, frames_dir=None,
+                nobg=False, despill_all=False):
+    """Cắt sheet N khung -> spritesheet ngang đều ô (căn đáy, căn giữa theo đầu)."""
+    import tempfile
+    if nobg:
+        img = Image.open(src).convert("RGBA")
+    else:
+        tmp = Path(tempfile.gettempdir()) / "_sheet_split_nobg.png"
+        remove_bg(src, tmp, color, tol, holes, despill)
+        img = Image.open(tmp).convert("RGBA")
+    if flip:
+        img = ImageOps.mirror(img)
+    if despill_all:
+        # Nhân vật không có màu xanh lá: ép mọi pixel ám xanh (khe kín, viền) về trung tính
+        a = np.asarray(img).astype(np.int16).copy()
+        lim = np.maximum(a[..., 0], a[..., 2])
+        m = a[..., 1] > lim
+        a[..., 1][m] = lim[m]
+        img = Image.fromarray(a.astype(np.uint8), "RGBA")
+    arr = np.asarray(img)
+    alpha = arr[..., 3]
+    alpha_clean = np.where(alpha > 40, alpha, 0)
+    segs = _segments(alpha_clean, n)
+    frames = []
+    for x0, x1 in segs:
+        sub = img.crop((x0, 0, x1, img.height))
+        a = np.asarray(sub)[..., 3]
+        box = Image.fromarray(np.where(a > 40, 255, 0).astype(np.uint8)).getbbox()
+        sub = sub.crop(box)
+        a = np.asarray(sub)[..., 3] > 40
+        top = a[: max(1, int(a.shape[0] * head_frac))]
+        xs = np.nonzero(top)[1]
+        anchor = xs.mean() if len(xs) else sub.width / 2   # tâm ngang của nón/đầu
+        frames.append((sub, anchor))
+    if order:
+        frames = [frames[i] for i in order]
+    tw, th = cell
+    maxh = max(f.height for f, _ in frames)
+    target = height or (th - 2 * pad)
+    scale = target / maxh
+    half = max(max(an, f.width - an) for f, an in frames) * scale
+    if half > tw / 2 - pad:
+        scale *= (tw / 2 - pad) / half
+        print(f"  Thu nhỏ thêm để vừa bề ngang ô: chiều cao khung cao nhất = {round(maxh * scale)} px")
+    strip = Image.new("RGBA", (tw * len(frames), th), (0, 0, 0, 0))
+    cells = []
+    for i, (f, an) in enumerate(frames):
+        im = f.resize((max(1, round(f.width * scale)), max(1, round(f.height * scale))), Image.LANCZOS)
+        c = Image.new("RGBA", (tw, th), (0, 0, 0, 0))
+        x = round(tw / 2 - an * scale)
+        y = th - pad - im.height
+        c.paste(im, (x, y), im)
+        strip.paste(c, (i * tw, 0))
+        cells.append(c)
+        if frames_dir:
+            Path(frames_dir).mkdir(parents=True, exist_ok=True)
+            c.save(Path(frames_dir) / f"{Path(out).stem}_f{i + 1}.png")
+    Path(out).parent.mkdir(parents=True, exist_ok=True)
+    strip.save(out)
+    print(f"{out}: {len(frames)} khung {tw}x{th}, dải {strip.width}x{strip.height}, tỉ lệ {scale:.4f}")
+    if gif:
+        z = 3
+        gframes = []
+        for c in cells:
+            bg = Image.new("RGBA", (tw * z, th * z), (245, 240, 230, 255))
+            big = c.resize((tw * z, th * z), Image.NEAREST)
+            bg.alpha_composite(big)
+            d = ImageDraw.Draw(bg)
+            d.line([(0, (th - pad) * z), (tw * z, (th - pad) * z)], fill=(180, 160, 140), width=1)
+            gframes.append(bg.convert("RGB"))
+        Path(gif).parent.mkdir(parents=True, exist_ok=True)
+        gframes[0].save(gif, save_all=True, append_images=gframes[1:], duration=int(1000 / fps), loop=0)
+        print(f"{gif}: GIF xem trước {fps} fps (phóng 3x)")
+    return strip
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -228,6 +336,24 @@ def main():
     p.add_argument("--size", type=int, default=64)
     p.add_argument("--n", type=int, default=3)
     p.add_argument("--zoom", type=int, default=2)
+    p = sub.add_parser("sheet-split")
+    p.add_argument("src")
+    p.add_argument("--out", required=True, help="Spritesheet ngang đều ô (PNG)")
+    p.add_argument("--n", type=int, required=True, help="Số khung trong ảnh")
+    p.add_argument("--cell", default="64x96", help="Kích thước một ô WxH")
+    p.add_argument("--pad", type=int, default=1)
+    p.add_argument("--height", type=int, help="Chiều cao (px) của khung cao nhất trong ô; mặc định lấp đầy")
+    p.add_argument("--color", help="Màu nền hex (mặc định lấy 4 góc)")
+    p.add_argument("--tol", type=float, default=70)
+    p.add_argument("--holes", type=int, default=30)
+    p.add_argument("--head-frac", type=float, default=0.3, help="Phần trên (đầu/nón) dùng để căn giữa ngang")
+    p.add_argument("--flip", action="store_true", help="Lật ngang (vd. phải -> trái)")
+    p.add_argument("--order", help="Thứ tự khung, vd. 1,2,3,4 hoặc 3,4,1,2")
+    p.add_argument("--frames-dir", help="Lưu thêm từng khung riêng")
+    p.add_argument("--gif", help="Xuất GIF xem trước")
+    p.add_argument("--fps", type=int, default=8)
+    p.add_argument("--nobg", action="store_true", help="Ảnh đã trong suốt, bỏ qua tách nền")
+    p.add_argument("--despill-all", action="store_true", help="Khử ám xanh lá trên toàn ảnh (nhân vật không có màu xanh lá)")
     a = ap.parse_args()
 
     if a.cmd == "removebg":
@@ -243,6 +369,11 @@ def main():
 
     elif a.cmd == "tiletest":
         tiletest(a.src, a.out, a.size, a.n, a.zoom)
+    elif a.cmd == "sheet-split":
+        w, _, h = a.cell.partition("x")
+        order = [int(x) - 1 for x in a.order.split(",")] if a.order else None
+        sheet_split(a.src, a.out, a.n, (int(w), int(h or w)), a.pad, a.height, a.color, a.tol, a.holes,
+                    True, a.head_frac, a.flip, a.gif, a.fps, order, a.frames_dir, a.nobg, a.despill_all)
 
 
 if __name__ == "__main__":

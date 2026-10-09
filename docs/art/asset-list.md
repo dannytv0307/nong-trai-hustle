@@ -18,7 +18,7 @@
 | ART-CHR-003 | {ten} — bậc ngoại hình 2–4 (Người bình thường / Khá giả / Phú ông), hướng xuống, dáng chống nạnh | CHR | 64×96 | tĩnh, anim bằng code | Bản đồ, "lột xác", `--ref` cho 4 hướng + chân dung từng bậc | Must | Approved — sheet `art-source/raw/hero-tiers/tiers-sheet.png` | [ART-CHR-003](prompts/ART-CHR-003.md) |
 | ART-TIL-001 | Tile cỏ (thử nối liền) | TIL | 256 = 4×4 ô 64 | — | Bản đồ | Must | Generated (thử) | [ART-TIL-001](prompts/ART-TIL-001.md) |
 | ART-TIL-002 | Tile đất cuốc (thử nối liền) | TIL | 256 = 4×4 ô 64 | — | Ruộng | Must | Generated (thử) | [ART-TIL-001](prompts/ART-TIL-001.md) |
-| ART-CHR-004 | {ten} — chu trình bước đi 4 khung × 4 hướng (bậc 1, sau đó bậc 2–4) | CHR | 64×96/khung | 4/hướng | Bản đồ | Must | Planned (chặng 4, D-020) | — |
+| ART-CHR-004 | {ten} — chu trình bước đi 4 khung × 4 hướng (**bậc 1** xong; bậc 2–4 sau) | CHR | 64×96/khung, dải 256×96 | 4/hướng, 8 fps | Bản đồ | Must | **Processed** (chờ người dùng duyệt) — sheet `art-source/raw/hero-walk/walk-sheet.png`, GIF `preview-<hướng>.gif` | [ART-CHR-004](prompts/ART-CHR-004.md) |
 
 **Vị trí file trong game** (bước 3.1, `game-dev` copy từ `art-source/raw/`; gốc `web/client/public/assets/art/`):
 
@@ -27,6 +27,7 @@
 | ART-CHR-002 | `characters/hero-t1-down.png`, `hero-t1-up.png`, `hero-t1-left.png`, `hero-t1-right.png` (từ `raw/hero-directions/hero-<hướng>.png`) |
 | ART-CHR-003 | `characters/hero-tier1-down.png` … `hero-tier4-down.png` (từ `raw/hero-tiers/`) |
 | ART-POR-001…009 | `portraits/portrait-hero-a-smirk.png` … `portrait-hero-i-money-eyes.png` (từ `raw/hero-expressions/final/`) |
+| ART-CHR-004 | `characters/hero-t1-walk-down.png`, `-up.png`, `-right.png`, `-left.png` — mỗi file 256×96 = 4 khung 64×96 một hàng, pivot giữa đáy (từ `raw/hero-walk/final/`; bản 2x ở `raw/hero-walk/final-2x/`) |
 | ART-TIL-001 / 002 | `tiles/tile-grass-test.png`, `tiles/tile-dirt-test.png` (256×256 = 4×4 ô, từ `raw/tile-test/tiletest-*-256_256.png`) |
 
 ## Changelog
@@ -37,3 +38,4 @@
 - 2026-10-09 — Thêm ART-CHR-003 (bậc ngoại hình 2–4, D-015): gen 8 ảnh `--hq`, đã tách nền + cắt chung khung 64×96 ở `art-source/raw/hero-tiers/` (`hero-tier1..4-down.png`). Chờ người dùng duyệt; sau đó mới gen 3 hướng còn lại cho mỗi bậc (9 ảnh) và chân dung theo bậc (Should).
 - 2026-10-09 — Người dùng duyệt: 9 biểu cảm, 4 hướng, 4 bậc ngoại hình → Approved. Ảnh mẫu bậc 2–4 chép vào `art-source/reference/hero-tier{2,3,4}-src.png`.
 - 2026-10-09 — Bước 3.1: copy asset Approved + tile thử vào `web/client/public/assets/art/` (bảng "Vị trí file trong game").
+- 2026-10-09 — ART-CHR-004 bậc 1 (làm sớm theo yêu cầu người dùng): gen 10 ảnh `--hq` 21:9 (một ảnh = 4 khung một hướng), cắt bằng `process_image.py sheet-split`, đặt 4 spritesheet vào `characters/hero-t1-walk-*.png`. Chờ duyệt.

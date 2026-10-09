@@ -8,6 +8,9 @@ const AUDIO = 'assets/audio';
 /** Khóa texture nhân vật theo bậc ngoại hình + hướng, vd `hero-t1-down`. */
 export const heroTextureKey = (tier: number, facing: Facing): string => `hero-t${tier}-${facing}`;
 
+/** Khóa spritesheet chu trình bước đi (ART-CHR-004), vd `hero-t1-walk-down`. Cũng là khóa animation. */
+export const heroWalkKey = (tier: number, facing: Facing): string => `hero-t${tier}-walk-${facing}`;
+
 const facings: Facing[] = ['down', 'up', 'left', 'right'];
 
 export const images: Record<string, string> = {
@@ -32,6 +35,14 @@ export const images: Record<string, string> = {
   'tile-grass-test': `${ART}/tiles/tile-grass-test.png`,
   'tile-dirt-test': `${ART}/tiles/tile-dirt-test.png`,
 };
+
+/** Kích thước một khung trong spritesheet bước đi (px). */
+export const HERO_WALK_FRAME = { width: 64, height: 96, count: 4 } as const;
+
+/** Spritesheet: dải ngang nhiều khung bằng nhau. Bậc 1, 4 hướng × 4 khung (ART-CHR-004). */
+export const spritesheets: Record<string, string> = Object.fromEntries(
+  facings.map((d) => [heroWalkKey(1, d), `${ART}/characters/hero-t1-walk-${d}.png`]),
+);
 
 /** Âm thanh: ghi đường dẫn không đuôi; Preload tự thêm .ogg (ưu tiên) và .mp3 (Safari). */
 export const audio: Record<string, string> = {

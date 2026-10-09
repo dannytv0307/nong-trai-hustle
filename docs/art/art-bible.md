@@ -166,6 +166,15 @@ Thư mục gốc: `web/client/public/assets/art/` (nếu chưa có `web/client/`
 4. **Cắt sprite cùng một khung:** các bậc gen cùng thang trong ảnh 1024 → cắt **chung một hộp** (hợp bbox, 2:3, neo đáy) rồi mới thu về 64×96. `fit` riêng từng ảnh sẽ phóng to bậc có đầu thấp hơn (bậc 4 không có nón trên đầu).
 5. **Ở 64 px bậc 1 và bậc 2 rất giống nhau** (cùng áo nâu, chỉ khác vá nón và dép): nếu cần khác rõ hơn, đổi màu áo bậc 2 (vd. nâu nhạt `#B98550`) — chờ người dùng quyết.
 
+### 10.4 Bài học chu trình bước đi (ART-CHR-004)
+
+1. **Một ảnh 21:9 = 4 khung một hướng** (`--hq`, `--ref` ảnh mẫu cùng hướng + ảnh mặt trước) cho nhân vật nhất quán gần tuyệt đối giữa các khung (bề ngang nón lệch ≤ 2 px/1584). Tả **từng khung** (CONTACT / PASSING, chân nào trước, tay nào vung) + "same invisible horizontal ground line" + "clear empty green space between the figures".
+2. **Ảnh mẫu thắng chữ cả về góc nhìn:** hướng xuống với ref mặt trước 3/4 luôn ra 3/4 bước chéo (4/4 ảnh), dù prompt ghi "straight-on, symmetrical". Khắc phục: thêm **ảnh lưng đối xứng làm ref thứ hai** và nói rõ "ảnh 1 = nhân vật, ảnh 2 = góc máy" → ra chính diện (1/2).
+3. Ảnh mẫu RGBA trong suốt (`hero-side.png`, `hero-back.png`) → ghép lên nền `#00FF00` trước khi `--ref` (`art-source/raw/hero-walk/ref/`).
+4. Hậu kỳ: `process_image.py sheet-split <sheet> --n 4 --cell 64x96 --pad 1 --holes 5 --despill-all [--flip] --out … --gif …` — tách nền, **một tỉ lệ chung** theo khung cao nhất (giữ nảy đầu thật), căn đáy, căn giữa theo nón/đầu (30% trên), xuất dải đều ô cho Phaser + GIF. `--despill-all` chỉ dùng cho nhân vật không có màu xanh lá.
+5. Nhìn từ sau, tay gần như không lộ và đầu không nảy — bình thường; nảy 1 px có thể cộng bằng code.
+6. Dáng đứng `hero-t1-down` (3/4 chống nạnh) khác dáng đi xuống (chính diện) — chuyển đứng↔đi sẽ "xoay người" nhẹ. Nếu chướng, dùng khung 2 của dải đi làm dáng đứng hướng xuống.
+
 ## 11. Checklist QA nhất quán
 
 - [ ] Viền một màu `#2E2118`, cùng độ dày với asset đã duyệt, nét kiểu khắc gỗ (không mảnh, không vector trơn)
@@ -190,3 +199,4 @@ Thư mục gốc: `web/client/public/assets/art/` (nếu chưa có `web/client/`
 - 2026-10-09 — Đổi visual hook {ten}: khăn xếp đỏ → **nón lá chóp nhọn rách vành, quai đỏ son** (người dùng yêu cầu thuần Việt hơn). Cập nhật token §8, NEGATIVE §4 (sombrero, nón Nhật/Trung, khan xep), vai trò màu §5, tỉ lệ §6.2, checklist.
 - 2026-10-09 — Bước 2.2: **khóa style** (D-014). Style anchor = ảnh #4 người dùng chọn (`art-source/reference/hero-front*.png`), thêm `hero-back.png`, `hero-side.png`. Thêm §10.2 bài học, kết quả thử tile ở §9.1, quy tắc "ảnh mẫu thắng chữ".
 - 2026-10-09 — ART-CHR-003 (4 bậc ngoại hình, D-015): thêm §10.3 bài học (prompt "thay đồ giữ người", cách tả khăn xếp không thành mũ/turban, nón đeo sau lưng, cắt chung khung cho các bậc). Màu áo the bậc 4: nâu đỏ sẫm giữa `#7A4B2A` và `#9C4A32` (Giả định, không thêm màu khóa).
+- 2026-10-09 — ART-CHR-004 (chu trình đi bậc 1): thêm §10.4 bài học (sheet 21:9 nhiều khung, ref lưng để khóa góc chính diện, lệnh `sheet-split`).

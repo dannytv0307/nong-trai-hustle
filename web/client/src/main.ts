@@ -4,6 +4,8 @@ import { gameConfig } from './config/gameConfig';
 import { palette } from './config/palette';
 import { BootScene } from './scenes/BootScene';
 import { PreloadScene } from './scenes/PreloadScene';
+import { GardenHudScene } from './scenes/GardenHudScene';
+import { GardenScene } from './scenes/GardenScene';
 import { SandboxScene } from './scenes/SandboxScene';
 
 declare global {
@@ -27,7 +29,8 @@ const game = new Phaser.Game({
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
-  scene: [BootScene, PreloadScene, SandboxScene],
+  // Scene đầu tiên trong danh sách tự chạy (Boot); các scene khác chờ được gọi start/launch.
+  scene: [BootScene, PreloadScene, GardenScene, GardenHudScene, SandboxScene],
 });
 
 window.__game = game;

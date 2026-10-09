@@ -1,9 +1,11 @@
-// Preload: tải mọi asset trong config/assets.ts, vẽ thanh tiến độ, xong thì sang Sandbox.
+// Preload: tải mọi asset trong config/assets.ts, vẽ thanh tiến độ, xong thì sang Vườn
+// (hoặc Sandbox nếu địa chỉ có ?scene=sandbox).
 import Phaser from 'phaser';
-import { audio, images } from '../config/assets';
+import { audio, HERO_WALK_FRAME, images, spritesheets } from '../config/assets';
 import { gameConfig } from '../config/gameConfig';
 import { palette } from '../config/palette';
 import { textStyles } from '../config/theme';
+import { startSceneFromSearch } from '../utils/sceneSelect';
 
 export class PreloadScene extends Phaser.Scene {
   constructor() {
@@ -29,11 +31,14 @@ export class PreloadScene extends Phaser.Scene {
     });
 
     for (const [key, url] of Object.entries(images)) this.load.image(key, url);
+    // Spritesheet: Phaser tự cắt dải ảnh thành các khung đánh số 0, 1, 2, 3.
+    const frame = { frameWidth: HERO_WALK_FRAME.width, frameHeight: HERO_WALK_FRAME.height };
+    for (const [key, url] of Object.entries(spritesheets)) this.load.spritesheet(key, url, frame);
     // Phaser chọn định dạng đầu tiên trình duyệt hỗ trợ: OGG (Chrome/Edge/Firefox), MP3 (Safari).
     for (const [key, base] of Object.entries(audio)) this.load.audio(key, [`${base}.ogg`, `${base}.mp3`]);
   }
 
   create(): void {
-    this.scene.start('Sandbox');
+    this.scene.start(startSceneFromSearch(window.location.search));
   }
 }
