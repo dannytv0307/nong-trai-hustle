@@ -21,7 +21,6 @@
       "Bash(docker info*)"
     ],
     "deny": [
-      "Bash(git push*)",
       "Read(./**/*.keystore)",
       "Read(./**/*.jks)",
       "Read(./**/.env)",
