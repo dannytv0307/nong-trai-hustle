@@ -3,12 +3,16 @@
 // T-002: rê chuột chỉ ô (viền sáng trong tầm / xám ngoài tầm), click để cuốc ruộng.
 // T-002 phần 2 (D-022): cuốc là "việc nặng" — một click, {ten} tự bổ 6 nhát (≈ 5 giây), thanh tiến độ 6 đốt,
 // đất đổi 3 nấc, WASD = bỏ dở (ô giữ số nhát), giữ chuột rê xếp hàng tối đa 3 ô.
+// T-003: click ô ruộng → nhân vật tự chọn việc (cuốc / gieo hạt đang chọn / tưới / hái / dọn cây héo). Gieo, tưới,
+// hái, dọn là việc NHANH (actionDuration, hàng chờ actionQueueMax, vừa giữ chuột vừa đi được). Gùi + hotbar
+// (systems/inventory.ts) do scene này giữ; GardenHudScene vẽ hotbar/cửa sổ gùi. Phím thử G (dev) = qua một đêm.
 // Nhà, cây, ao, rào là hình khối màu theo palette (chưa có asset thật).
 import Phaser from 'phaser';
 import { heroTextureKey, heroTurnKey, heroWalkKey } from '../config/assets';
 import { gameConfig } from '../config/gameConfig';
 import { cssColor, palette } from '../config/palette';
-import { textStyles } from '../config/theme';
+import { textStyles, uiFontFamily } from '../config/theme';
+import bubbles from '../data/bubbles.json';
 import { InputController } from '../input/InputController';
 import {
   cornerNudge,
@@ -20,17 +24,34 @@ import {
   type TileRect,
 } from '../systems/garden';
 import {
-  canTill,
+  advanceDay,
+  clearWithered,
   createFarm,
+  cropStage,
   facingToward,
+  harvestPlot,
   inReach,
+  isRipe,
+  jobFor,
+  plantSeed,
   plotAt,
   strikeTill,
   strikesRemaining,
   tilledCount,
   tillStage,
+  waterPlot,
+  type CropStage,
   type FarmPlot,
+  type OvernightReport,
+  type TileJob,
 } from '../systems/farm';
+import { CROPS, growDaysOf } from '../systems/crops';
+import { createPitchLadder, nextLadderStep, tickPitchLadder } from '../systems/pitchLadder';
+import { addItem, canAdd, removeFromSlot, scrollSelect, selectSlot, setSlot, type Inventory } from '../systems/inventory';
+import { cropItemId, cropOfSeed, createStartInventory, itemInfo, pickSeedSlot } from '../systems/items';
+import { bagPanelRect, bagSlotAt, bagSlotRect, bagButtonRect, hotbarSlotAt, hotbarSlotRect, isOverHud, type Rect } from '../ui/hudLayout';
+import { cropColor, drawCrop, mixColor } from '../ui/itemArt';
+import type { GardenHudScene, HudDebugState } from './GardenHudScene';
 import { facingFromDirection, moveVelocity, type Facing } from '../systems/movement';
 import { pulseAlpha } from '../systems/pulse';
 import {
@@ -76,6 +97,23 @@ const DEPTH_TILL_DUST = 5000;
 const DEPTH_TILL_UI = 6000;
 /** Nấc đất cuốc dở (vẽ bằng code) + ô "nảy" lúc xong: ngay trên nền, dưới viền ruộng. */
 const DEPTH_TILL_MARKS = DEPTH_GROUND + 2;
+/** Ô đã tưới (sẫm) / cây khát (đất khô) — phủ trên nền + lớp đất khô, dưới nấc đất (T-003). */
+const DEPTH_SOIL_WET = DEPTH_GROUND + 1.5;
+/** Bong bóng chữ trên đầu nhân vật: nổi trên mọi thứ trong cảnh. */
+const DEPTH_BUBBLE = 7000;
+/** Gốc cây nằm ở bao nhiêu phần chiều cao ô (tính từ mép trên) — cây "đứng" trên luống, depth theo gốc. */
+const CROP_BASE = 0.78;
+/** Pool giọt nước / hạt rơi (tưới, gieo). */
+const DROP_POOL = gameConfig.waterDropCount * 3;
+/** Pool hình "cây bật lên" khi hái — đủ cho cả hàng chờ việc nhanh. */
+const POP_POOL = gameConfig.actionQueueMax + 2;
+/** Tiếng tưới — chọn ngẫu nhiên một trong hai (GDD §8 "róc rách"). */
+const WATER_SFX = ['sfx-tuoi-nuoc-1', 'sfx-tuoi-nuoc-2'] as const;
+/** Tiếng gieo "lách tách" (AUD-SFX-101) và hái "pop" (AUD-SFX-102) — chọn ngẫu nhiên một trong hai. */
+const PLANT_SFX = ['sfx-gieo-hat-1', 'sfx-gieo-hat-2'] as const;
+const HARVEST_SFX = ['sfx-hai-cay-1', 'sfx-hai-cay-2'] as const;
+/** Giữ bao nhiêu lần hái gần nhất trong debugState (để test kiểm thang cao độ). */
+const HARVEST_SFX_LOG = 12;
 
 /**
  * Viền xám (ngoài tầm): palette chưa có xám → trộn nửa-nửa trắng điệp + mực = xám ấm, vẫn hợp tông.
@@ -190,7 +228,16 @@ export interface GardenDebugState {
    * Ô dưới con trỏ (null = con trỏ ngoài game/bản đồ). `highlight` = màu viền đang vẽ,
    * `alpha` = độ đục viền lúc này (ô trong tầm "thở" lên xuống, ngoài tầm đứng yên 1).
    */
-  hover: { x: number; y: number; inReach: boolean; tillable: boolean; highlight: 'bright' | 'gray'; alpha: number } | null;
+  hover: {
+    x: number;
+    y: number;
+    inReach: boolean;
+    tillable: boolean;
+    /** Việc sẽ làm nếu click ô này (T-003), null = không làm gì. */
+    job: TileJob | null;
+    highlight: 'bright' | 'gray';
+    alpha: number;
+  } | null;
   /**
    * Việc trên ô: đang làm ô nào, tiến độ NHÁT hiện tại (0–1), hàng chờ (theo thứ tự 1, 2, 3), số nhát còn lại /
    * đã bổ ở ô hiện tại trong lần làm này, loại việc của lần giữ chuột ('till' hoặc null).
@@ -203,8 +250,57 @@ export interface GardenDebugState {
     queue: TileXY[];
     strikesLeft: number;
     strikesDone: number;
-    dragKind: 'till' | null;
+    /** Loại việc của lần giữ chuột (chốt theo ô bấm đầu). */
+    dragKind: TileJob | null;
+    /** Loại việc của ô đang làm + hàng chờ (null = rảnh). */
+    kind: TileJob | null;
   };
+  /** Cây trên từng ô ruộng có cây (T-003). `stage` = hình đang vẽ; `thirsty` = hôm qua không tưới (lá rũ). */
+  crops: {
+    x: number;
+    y: number;
+    cropId: string;
+    age: number;
+    dryDays: number;
+    watered: boolean;
+    ripe: boolean;
+    withered: boolean;
+    thirsty: boolean;
+    stage: CropStage;
+  }[];
+  /** Gùi (hàng đầu = hotbar), ô đang chọn, hạt gieo lần trước. */
+  inventory: {
+    slots: ({ id: string; count: number; name: string } | null)[];
+    selected: number;
+    selectedItem: string | null;
+    lastSeedId: string | null;
+    hotbarSize: number;
+    stackMax: number;
+    revision: number;
+  };
+  /** Cửa sổ gùi (E) đang mở; ô gùi dưới con trỏ (-1 = không). */
+  bagOpen: boolean;
+  bagHoverSlot: number;
+  /** Bong bóng chữ trên đầu nhân vật: đang hiện, chữ, số lần hiện (mỗi lần câu mới / hiện lại). */
+  bubble: { visible: boolean; text: string; shows: number };
+  /** Đếm việc nhanh + juice (T-003). `lastOvernight` = kết quả lần "qua đêm" gần nhất (phím G). */
+  farmJuice: {
+    plants: number;
+    waters: number;
+    harvests: number;
+    clears: number;
+    nights: number;
+    dropsActive: number;
+    popsActive: number;
+    lastWaterSfx: string | null;
+    /** Tiếng gieo vừa phát (key + detune cent). */
+    lastPlantSfx: { key: string; detune: number } | null;
+    /** Các lần phát tiếng hái gần nhất (cũ → mới), detune theo thang ngũ cung. */
+    harvestSfx: { key: string; detune: number }[];
+    lastOvernight: OvernightReport | null;
+  };
+  /** HUD (hotbar / gùi): icon đang bay, ô đang nảy, tooltip, cửa sổ gùi hiện. */
+  hud: HudDebugState | null;
   /** Cuốc nhiều nhát (D-022): thông số đang dùng + đếm sự kiện + thứ đang hiện trên màn. */
   till: {
     tuning: TillTuning;
@@ -287,7 +383,7 @@ export class GardenScene extends Phaser.Scene {
    * Loại việc của lần giữ chuột hiện tại, chốt theo ô bấm đầu tiên (GDD §3.3 "một lần rê một loại việc").
    * null = lần bấm này không làm gì (bấm trên cỏ…) hoặc đã buông chuột.
    */
-  private dragKind: 'till' | null = null;
+  private dragKind: TileJob | null = null;
   /** Vừa bỏ dở bằng WASD mà chuột vẫn giữ → không tự cuốc lại cho tới khi buông chuột. */
   private dragBlocked = false;
   /** Khựng hình còn lại (giây) — nhát cuối (tillFinishHitStopSeconds). */
@@ -326,8 +422,59 @@ export class GardenScene extends Phaser.Scene {
   /** Ô viền đang chỉ (để biết khi nào đổi ô); -1 = chưa có. */
   private highlightTileKey = -1;
   /** Ô dưới con trỏ ở frame này (tái dùng object). */
-  private readonly hover = { x: 0, y: 0, valid: false, inReach: false, tillable: false };
+  private readonly hover = { x: 0, y: 0, valid: false, inReach: false, tillable: false, job: null as TileJob | null };
   private readonly pointerWorldPt = new Phaser.Math.Vector2();
+  private readonly pointerScreenPt = new Phaser.Math.Vector2();
+
+  // ---- Gieo, tưới, hái + gùi/hotbar (T-003) ----
+  /** Gùi (hàng đầu = hotbar). Công khai để HUD đọc và vẽ; chỉ scene này sửa. */
+  readonly inventory: Inventory = createStartInventory(
+    gameConfig.startSeeds,
+    gameConfig.bagSlotsStart,
+    gameConfig.hotbarSlots,
+    gameConfig.stackMax,
+  );
+  /** Tăng mỗi khi gùi / ô chọn đổi → HUD biết lúc nào cần vẽ lại (không vẽ lại mỗi frame). */
+  inventoryRevision = 0;
+  /** Cửa sổ gùi (E) đang mở: việc trên ô đứng yên, không đi, click không xuống ruộng. */
+  bagOpen = false;
+  /** Ô gùi dưới con trỏ khi cửa sổ gùi mở (-1 = không) — HUD hiện tên món. */
+  bagHoverSlot = -1;
+  /** Tham số hàng đợi cho việc nhanh: 1 nhát × actionDuration, hàng chờ actionQueueMax. */
+  private readonly fastParams: TileActionParams = {
+    duration: gameConfig.actionDuration,
+    impactAt: gameConfig.actionImpactAt,
+    queueMax: gameConfig.actionQueueMax,
+  };
+  /** Lớp phủ "đã tưới" (sẫm) / "khát" (khô) mỗi ô ruộng, cùng thứ tự farm.plots. */
+  private readonly plotWet: Phaser.GameObjects.Rectangle[] = [];
+  /** Hình cây mỗi ô ruộng (vẽ bằng code theo giai đoạn) + chữ ký lần vẽ gần nhất. */
+  private readonly plotCrops: Phaser.GameObjects.Graphics[] = [];
+  private readonly cropDrawn: number[] = [];
+  // Pool giọt nước / hạt rơi.
+  private readonly drops: Phaser.GameObjects.Arc[] = [];
+  private readonly dropLife: number[] = [];
+  private readonly dropVx: number[] = [];
+  private readonly dropVy: number[] = [];
+  /** Pool hình "cây bật lên" khi hái + thời gian còn lại của từng cái. */
+  private readonly pops: Phaser.GameObjects.Graphics[] = [];
+  private readonly popLife: number[] = [];
+  private readonly popBaseY: number[] = [];
+  // Bong bóng chữ trên đầu.
+  private bubble!: Phaser.GameObjects.Container;
+  private bubbleBg!: Phaser.GameObjects.Graphics;
+  private bubbleText!: Phaser.GameObjects.Text;
+  private bubbleT = 0;
+  private bubblePopT = 0;
+  private bubbleShows = 0;
+  private readonly farmCounts = { plants: 0, waters: 0, harvests: 0, clears: 0, nights: 0 };
+  private lastWaterSfx: string | null = null;
+  /** Chuỗi hái liên tiếp → cao độ tiếng "pop" lên dần (thang harvestPitchLadderCents). */
+  private readonly harvestLadder = createPitchLadder();
+  private lastPlantSfx: { key: string; detune: number } | null = null;
+  /** Các lần phát tiếng hái gần nhất (key + detune), cũ → mới. */
+  private readonly harvestSfxLog: { key: string; detune: number }[] = [];
+  private lastOvernight: OvernightReport | null = null;
   // Pool bụi đất (nâu) khi cuốc — cùng cách với bụi chân: tạo sẵn, tái dùng.
   private readonly tillDust: Phaser.GameObjects.Arc[] = [];
   private readonly tillDustLife: number[] = [];
@@ -358,6 +505,7 @@ export class GardenScene extends Phaser.Scene {
     this.buildPlayer();
     this.buildDustPool();
     this.buildTileHighlight();
+    this.buildFarmJuice();
 
     this.physics.world.setBounds(0, 0, mapW, mapH);
     this.physics.add.collider(this.feet, solids);
@@ -417,6 +565,12 @@ export class GardenScene extends Phaser.Scene {
       this.plotBars.push(this.add.graphics().setDepth(DEPTH_TILL_UI));
       this.plotDrawn.push(-1);
       this.plotFlash.push(0);
+      this.plotWet.push(
+        this.add.rectangle(plot.x * T, plot.y * T, T, T, palette.ink, gameConfig.wateredSoilAlpha).setOrigin(0).setDepth(DEPTH_SOIL_WET).setVisible(false),
+      );
+      // Cây: Graphics đặt ở góc ô, depth = gốc cây → {ten} đứng dưới ô thì che cây, đứng trên thì bị cây che.
+      this.plotCrops.push(this.add.graphics().setPosition(plot.x * T, plot.y * T).setDepth(plot.y * T + T * CROP_BASE));
+      this.cropDrawn.push(-1);
       if (plot.soil === 'tilled') this.showTilled(plot);
     }
 
@@ -701,27 +855,31 @@ export class GardenScene extends Phaser.Scene {
   override update(_time: number, delta: number): void {
     const dt = delta / 1000;
     const speed = gameConfig.walkSpeed * T;
-    const wantDir = this.controls.moveDirection();
+    // T-003: phím bấm-một-lần (1–9, cuộn, E/Esc, G) trước, để mở gùi có tác dụng ngay frame này.
+    this.handleUiKeys();
+    // Cửa sổ gùi mở = "modal": không đi, việc trên ô đứng yên (không mất nhát), click không xuống ruộng.
+    const modal = this.bagOpen;
+    const wantDir = modal ? NO_DIR : this.controls.moveDirection();
     const wantsToMove = wantDir.x !== 0 || wantDir.y !== 0;
     // Chạm phím đi (kể cả nhấn + nhả lọt giữa hai frame — BUG-007). Luôn "tiêu thụ" mỗi frame để lần chạm cũ
     // không bỏ dở một lần cuốc sau.
-    const tappedMove = this.controls.consumeMovePress();
+    const tappedMove = this.controls.consumeMovePress() && !modal;
 
-    // D-022: bấm phím đi khi đang cuốc = BỎ DỞ — dừng ngay, đi được luôn trong frame này. Ô giữ số nhát
-    // đã chạm (nhát đang giơ chưa chạm thì không tính), hàng chờ bị xóa.
-    if ((wantsToMove || tappedMove) && isBusy(this.action)) this.abandonTill();
+    // D-022: bấm phím đi khi đang CUỐC = BỎ DỞ — dừng ngay, đi được luôn trong frame này. Ô giữ số nhát
+    // đã chạm (nhát đang giơ chưa chạm thì không tính), hàng chờ bị xóa. Việc nhanh (gieo/tưới/hái/dọn) thì không.
+    if ((wantsToMove || tappedMove) && this.isTilling()) this.abandonTill();
 
     // Khựng hình (nhát cuối): đứng hình cả động tác lẫn bụi trong vài chục mili-giây — cảm giác "chốt".
     const frozen = this.hitStop > 0;
     if (frozen) this.hitStop = Math.max(0, this.hitStop - dt);
-    const workDt = frozen ? 0 : dt;
+    const workDt = frozen || modal ? 0 : dt;
 
-    // T-002: chỉ ô bằng chuột → xin cuốc ô → tiến nhát cuốc đang làm (quay mặt, chạm, xong ô).
+    // Chỉ ô bằng chuột → xin việc cho ô → tiến việc đang làm (quay mặt, chạm, xong ô).
     this.updatePointer(dt, wantsToMove);
-    this.updateTileAction(workDt);
-    // Đang cuốc thì đứng yên (GDD §3.3a) — phím đi đã xử lý ở trên (bỏ dở), nên ở đây busy = không bấm phím.
+    this.updateTileAction(workDt, wantsToMove);
+    // Đang CUỐC thì đứng yên (GDD §3.3a) — phím đi đã xử lý ở trên (bỏ dở). Việc nhanh vẫn đi được (D-022).
     const busy = isBusy(this.action);
-    const dir = busy ? NO_DIR : wantDir;
+    const dir = this.isTilling() ? NO_DIR : wantDir;
     const v = moveVelocity(dir, speed); // đi chéo đã chuẩn hoá, không nhanh hơn đi thẳng
     // Nắn vào cửa: đi thẳng vào tường mà chỉ lệch mép khe ≤ cornerNudgePx → tự trượt ngang vào khe.
     const b = this.feetBody;
@@ -759,8 +917,9 @@ export class GardenScene extends Phaser.Scene {
     const footBottom = this.feetBody.bottom;
 
     // Nhún mỗi nhát cuốc (squash & stretch) nhân với nhịp thở.
-    const progress = busy ? this.action.elapsed / this.tillParams.duration : 0;
-    actionPose(progress, this.tillParams.impactAt, gameConfig.actionSquash, gameConfig.actionStretch, this.pose);
+    const params = this.paramsFor(this.action.kind);
+    const progress = busy ? this.action.elapsed / params.duration : 0;
+    actionPose(progress, params.impactAt, gameConfig.actionSquash, gameConfig.actionStretch, this.pose);
     this.hero
       .setPosition(fx, footBottom + pose.offsetY)
       .setScale(this.pose.scaleX, pose.scaleY * this.pose.scaleY)
@@ -772,6 +931,13 @@ export class GardenScene extends Phaser.Scene {
     this.updateTillDust(workDt);
     this.updateSweat(workDt);
     this.updateTillVisuals(workDt);
+    this.updateDrops(workDt);
+    this.updatePops(workDt);
+    tickPitchLadder(this.harvestLadder, workDt);
+    this.updateCropVisuals();
+    this.updateBubble(dt);
+    // Bỏ các lần nhấn phím / cuộn chưa ai dùng tới, để không lọt sang frame sau.
+    this.controls.endFrame();
   }
 
   // ---------------------------------------------------------------- chỉ ô & cuốc (T-002)
@@ -833,9 +999,11 @@ export class GardenScene extends Phaser.Scene {
 
   /**
    * Mỗi frame: tìm ô dưới con trỏ (theo camera — camera chạy thì ô dưới chuột đổi dù chuột đứng yên),
-   * kiểm tầm với từ tâm nhân vật, vẽ viền sáng/xám. Click, hoặc giữ chuột rê, trên ô ruộng chưa cuốc / cuốc dở
-   * trong tầm → xin cuốc (rảnh thì cuốc ngay, đang cuốc thì vào hàng chờ tối đa tillQueueMax ô).
-   * Đang bấm phím đi thì không nhận ô (cuốc là việc đứng yên — D-022).
+   * kiểm tầm với từ tâm nhân vật, vẽ viền sáng/xám. Click, hoặc giữ chuột rê, trên ô ruộng trong tầm → xin việc
+   * cho ô đó (GDD §3.3): chưa cuốc/cuốc dở → cuốc; đã cuốc trống → gieo; chưa tưới → tưới; chín → hái; héo → dọn.
+   * Một lần giữ chuột chỉ làm MỘT loại việc, chốt theo ô bấm đầu tiên.
+   * Cuốc: đang bấm phím đi thì không nhận (cuốc là việc đứng yên — D-022). Việc nhanh: vừa đi vừa làm được.
+   * Con trỏ trên hotbar / nút gùi / cửa sổ gùi thì click thuộc về giao diện, không xuống ruộng.
    */
   private updatePointer(dt: number, wantsToMove: boolean): void {
     const pressed = this.controls.consumePrimaryPress();
@@ -846,14 +1014,43 @@ export class GardenScene extends Phaser.Scene {
       this.dragBlocked = false;
     }
     const h = this.hover;
+    const inside = this.controls.isPointerInside();
+    const sp = this.controls.pointerScreen(this.pointerScreenPt);
+
+    if (this.bagOpen) {
+      // Cửa sổ gùi: chỉ biết con trỏ trên ô nào (HUD hiện tên món). Click ra ngoài khung = đóng gùi.
+      this.hideHighlight();
+      h.valid = false;
+      const n = this.inventory.slots.length;
+      this.bagHoverSlot = inside ? bagSlotAt(sp.x, sp.y, n) : -1;
+      if (pressed) {
+        if (!rectContains(bagPanelRect(n), sp.x, sp.y)) this.setBagOpen(false);
+        this.dragKind = null;
+        this.dragBlocked = true;
+      }
+      return;
+    }
+    this.bagHoverSlot = -1;
+    if (inside && isOverHud(sp.x, sp.y)) {
+      // Trên hotbar: click chọn ô; trên nút gùi: mở gùi. Giữ chuột kéo ra ruộng cũng không làm gì (dragBlocked).
+      this.hideHighlight();
+      h.valid = false;
+      if (pressed) {
+        const slot = hotbarSlotAt(sp.x, sp.y);
+        if (slot >= 0) this.selectHotbar(slot);
+        else if (rectContains(bagButtonRect(), sp.x, sp.y)) this.setBagOpen(true);
+        this.dragKind = null;
+        this.dragBlocked = true;
+      }
+      return;
+    }
+
     const pt = this.controls.pointerWorld(this.cameras.main, this.pointerWorldPt);
     const tx = Math.floor(pt.x / T);
     const ty = Math.floor(pt.y / T);
-    h.valid = this.controls.isPointerInside() && tx >= 0 && ty >= 0 && tx < L.cols && ty < L.rows;
+    h.valid = inside && tx >= 0 && ty >= 0 && tx < L.cols && ty < L.rows;
     if (!h.valid) {
-      this.highlight.setVisible(false);
-      this.highlightBacking.setVisible(false);
-      this.highlightTileKey = -1;
+      this.hideHighlight();
       if (pressed) this.dragKind = null;
       return;
     }
@@ -861,21 +1058,119 @@ export class GardenScene extends Phaser.Scene {
     h.x = tx;
     h.y = ty;
     h.inReach = inReach(c.x, c.y, tx, ty, T, gameConfig.interactRange);
-    h.tillable = canTill(this.farm, tx, ty);
+    h.job = jobFor(this.farm, tx, ty, growDaysOf);
+    h.tillable = h.job === 'till';
 
     this.drawTileHighlight(tx, ty, h.inReach, dt);
 
-    // Một lần giữ chuột = một loại việc, chốt theo ô bấm đầu tiên (GDD §3.3). Bấm vào cỏ → lần rê này không làm gì.
-    // (T-003 thêm 'plant' khi bấm vào ô đã cuốc.)
+    // Một lần giữ chuột = một loại việc, chốt theo ô bấm đầu tiên (GDD §3.3). Bấm vào cỏ / cây đã tưới → lần rê
+    // này không làm gì. Bấm ô chưa cuốc → chỉ cuốc; bấm ô đã cuốc → chỉ gieo; bấm cây chưa tưới → chỉ tưới…
     if (pressed) {
-      this.dragKind = h.tillable ? 'till' : null;
+      this.dragKind = h.job;
       this.dragBlocked = false;
     }
     // Ngoài tầm: click không làm gì (GDD §3.3).
-    if ((pressed || held) && this.dragKind === 'till' && !this.dragBlocked && !wantsToMove && h.inReach && h.tillable) {
+    if (!(pressed || held) || this.dragKind === null || this.dragBlocked || !h.inReach || h.job !== this.dragKind) return;
+    if (this.dragKind === 'till') {
       // Click ô đang cuốc / đã trong hàng chờ, hoặc hàng chờ đầy → requestTile tự bỏ qua.
-      requestTile(this.action, h, this.tillParams);
+      if (!wantsToMove) requestTile(this.action, h, this.tillParams, 'till');
+      return;
     }
+    this.requestFastJob(h, this.dragKind);
+  }
+
+  /** Ẩn viền ô (con trỏ ra ngoài bản đồ / nằm trên giao diện / đang mở gùi). */
+  private hideHighlight(): void {
+    this.highlight.setVisible(false);
+    this.highlightBacking.setVisible(false);
+    this.highlightTileKey = -1;
+  }
+
+  /**
+   * Xin một việc nhanh cho ô `t` (gieo/tưới/hái/dọn). Kiểm trước điều kiện "ngoài ruộng": còn hạt để gieo,
+   * gùi còn chỗ để hái — thiếu thì bong bóng ("hết hạt rồi", "gùi đầy") và không xếp hàng.
+   */
+  private requestFastJob(t: TileXY, kind: TileJob): void {
+    if (isPending(this.action, t)) return;
+    if (!this.canDoJob(t, kind, true)) return;
+    requestTile(this.action, t, this.fastParams, kind);
+  }
+
+  /**
+   * Điều kiện ngoài ô ruộng của một việc (ô ruộng đúng loại việc thì jobFor đã kiểm):
+   * gieo cần còn hạt (pickSeedSlot), hái cần gùi còn chỗ cho món đó. `speak` = hiện bong bóng khi không được.
+   */
+  private canDoJob(t: TileXY, kind: TileJob, speak: boolean): boolean {
+    if (kind === 'plant' && pickSeedSlot(this.inventory) < 0) {
+      if (speak) this.showBubble(bubbles.noSeeds);
+      return false;
+    }
+    if (kind === 'harvest') {
+      const crop = plotAt(this.farm, t.x, t.y)?.crop;
+      if (crop && !canAdd(this.inventory, cropItemId(crop.cropId), 1)) {
+        if (speak) this.showBubble(bubbles.bagFull);
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /** Đang cuốc (việc nặng, khóa chân) không. */
+  private isTilling(): boolean {
+    return isBusy(this.action) && this.action.kind === 'till';
+  }
+
+  /** Tham số nhịp/hàng chờ theo loại việc: cuốc = nhát tillStrikeSeconds, còn lại = actionDuration. */
+  private paramsFor(kind: string | null): TileActionParams {
+    return kind === 'till' ? this.tillParams : this.fastParams;
+  }
+
+  // ---------------------------------------------------------------- phím giao diện, hotbar, gùi (T-003)
+
+  /** Phím bấm-một-lần: 1–9 / cuộn chuột chọn ô hotbar, E (Tab) mở/đóng gùi, Esc đóng gùi, G (dev) qua đêm. */
+  private handleUiKeys(): void {
+    const c = this.controls;
+    if (c.consumePressed('openBag')) this.setBagOpen(!this.bagOpen);
+    if (c.consumePressed('menu') && this.bagOpen) this.setBagOpen(false);
+    const slot = c.hotbarPressed();
+    if (slot !== null) this.selectHotbar(slot);
+    const wheel = c.consumeWheelSteps();
+    if (wheel !== 0) {
+      scrollSelect(this.inventory, wheel);
+      this.inventoryRevision++;
+    }
+    if (c.consumePressed('devNextDay') && gameConfig.devCheatsEnabled && !this.bagOpen) {
+      this.runOvernight();
+      this.showBubble(bubbles.devNextDay);
+    }
+  }
+
+  private selectHotbar(index: number): void {
+    if (selectSlot(this.inventory, index)) this.inventoryRevision++;
+  }
+
+  /** Mở / đóng cửa sổ gùi. Mở thì ẩn viền ô và chặn lần giữ chuột đang dở (đóng lại phải bấm lại). */
+  private setBagOpen(open: boolean): void {
+    if (this.bagOpen === open) return;
+    this.bagOpen = open;
+    this.bagHoverSlot = -1;
+    this.dragKind = null;
+    this.dragBlocked = true;
+    if (open) this.hideHighlight();
+  }
+
+  /**
+   * "Qua đêm" (GDD §3.4) — gọi chung hàm thuần `advanceDay` với lúc ngủ ở T-007: cây đã tưới lớn +1 ngày,
+   * không tưới thì khát, khát đủ ngày thì héo, mọi ô bỏ "đã tưới". Hình cây tự vẽ lại theo trạng thái mới.
+   */
+  runOvernight(): OvernightReport {
+    this.lastOvernight = advanceDay(this.farm, {
+      growDaysOf,
+      unwateredDaysToWither: gameConfig.unwateredDaysToWither,
+      tillProgressKeepsOvernight: gameConfig.tillProgressKeepsOvernight,
+    });
+    this.farmCounts.nights++;
+    return this.lastOvernight;
   }
 
   /**
@@ -915,42 +1210,173 @@ export class GardenScene extends Phaser.Scene {
   }
 
   /**
-   * Tiến nhát cuốc; phản ứng với các mốc: bắt đầu ô (quay mặt, đứng yên), mỗi nhát chạm (ô thêm 1 nhát + juice),
-   * nhát cuối (ô thành đất cuốc + juice "chốt").
+   * Tiến việc đang làm; phản ứng với các mốc: bắt đầu ô (quay mặt; cuốc thì đứng yên), mỗi lần chạm (cuốc: ô thêm
+   * 1 nhát + juice; việc nhanh: gieo/tưới/hái/dọn + juice), nhát cuối cuốc (ô thành đất cuốc + juice "chốt").
    */
-  private updateTileAction(dt: number): void {
+  private updateTileAction(dt: number, wantsToMove: boolean): void {
     const c = this.feetBody.center;
     const n = this.tillTuning.strikesPerPlot;
-    // Tới lượt mà ô đã ra ngoài tầm hoặc đã cuốc xong rồi → bỏ, xét ô kế.
+    // Cả hàng chờ chung một loại việc → đọc trước khi bước (bước xong mà hết việc thì kind về null).
+    const kind = this.action.kind as TileJob | null;
+    // Tới lượt mà ô đã ra ngoài tầm, đã đổi việc (vd đã gieo rồi), hết hạt, gùi đầy… → bỏ, xét ô kế.
     const stillValid = (t: TileXY) =>
-      canTill(this.farm, t.x, t.y) && inReach(c.x, c.y, t.x, t.y, T, gameConfig.interactRange);
-    // Ô cuốc dở thì chỉ làm số nhát còn lại (vd 4/6 → 2 nhát).
-    const strikesFor = (t: TileXY) => strikesRemaining(this.farm, t.x, t.y, n);
-    const ev = stepTileAction(this.action, dt, this.tillParams, stillValid, this.actionEvents, strikesFor);
+      kind !== null &&
+      inReach(c.x, c.y, t.x, t.y, T, gameConfig.interactRange) &&
+      jobFor(this.farm, t.x, t.y, growDaysOf) === kind &&
+      this.canDoJob(t, kind, true);
+    // Ô cuốc dở thì chỉ làm số nhát còn lại (vd 4/6 → 2 nhát). Việc nhanh: 1 "nhát".
+    const strikesFor = (t: TileXY) => (kind === 'till' ? strikesRemaining(this.farm, t.x, t.y, n) : 1);
+    const ev = stepTileAction(this.action, dt, this.paramsFor(kind), stillValid, this.actionEvents, strikesFor);
 
     if (ev.started) {
-      // Quay mặt về ô — dùng chung đường xoay khung chéo như khi đi (turnAnim) cho mượt.
-      const to = facingToward(c.x, c.y, ev.started.x, ev.started.y, T, this.facing);
-      if (to !== this.facing) {
-        startTurn(this.turn, this.facing, to, this.lastDirX, TURN_FRAME_SEC);
-        this.facing = to;
-      }
-      // Dừng ngay (vận tốc cũ còn trên body tới bước vật lý kế).
-      this.feetBody.setVelocity(0, 0);
-    }
-    if (ev.impact) {
-      const result = strikeTill(this.farm, ev.impact.x, ev.impact.y, n);
-      const plot = plotAt(this.farm, ev.impact.x, ev.impact.y);
-      if (result !== 'invalid' && plot) {
-        const done = result === 'done';
-        if (done) {
-          this.showTilled(plot);
-          // Số nhát bị chỉnh nhỏ đi giữa chừng (QA) → ô xong sớm: không bổ tiếp vào đất đã cuốc.
-          if (isBusy(this.action) && this.action.strikesLeft > 1) this.action.strikesLeft = 1;
+      // Quay mặt về ô — dùng chung đường xoay khung chéo như khi đi (turnAnim) cho mượt. Đang đi (việc nhanh)
+      // thì hướng mặt theo hướng đi, không quay.
+      if (kind === 'till' || !wantsToMove) {
+        const to = facingToward(c.x, c.y, ev.started.x, ev.started.y, T, this.facing);
+        if (to !== this.facing) {
+          startTurn(this.turn, this.facing, to, this.lastDirX, TURN_FRAME_SEC);
+          this.facing = to;
         }
-        this.tillJuice(ev.impact.x, ev.impact.y, plot.tillStrikes, done);
       }
+      // Cuốc: dừng ngay (vận tốc cũ còn trên body tới bước vật lý kế).
+      if (kind === 'till') this.feetBody.setVelocity(0, 0);
     }
+    if (!ev.impact) return;
+    switch (kind) {
+      case 'till':
+        this.impactTill(ev.impact, n);
+        break;
+      case 'plant':
+        this.doPlant(ev.impact);
+        break;
+      case 'water':
+        this.doWater(ev.impact);
+        break;
+      case 'harvest':
+        this.doHarvest(ev.impact);
+        break;
+      case 'clear':
+        this.doClear(ev.impact);
+        break;
+      default:
+        break;
+    }
+  }
+
+  /** Một nhát cuốc chạm ô (D-022): +1 nhát, đủ nhát thì ô thành đất cuốc + juice "chốt". */
+  private impactTill(t: TileXY, n: number): void {
+    const result = strikeTill(this.farm, t.x, t.y, n);
+    const plot = plotAt(this.farm, t.x, t.y);
+    if (result === 'invalid' || !plot) return;
+    const done = result === 'done';
+    if (done) {
+      this.showTilled(plot);
+      // Số nhát bị chỉnh nhỏ đi giữa chừng (QA) → ô xong sớm: không bổ tiếp vào đất đã cuốc.
+      if (isBusy(this.action) && this.action.strikesLeft > 1) this.action.strikesLeft = 1;
+    }
+    this.tillJuice(t.x, t.y, plot.tillStrikes, done);
+  }
+
+  /** Gieo hạt (GDD §3.3): hạt ô hotbar đang chọn, không phải hạt thì hạt gieo lần trước; hết hạt → bong bóng. */
+  private doPlant(t: TileXY): void {
+    const slot = pickSeedSlot(this.inventory);
+    if (slot < 0) {
+      this.showBubble(bubbles.noSeeds);
+      return;
+    }
+    const seedId = this.inventory.slots[slot]!.id;
+    const cropId = cropOfSeed(seedId);
+    if (!cropId || !plantSeed(this.farm, t.x, t.y, cropId)) return;
+    removeFromSlot(this.inventory, slot, 1);
+    this.inventory.lastSeedId = seedId;
+    this.inventoryRevision++;
+    this.farmCounts.plants++;
+    const plantKey = PLANT_SFX[Math.floor(Math.random() * PLANT_SFX.length)];
+    if (this.cache.audio.exists(plantKey)) {
+      const detune = (Math.random() * 2 - 1) * gameConfig.plantSfxDetuneCents;
+      this.sound.play(plantKey, { volume: gameConfig.sfxVolume, detune });
+      this.lastPlantSfx = { key: plantKey, detune };
+      this.lastSfx = plantKey;
+    }
+    // Juice: vài hạt rơi xuống luống (GDD §8 "hạt rơi") + tiếng "lách tách" ở trên.
+    const cx = t.x * T + T / 2;
+    const cy = t.y * T + T * 0.55;
+    const color = mixColor(palette.earth, cropColor(cropId), 0.35);
+    for (let k = 0; k < gameConfig.plantSeedDropCount; k++) {
+      this.spawnDrop(cx + (Math.random() - 0.5) * T * 0.5, cy - T * 0.45, (Math.random() - 0.5) * 40, 60 + Math.random() * 40, color, 3, 0.35);
+    }
+  }
+
+  /** Tưới (GDD §8): giọt nước bắn + đất sẫm (vẽ ở updateCropVisuals) + tiếng "róc rách" (2 biến thể, lệch cao độ). */
+  private doWater(t: TileXY): void {
+    if (!waterPlot(this.farm, t.x, t.y)) return;
+    this.farmCounts.waters++;
+    const cx = t.x * T + T / 2;
+    const cy = t.y * T + T / 2;
+    const speed = 2.2 * T;
+    for (let k = 0; k < gameConfig.waterDropCount; k++) {
+      // Nửa vòng hướng lên: nước rơi xuống đất bắn tung toé.
+      const a = Math.PI * (1.05 + 0.9 * Math.random());
+      const v = speed * (0.45 + 0.55 * Math.random());
+      this.spawnDrop(
+        cx + (Math.random() - 0.5) * T * 0.6,
+        cy + (Math.random() - 0.2) * T * 0.3,
+        Math.cos(a) * v,
+        Math.sin(a) * v,
+        palette.water,
+        3 + Math.random() * 2.5,
+        gameConfig.waterDropLifeSeconds,
+      );
+    }
+    const key = WATER_SFX[Math.floor(Math.random() * WATER_SFX.length)];
+    if (this.cache.audio.exists(key)) {
+      this.sound.play(key, { volume: gameConfig.sfxVolume, detune: (Math.random() * 2 - 1) * 100 });
+      this.lastWaterSfx = key;
+      this.lastSfx = key;
+    }
+  }
+
+  /**
+   * Hái (GDD §3.3, §8): gùi đầy → không hái, bong bóng. Hái được → đồ vào ô cùng loại / ô trống đầu tiên, ô về đất
+   * chưa cuốc (harvestResetsSoil), cây bật lên, icon bay vào ô hotbar (HUD) và ô đó nảy.
+   */
+  private doHarvest(t: TileXY): void {
+    const plot = plotAt(this.farm, t.x, t.y);
+    const crop = plot?.crop;
+    if (!plot || !crop) return;
+    const itemId = cropItemId(crop.cropId);
+    if (!canAdd(this.inventory, itemId, 1)) {
+      this.showBubble(bubbles.bagFull);
+      return;
+    }
+    const cropId = harvestPlot(this.farm, t.x, t.y, growDaysOf, gameConfig.harvestResetsSoil);
+    if (!cropId) return;
+    const added = addItem(this.inventory, itemId, 1);
+    this.inventoryRevision++;
+    this.farmCounts.harvests++;
+    // Tiếng "pop": không random cao độ — hái liên tiếp thì lên dần theo thang ngũ cung, ngừng lâu thì về nấc đầu.
+    const detune = nextLadderStep(this.harvestLadder, gameConfig.harvestPitchLadderCents, gameConfig.harvestPitchResetSeconds);
+    const harvestKey = HARVEST_SFX[Math.floor(Math.random() * HARVEST_SFX.length)];
+    if (this.cache.audio.exists(harvestKey)) {
+      this.sound.play(harvestKey, { volume: gameConfig.sfxVolume, detune });
+      this.harvestSfxLog.push({ key: harvestKey, detune });
+      if (this.harvestSfxLog.length > HARVEST_SFX_LOG) this.harvestSfxLog.shift();
+      this.lastSfx = harvestKey;
+    }
+    if (plot.soil === 'untilled') this.showUntilled(plot);
+    this.spawnPop(t, cropId);
+    // Icon bay: HUD vẽ ở hệ toạ độ màn hình → đổi tâm ô ra toạ độ màn.
+    const screen = this.debugTileToScreen(t.x, t.y);
+    this.events.emit('item-gained', { itemId, slot: added.firstSlot, screenX: screen.x, screenY: screen.y - T * 0.3 * this.cameras.main.zoom });
+  }
+
+  /** Dọn cây héo: ô về đất chưa cuốc (tillStrikes = 0), bụi đất xám bay. */
+  private doClear(t: TileXY): void {
+    const plot = plotAt(this.farm, t.x, t.y);
+    if (!plot || !clearWithered(this.farm, t.x, t.y)) return;
+    this.farmCounts.clears++;
+    this.showUntilled(plot);
+    this.spawnTillDust(t.x * T + T / 2, t.y * T + T / 2, Math.ceil(gameConfig.tillDustCount / 2), gameConfig.tillDustSpeed * T * 0.8);
   }
 
   /** Ô (tx, ty) là ruộng đang cuốc, cuốc dở hoặc đang trong hàng chờ (để viền ô không phủ trắng lên). */
@@ -978,6 +1404,172 @@ export class GardenScene extends Phaser.Scene {
     this.plotTints[i]?.setVisible(false);
   }
 
+  /** Đổi hình ô về đất chưa cuốc (hái xong / dọn cây héo): lại là cỏ phủ màu đất khô, nấc đất vẽ lại từ đầu. */
+  private showUntilled(plot: FarmPlot): void {
+    const local = (plot.y % TILE_TEXTURE_CELLS) * TILE_TEXTURE_CELLS + (plot.x % TILE_TEXTURE_CELLS);
+    this.groundLayer.putTileAt(local, plot.x, plot.y);
+    const i = this.farm.plots.indexOf(plot);
+    this.plotTints[i]?.setVisible(true);
+    if (i >= 0) this.plotDrawn[i] = -1;
+  }
+
+  // ---------------------------------------------------------------- cây, giọt nước, bong bóng (T-003)
+
+  /** Tạo sẵn pool giọt nước / hạt rơi, hình "cây bật lên", bong bóng chữ — không tạo object mới khi đang chơi. */
+  private buildFarmJuice(): void {
+    for (let i = 0; i < DROP_POOL; i++) {
+      this.drops.push(this.add.circle(0, 0, 4, palette.water, 1).setStrokeStyle(1.5, palette.ink, 0.8).setVisible(false).setDepth(DEPTH_TILL_DUST));
+      this.dropLife.push(0);
+      this.dropVx.push(0);
+      this.dropVy.push(0);
+    }
+    for (let i = 0; i < POP_POOL; i++) {
+      this.pops.push(this.add.graphics().setVisible(false).setDepth(DEPTH_TILL_DUST - 1));
+      this.popLife.push(0);
+      this.popBaseY.push(0);
+    }
+    this.bubbleBg = this.add.graphics();
+    this.bubbleText = this.add
+      .text(0, 0, '', { fontFamily: uiFontFamily, fontSize: '17px', fontStyle: 'bold', color: cssColor('ink') })
+      .setOrigin(0.5)
+      .setResolution(2);
+    this.bubble = this.add.container(0, 0, [this.bubbleBg, this.bubbleText]).setDepth(DEPTH_BUBBLE).setVisible(false);
+  }
+
+  /** Một giọt (pool): vị trí, vận tốc (px/giây), màu, bán kính, thời gian sống. Hết pool thì bỏ qua. */
+  private spawnDrop(x: number, y: number, vx: number, vy: number, color: number, radius: number, life: number): void {
+    const i = this.dropLife.findIndex((l) => l <= 0);
+    if (i < 0) return;
+    this.drops[i].setPosition(x, y).setRadius(radius).setFillStyle(color, 1).setAlpha(1).setVisible(true);
+    this.dropVx[i] = vx;
+    this.dropVy[i] = vy;
+    this.dropLife[i] = life;
+  }
+
+  private updateDrops(dt: number): void {
+    if (dt <= 0) return;
+    const gravity = 8 * T;
+    for (let i = 0; i < this.drops.length; i++) {
+      if (this.dropLife[i] <= 0) continue;
+      this.dropLife[i] -= dt;
+      const d = this.drops[i];
+      if (this.dropLife[i] <= 0) {
+        d.setVisible(false);
+        continue;
+      }
+      this.dropVy[i] += gravity * dt;
+      d.x += this.dropVx[i] * dt;
+      d.y += this.dropVy[i] * dt;
+      d.setAlpha(Math.min(1, this.dropLife[i] * 5));
+    }
+  }
+
+  /** Hái: hình cây chín "bật lên" khỏi ô rồi mờ dần (GDD §8). */
+  private spawnPop(t: TileXY, cropId: string): void {
+    const i = this.popLife.findIndex((l) => l <= 0);
+    if (i < 0) return;
+    const g = this.pops[i];
+    g.clear();
+    drawCrop(g, cropId, 'ripe', false, 0, 0);
+    const baseY = t.y * T + T * CROP_BASE;
+    g.setPosition(t.x * T + T / 2, baseY).setScale(1).setAlpha(1).setVisible(true);
+    this.popLife[i] = gameConfig.harvestPopSeconds;
+    this.popBaseY[i] = baseY;
+  }
+
+  private updatePops(dt: number): void {
+    if (dt <= 0) return;
+    const dur = gameConfig.harvestPopSeconds;
+    for (let i = 0; i < this.pops.length; i++) {
+      if (this.popLife[i] <= 0) continue;
+      this.popLife[i] = Math.max(0, this.popLife[i] - dt);
+      const g = this.pops[i];
+      if (this.popLife[i] <= 0) {
+        g.setVisible(false);
+        continue;
+      }
+      const p = 1 - this.popLife[i] / dur; // 0 → 1
+      // Bật lên nhanh rồi chậm lại (ease-out), phóng to nhẹ, mờ dần ở nửa sau.
+      const rise = 1 - (1 - p) * (1 - p);
+      g.setY(this.popBaseY[i] - rise * gameConfig.harvestPopHeight * T)
+        .setScale(1 + 0.3 * rise)
+        .setAlpha(p < 0.5 ? 1 : 1 - (p - 0.5) * 2);
+    }
+  }
+
+  /**
+   * Mỗi frame: vẽ lại hình cây + lớp đất (sẫm khi đã tưới, khô khi cây khát) của ô nào ĐỔI so với lần vẽ trước
+   * (so "chữ ký" số — không vẽ Graphics mỗi frame).
+   */
+  private updateCropVisuals(): void {
+    for (let i = 0; i < this.farm.plots.length; i++) {
+      const plot = this.farm.plots[i];
+      const crop = plot.crop;
+      let sig = 0;
+      let stage: CropStage = 'seed';
+      let thirsty = false;
+      if (crop) {
+        stage = cropStage(crop, growDaysOf);
+        thirsty = stage !== 'withered' && crop.dryDays > 0 && !plot.watered;
+        const cropIndex = CROPS.findIndex((cd) => cd.id === crop.cropId) + 1;
+        sig = (cropIndex + 1) * 64 + CROP_STAGE_CODE[stage] * 4 + (thirsty ? 2 : 0);
+      }
+      sig = sig * 2 + (plot.watered ? 1 : 0);
+      if (sig === this.cropDrawn[i]) continue;
+      this.cropDrawn[i] = sig;
+      const g = this.plotCrops[i];
+      g.clear();
+      if (crop) drawCrop(g, crop.cropId, stage, thirsty, T / 2, T * CROP_BASE);
+      const wet = this.plotWet[i];
+      if (plot.watered) wet.setFillStyle(palette.ink, gameConfig.wateredSoilAlpha).setVisible(true);
+      else if (thirsty) wet.setFillStyle(palette.wood, gameConfig.thirstySoilAlpha).setVisible(true);
+      else wet.setVisible(false);
+    }
+  }
+
+  /**
+   * Bong bóng chữ trên đầu {ten} ("hết hạt rồi", "gùi đầy"). Cùng câu đang hiện thì chỉ kéo dài thời gian
+   * (giữ chuột rê không làm bong bóng nháy liên tục).
+   */
+  showBubble(text: string): void {
+    if (this.bubbleT > 0 && this.bubbleText.text === text) {
+      this.bubbleT = gameConfig.bubbleSeconds;
+      return;
+    }
+    this.bubbleText.setText(text);
+    const tail = 9;
+    const w = Math.ceil(this.bubbleText.width) + 26;
+    const h = Math.ceil(this.bubbleText.height) + 14;
+    const g = this.bubbleBg;
+    g.clear();
+    // Khung giấy trắng điệp viền mực + đuôi nhọn chỉ xuống đầu nhân vật. Gốc container = mũi đuôi.
+    g.fillStyle(palette.ink, 1).fillRoundedRect(-w / 2 - 3, -h - tail - 3, w + 6, h + 6, 12);
+    g.fillTriangle(-10, -tail - 3, 10, -tail - 3, 0, 3);
+    g.fillStyle(palette.paper, 1).fillRoundedRect(-w / 2, -h - tail, w, h, 10);
+    g.fillTriangle(-7, -tail - 1, 7, -tail - 1, 0, -1);
+    this.bubbleText.setPosition(0, -tail - h / 2);
+    this.bubbleT = gameConfig.bubbleSeconds;
+    this.bubblePopT = BUBBLE_POP_SECONDS;
+    this.bubbleShows++;
+    this.bubble.setVisible(true);
+  }
+
+  private updateBubble(dt: number): void {
+    if (this.bubbleT <= 0) return;
+    this.bubbleT = Math.max(0, this.bubbleT - dt);
+    if (this.bubbleT <= 0) {
+      this.bubble.setVisible(false);
+      return;
+    }
+    this.bubblePopT = Math.max(0, this.bubblePopT - dt);
+    // Hiện ra thì nảy nhẹ (to lên rồi về), sắp tắt thì mờ dần.
+    const pop = 1 + 0.25 * (this.bubblePopT / BUBBLE_POP_SECONDS);
+    this.bubble
+      .setPosition(this.hero.x, this.hero.y - this.hero.height - 6)
+      .setScale(pop)
+      .setAlpha(Math.min(1, this.bubbleT / 0.25));
+  }
+
   /**
    * Juice một nhát cuốc (GDD §8, D-022): bụi đất văng, tiếng "bộp" lệch cao độ ±1 nửa cung, mồ hôi từ nhát
    * `tillSweatFromStrike`. Nhát cuối (`finish`): bụi × tillFinishDustMultiplier, khựng hình, ô nảy, thanh tiến độ
@@ -990,22 +1582,7 @@ export class GardenScene extends Phaser.Scene {
     const cy = ty * T + T / 2;
     const speed = gameConfig.tillDustSpeed * T * (finish ? 1.25 : 1);
     const count = gameConfig.tillDustCount * (finish ? gameConfig.tillFinishDustMultiplier : 1);
-    let spawned = 0;
-    for (let i = 0; i < this.tillDust.length && spawned < count; i++) {
-      if (this.tillDustLife[i] > 0) continue;
-      // Tung toả nửa vòng hướng lên (đất bắn lên rồi rơi xuống).
-      const a = Math.PI * (1.1 + 0.8 * Math.random());
-      const v = speed * (0.5 + 0.5 * Math.random());
-      this.tillDust[i]
-        .setPosition(cx + (Math.random() - 0.5) * T * 0.5, cy + (Math.random() - 0.3) * T * 0.3)
-        .setRadius(4 + Math.random() * 4)
-        .setAlpha(1)
-        .setVisible(true);
-      this.tillDustVx[i] = Math.cos(a) * v;
-      this.tillDustVy[i] = Math.sin(a) * v;
-      this.tillDustLife[i] = gameConfig.tillDustLifeSeconds;
-      spawned++;
-    }
+    this.spawnTillDust(cx, cy, count, speed);
 
     if (strikeNo >= gameConfig.tillSweatFromStrike) this.spawnSweat();
     if (gameConfig.tillScreenShake) this.shakeScreen(gameConfig.screenShakeLight);
@@ -1031,6 +1608,26 @@ export class GardenScene extends Phaser.Scene {
       this.lastSfx = key;
       this.lastSfxDetune = detune;
       this.lastSfxVolume = volume;
+    }
+  }
+
+  /** Tung `count` hạt bụi đất (pool) quanh (cx, cy), toả nửa vòng hướng lên với tốc độ `speed` px/giây. */
+  private spawnTillDust(cx: number, cy: number, count: number, speed: number): void {
+    let spawned = 0;
+    for (let i = 0; i < this.tillDust.length && spawned < count; i++) {
+      if (this.tillDustLife[i] > 0) continue;
+      // Tung toả nửa vòng hướng lên (đất bắn lên rồi rơi xuống).
+      const a = Math.PI * (1.1 + 0.8 * Math.random());
+      const v = speed * (0.5 + 0.5 * Math.random());
+      this.tillDust[i]
+        .setPosition(cx + (Math.random() - 0.5) * T * 0.5, cy + (Math.random() - 0.3) * T * 0.3)
+        .setRadius(4 + Math.random() * 4)
+        .setAlpha(1)
+        .setVisible(true);
+      this.tillDustVx[i] = Math.cos(a) * v;
+      this.tillDustVy[i] = Math.sin(a) * v;
+      this.tillDustLife[i] = gameConfig.tillDustLifeSeconds;
+      spawned++;
     }
   }
 
@@ -1336,13 +1933,14 @@ export class GardenScene extends Phaser.Scene {
       view: { x: cam.worldView.x, y: cam.worldView.y, w: cam.worldView.width, h: cam.worldView.height },
       zoom: cam.zoom,
       mapPx: { w: L.cols * T, h: L.rows * T },
-      farm: { plots: this.farm.plots.map((p) => ({ ...p })), tilled: tilledCount(this.farm) },
+      farm: { plots: this.farm.plots.map((p) => ({ ...p, crop: p.crop ? { ...p.crop } : null })), tilled: tilledCount(this.farm) },
       hover: this.hover.valid
         ? {
             x: this.hover.x,
             y: this.hover.y,
             inReach: this.hover.inReach,
             tillable: this.hover.tillable,
+            job: this.hover.job,
             highlight: this.hover.inReach ? 'bright' : 'gray',
             alpha: this.highlight.alpha,
           }
@@ -1350,13 +1948,55 @@ export class GardenScene extends Phaser.Scene {
       action: {
         busy: isBusy(this.action),
         current: this.action.current ? { ...this.action.current } : null,
-        progress: this.action.current ? this.action.elapsed / this.tillParams.duration : 0,
+        progress: this.action.current ? this.action.elapsed / this.paramsFor(this.action.kind).duration : 0,
         queued: this.action.queue.length,
         queue: this.action.queue.map((q) => ({ x: q.x, y: q.y })),
         strikesLeft: this.action.strikesLeft,
         strikesDone: this.action.strikesDone,
         dragKind: this.dragKind,
+        kind: this.action.kind as TileJob | null,
       },
+      crops: this.farm.plots.flatMap((p) => {
+        const c = p.crop;
+        if (!c) return [];
+        const stage = cropStage(c, growDaysOf);
+        return [
+          {
+            x: p.x,
+            y: p.y,
+            cropId: c.cropId,
+            age: c.age,
+            dryDays: c.dryDays,
+            watered: p.watered,
+            ripe: isRipe(c, growDaysOf),
+            withered: c.withered,
+            thirsty: stage !== 'withered' && c.dryDays > 0 && !p.watered,
+            stage,
+          },
+        ];
+      }),
+      inventory: {
+        slots: this.inventory.slots.map((st) => (st ? { id: st.id, count: st.count, name: itemInfo(st.id)?.name ?? st.id } : null)),
+        selected: this.inventory.selected,
+        selectedItem: this.inventory.slots[this.inventory.selected]?.id ?? null,
+        lastSeedId: this.inventory.lastSeedId,
+        hotbarSize: this.inventory.hotbarSize,
+        stackMax: this.inventory.stackMax,
+        revision: this.inventoryRevision,
+      },
+      bagOpen: this.bagOpen,
+      bagHoverSlot: this.bagHoverSlot,
+      bubble: { visible: this.bubbleT > 0, text: this.bubbleText?.text ?? '', shows: this.bubbleShows },
+      farmJuice: {
+        ...this.farmCounts,
+        dropsActive: this.dropLife.filter((l) => l > 0).length,
+        popsActive: this.popLife.filter((l) => l > 0).length,
+        lastWaterSfx: this.lastWaterSfx,
+        lastPlantSfx: this.lastPlantSfx ? { ...this.lastPlantSfx } : null,
+        harvestSfx: this.harvestSfxLog.map((h) => ({ ...h })),
+        lastOvernight: this.lastOvernight ? { ...this.lastOvernight } : null,
+      },
+      hud: (this.scene.get('GardenHud') as GardenHudScene | null)?.debugState ?? null,
       till: {
         tuning: { ...this.tillTuning },
         finishes: this.finishCount,
@@ -1414,6 +2054,23 @@ export class GardenScene extends Phaser.Scene {
     return { ...this.tillTuning };
   }
 
+  /** Toạ độ màn (hệ 1920×1080) của tâm ô hotbar / ô gùi thứ i — cho e2e rê chuột đúng ô giao diện. */
+  debugHudSlotCenter(kind: 'hotbar' | 'bag', i: number): { x: number; y: number } {
+    const r = kind === 'hotbar' ? hotbarSlotRect(i) : bagSlotRect(i, this.inventory.slots.length);
+    return { x: r.x + r.w / 2, y: r.y + r.h / 2 };
+  }
+
+  /** Ghi đè một ô gùi (QA/test: làm gùi đầy, hết hạt…). id null hoặc count ≤ 0 = ô trống. */
+  debugSetSlot(i: number, id: string | null, count: number): void {
+    setSlot(this.inventory, i, id, count);
+    this.inventoryRevision++;
+  }
+
+  /** Qua một đêm như phím G (QA/test) — trả về tóm tắt đêm. */
+  debugAdvanceDay(): OvernightReport {
+    return this.runOvernight();
+  }
+
   /** Dịch nhân vật tới giữa ô (tx, ty) — chỉ dùng cho QA/test. */
   debugTeleport(tx: number, ty: number): void {
     const x = tx * T + T / 2;
@@ -1427,3 +2084,12 @@ export class GardenScene extends Phaser.Scene {
 
 /** Hướng "không bấm phím" dùng lại khi đang khựng (không tạo object mới mỗi frame). */
 const NO_DIR = Object.freeze({ x: 0, y: 0 });
+
+/** Mã số giai đoạn cây (cho "chữ ký" vẽ lại). */
+const CROP_STAGE_CODE: Record<CropStage, number> = { seed: 0, growing: 1, ripe: 2, withered: 3 };
+/** Bong bóng nảy lúc hiện bao lâu (giây). */
+const BUBBLE_POP_SECONDS = 0.15;
+
+function rectContains(r: Rect, px: number, py: number): boolean {
+  return px >= r.x && px < r.x + r.w && py >= r.y && py < r.y + r.h;
+}

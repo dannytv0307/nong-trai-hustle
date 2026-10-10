@@ -251,7 +251,10 @@ test('B3 bỏ dở rồi click ô khác; ô dở giữ thanh mờ; click ô dở
   await expect.poll(async () => (await st(page)).action.current, { timeout: 30_000, intervals: [20] }).toEqual({ x: 13, y: 13 });
   s = await st(page);
   console.log('B3 A start', s.action, aStrikes);
-  expect(s.action.strikesLeft).toBe(6 - aStrikes);
+  // Lúc poll thấy A bắt đầu, máy test chậm có thể đã qua 1 nhát (BUG-006) → chỉ đòi "không quá số nhát còn lại";
+  // số nhát đúng được kiểm chặt ở tổng juice.tills bên dưới.
+  expect(s.action.strikesLeft).toBeLessThanOrEqual(6 - aStrikes);
+  expect(s.action.strikesLeft + s.action.strikesDone).toBeGreaterThanOrEqual(6 - aStrikes);
   await waitIdle(page);
   s = await st(page);
   expect(s.farm.tilled).toBe(3);

@@ -61,6 +61,11 @@ export const audio: Record<string, string> = {
   'sfx-cuoc-dat-2': `${AUDIO}/sfx/cuoc-dat-2`,
   'sfx-tuoi-nuoc-1': `${AUDIO}/sfx/tuoi-nuoc-1`,
   'sfx-tuoi-nuoc-2': `${AUDIO}/sfx/tuoi-nuoc-2`,
+  // Gieo hạt "lách tách" (AUD-SFX-101), hái cây "pop" nốt gốc C5 để detune lên dần (AUD-SFX-102)
+  'sfx-gieo-hat-1': `${AUDIO}/sfx/gieo-hat-1`,
+  'sfx-gieo-hat-2': `${AUDIO}/sfx/gieo-hat-2`,
+  'sfx-hai-cay-1': `${AUDIO}/sfx/hai-cay-1`,
+  'sfx-hai-cay-2': `${AUDIO}/sfx/hai-cay-2`,
   'sfx-bo-vo-nhan': `${AUDIO}/sfx/bo-vo-nhan`,
   'sfx-meme-zoom-trong': `${AUDIO}/sfx/meme-zoom-trong`,
   'sfx-meme-oi-doi-oi': `${AUDIO}/sfx/meme-oi-doi-oi`,

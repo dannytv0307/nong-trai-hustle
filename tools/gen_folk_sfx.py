@@ -460,7 +460,144 @@ def r_coin_bright(rng, v):
     return reverb(out, rt=0.4, mix=0.1, tone=10000, rng=rng)
 
 
+# ---------- T-003: gieo hạt, hái cây ----------
+def _grain(rng, length, lo, hi):
+    """Một hạt nhiễu cực ngắn trong dải lo–hi, tắt rất nhanh, chuẩn hóa về 1."""
+    g = fft_filter(noise(length, rng), lo=lo, hi=hi) * np.exp(-tt(length) / (length / 4))
+    return g / (np.abs(g).max() + 1e-9)
+
+
+def _seed_tick(rng, f_lo, f_hi):
+    """Một hạt giống rơi xuống đất tơi: 'tách' khô rất ngắn (vỏ hạt cứng) + 'sụt' nhỏ khi lún vào đất."""
+    tick = _grain(rng, 0.006, 1500, 7000)
+    shell = modal(rng.uniform(f_lo, f_hi), [1, 1.7, 2.6], [1, 0.45, 0.2], [0.004, 0.0025, 0.0015], 0.03, rng)
+    shell /= np.abs(shell).max() + 1e-9
+    sink = fft_filter(noise(0.03, rng), lo=300, hi=1200) * np.exp(-tt(0.03) / 0.006)
+    sink /= np.abs(sink).max() + 1e-9
+    out = np.zeros(int(SR * 0.03))
+    place(out, 0.55 * tick, 0)
+    place(out, 0.6 * shell, 0)
+    place(out, 0.35 * sink, 0.002)
+    return out
+
+
+# Biến thể gieo hạt: seeds = số hạt (game cũng thả 4 hạt hình), spread = rải trong bao lâu,
+# seed_hz = cao độ vỏ hạt, cover = tay vùi đất "sột", pat = vỗ nhẹ "bụp" cuối
+SOW_SEED = {
+    1: dict(seeds=4, spread=0.085, seed_hz=(2600, 4200), cover=0.45, pat=0.30, dur=0.26),
+    2: dict(seeds=3, spread=0.070, seed_hz=(2400, 3800), cover=0.70, pat=0.55, dur=0.31),
+    3: dict(seeds=6, spread=0.120, seed_hz=(3000, 5000), cover=0.25, pat=0.12, dur=0.24),
+    4: dict(seeds=5, spread=0.100, seed_hz=(1700, 2900), cover=0.45, pat=0.30, dur=0.28),
+}
+
+
+def r_sow_seed(rng, v):
+    """Gieo hạt 'lách tách': vài hạt rơi xuống đất tơi (hạt đầu ở t=0) + tay vùi đất 'sột' + vỗ nhẹ.
+    Nhẹ hơn cuốc nhiều: không có thân trầm, lọc bớt phần chói, việc nhanh lặp nhiều lần."""
+    P = SOW_SEED[(v - 1) % len(SOW_SEED) + 1]
+    dur = P["dur"]
+    t = tt(dur)
+    out = np.zeros(len(t))
+    # 1) hạt rơi: khoảng cách không đều (nghe như tay rắc thật, không đều như máy)
+    gaps = rng.uniform(0.35, 1.0, P["seeds"] - 1)
+    times = np.concatenate([[0.0], np.cumsum(gaps) / gaps.sum() * P["spread"]])
+    for k, at in enumerate(times):
+        amp = (1.0 if k == 0 else rng.uniform(0.45, 0.85)) * (1 - 0.08 * k)
+        place(out, _seed_tick(rng, *P["seed_hz"]) * amp, at)
+    # 2) tay vùi đất: nhiễu dải giữa có hạt (nhiều hạt nhỏ chồng nhau), phồng lên sau hạt cuối
+    c0 = P["spread"] * 0.55
+    cov_env = ((t - c0).clip(0) / 0.035) * np.exp(1 - (t - c0).clip(0) / 0.035)
+    grit = np.zeros(len(t))
+    for _ in range(40):
+        at = c0 + rng.uniform(0, 0.12)
+        if at < dur - 0.02:
+            place(grit, _grain(rng, rng.uniform(0.003, 0.008), 500, 2600) * rng.uniform(0.3, 1), at)
+    bed = fft_filter(noise(dur, rng), lo=250, hi=1600)
+    bed /= np.abs(bed).max() + 1e-9
+    cover = (0.6 * bed + 0.5 * grit / (np.abs(grit).max() + 1e-9)) * cov_env
+    out += P["cover"] * cover
+    # 3) vỗ nhẹ: 'bụp' mềm, trầm vừa (không có cao độ), sau khi vùi
+    pat_at = c0 + 0.05
+    pt = tt(0.06)
+    pat = fft_filter(noise(0.06, rng), lo=90, hi=450, order=3) * (1 - np.exp(-pt / 0.003)) * np.exp(-pt / 0.018)
+    place(out, P["pat"] * pat / (np.abs(pat).max() + 1e-9), pat_at)
+    # bỏ hạ âm, mềm phần chói (lặp nhiều lần không mỏi tai), nhấn nhẹ dải laptop
+    out = fft_filter(out, lo=110, hi=7000) + 0.3 * fft_filter(out, lo=400, hi=2500)
+    return out
+
+
+def marimba_soft(rng, f0, dur=0.4):
+    """Marimba gõ dùi mềm, ngắn (cho tiếng hái: cao độ rõ để game detune tăng dần)."""
+    body = modal(f0, [1, 3.93, 9.2], [1, 0.22, 0.04], [0.16, 0.04, 0.015], dur, rng)
+    return place(body, fft_filter(noise(0.004, rng), lo=800, hi=4000) * 0.08, 0)
+
+
+# Biến thể hái: pop = "bộp" môi miệng/nút bần (sine vuốt lên tới nốt đích), tone = lớp nhạc cụ cùng nốt
+# (Đô trưởng) để cao độ rõ; roots = tiếng rễ đứt lách tách; soil = đất rơi lại
+HARVEST_POP = {
+    1: dict(pop_to=523.3, pop_from=0.55, pop_dec=0.055, tone="marimba", tone_hz=1046.5, tone_amp=0.35,
+            roots=6, root_amp=0.80, soil=0.75, dur=0.34),   # C5 + marimba C6
+    2: dict(pop_to=659.3, pop_from=0.55, pop_dec=0.050, tone="glock", tone_hz=1568.0, tone_amp=0.22,
+            roots=5, root_amp=0.70, soil=0.65, dur=0.34),   # E5 + glock G6
+    3: dict(pop_to=523.3, pop_from=0.50, pop_dec=0.060, tone=None, tone_hz=0, tone_amp=0,
+            roots=9, root_amp=1.00, soil=1.00, dur=0.36),   # C5 trơn, nhiều rễ + đất (thật nhất)
+    4: dict(pop_to=392.0, pop_from=0.55, pop_dec=0.060, tone="marimba", tone_hz=784.0, tone_amp=0.40,
+            roots=7, root_amp=0.85, soil=0.85, dur=0.36),   # G4 + marimba G5 (trầm, "plộp")
+}
+
+
+def r_harvest_pop(rng, v):
+    """Hái cây 'pop': rễ bật lách tách (0–20 ms) + 'pop' vuốt lên có cao độ rõ (nốt Đô trưởng)
+    + lớp marimba/glockenspiel cùng hợp âm + đất rơi lại nhẹ. Tiếng gốc; game detune tăng dần khi hái liên tiếp."""
+    P = HARVEST_POP[(v - 1) % len(HARVEST_POP) + 1]
+    dur = P["dur"]
+    t = tt(dur)
+    out = np.zeros(len(t))
+    # 1) rễ đứt: vài 'tách' nhỏ dồn dập + 'kéo' đất (nhiễu dải giữa phồng lên nhanh)
+    for k in range(P["roots"]):
+        at = rng.uniform(0, 0.02)
+        place(out, _grain(rng, rng.uniform(0.002, 0.005), 1200, 6000) * rng.uniform(0.4, 1) * P["root_amp"], at)
+    tug = fft_filter(noise(0.05, rng), lo=250, hi=1000) * (tt(0.05) / 0.01) * np.exp(1 - tt(0.05) / 0.01)
+    place(out, 0.35 * P["root_amp"] * tug / (np.abs(tug).max() + 1e-9), 0)
+    # 2) pop: sine vuốt nhanh từ dưới lên tới nốt đích rồi tắt; thêm bồi âm 2 nhỏ cho chắc trên loa laptop
+    pop_at = 0.012
+    pt = tt(dur - pop_at)
+    f = P["pop_to"] * (1 - (1 - P["pop_from"]) * np.exp(-pt / 0.007))
+    ph = 2 * np.pi * np.cumsum(f) / SR
+    env = (1 - np.exp(-pt / 0.0015)) * np.exp(-pt / P["pop_dec"])
+    pop = (np.sin(ph) + 0.25 * np.sin(2 * ph) + 0.08 * np.sin(3 * ph)) * env
+    click = _grain(rng, 0.004, 600, 3500)
+    place(out, 1.0 * pop / (np.abs(pop).max() + 1e-9), pop_at)
+    place(out, 0.25 * click, pop_at)
+    # 3) lớp nhạc cụ (tích cực = sáng): cùng hợp âm, nhỏ hơn pop
+    if P["tone"] == "marimba":
+        tone = marimba_soft(rng, P["tone_hz"], dur - pop_at)
+    elif P["tone"] == "glock":
+        tone = modal(P["tone_hz"], [1, 2.76, 5.40], [1, 0.2, 0.05], [0.14, 0.05, 0.02], dur - pop_at, rng)
+    else:
+        tone = None
+    if tone is not None:
+        place(out, P["tone_amp"] * tone / (np.abs(tone).max() + 1e-9), pop_at + 0.004)
+    # 4) đất rơi lại: hạt đất vụn thưa dần + 1–2 cục đất 'bụp' mềm
+    for _ in range(10):
+        at = 0.05 + rng.exponential(0.06)
+        if at < dur - 0.03:
+            lo = rng.uniform(800, 2200)
+            place(out, _grain(rng, rng.uniform(0.003, 0.009), lo, lo * 2.5)
+                  * rng.uniform(0.12, 0.3) * P["soil"] * np.exp(-(at - 0.05) / 0.12), at)
+    for _ in range(2):
+        at = rng.uniform(0.08, min(0.2, dur - 0.06))
+        ct = tt(0.05)
+        clump = fft_filter(noise(0.05, rng), lo=150, hi=700) * (1 - np.exp(-ct / 0.002)) * np.exp(-ct / 0.012)
+        place(out, clump / (np.abs(clump).max() + 1e-9) * rng.uniform(0.15, 0.28) * P["soil"], at)
+    out = fft_filter(out, lo=100, hi=9000)
+    # vang rất ngắn cho ấm, cắt đúng độ dài (finish() fade-out 15 ms)
+    return reverb(out, rt=0.25, mix=0.07, tone=6000, rng=rng)[: int(SR * (dur + 0.04))]
+
+
 RECIPES = {
+    "sow_seed": (r_sow_seed, "sfx-gieo-hat", "Gieo hạt 'lách tách' + tay vùi đất (v1–v4 khác tính cách, T-003)"),
+    "harvest_pop": (r_harvest_pop, "sfx-hai-cay", "Hái cây 'pop' có cao độ + rễ bật + đất rơi (v1–v4, T-003)"),
     "hoe": (r_hoe, "sfx-cuoc-dat", "Cuốc đất 'bộp' (bản cũ, bước 2.3)"),
     "hoe_soil": (r_hoe_soil, "sfx-cuoc-dat-soil", "Cuốc xắn đất ẩm 'phập' + đất vụn (v1–v4 khác tính cách)"),
     "coin": (r_coin, "sfx-nhat-xu", "Nhặt xu 'leng keng'"),

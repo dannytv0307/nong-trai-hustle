@@ -30,7 +30,7 @@ describe('createFarm — ruộng ban đầu', () => {
 
   it('plotAt tìm được ô trong ruộng, ngoài ruộng (cỏ) trả về null', () => {
     const farm = createFarm({ x: 2, y: 3, w: 3, h: 2 });
-    expect(plotAt(farm, 2, 3)).toEqual({ x: 2, y: 3, soil: 'untilled', tillStrikes: 0 });
+    expect(plotAt(farm, 2, 3)).toEqual({ x: 2, y: 3, soil: 'untilled', tillStrikes: 0, crop: null, watered: false });
     expect(plotAt(farm, 4, 4)).not.toBeNull();
     expect(plotAt(farm, 5, 3)).toBeNull();
     expect(plotAt(farm, 1, 3)).toBeNull();

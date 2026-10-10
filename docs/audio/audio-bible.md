@@ -69,6 +69,7 @@ vocals, singing, speech, choir, sad, melancholic, nostalgic, slow, ballad, dark,
 - **Giọng**: `grumble`, peak −6.
 
 Công thức đã dùng (`--seed 1`): `levelup_bright` v2, `coin_bright` v1+v2, `hoe` v1+v2, `water` v1+v2, `frown` v2, `damn` v2, `oidoioi` v1, `grumble` v1+v2.
+Bước 3.3: `hoe_soil` v1+v2 (cuốc bản 2). Chờ duyệt (T-003): `sow_seed` v1+v4 (gieo hạt, nhẹ hơn cuốc ~5 dB), `harvest_pop` v1+v3 (hái cây, nốt gốc C5; game detune theo thang ngũ cung Đô 0/+200/+400/+700/+900/+1200 cent khi hái liên tiếp).
 
 ```json
 {"seed": 1, "gameplay_peak_db": -1, "voice_peak_db": -6, "ui_peak_db": -5,

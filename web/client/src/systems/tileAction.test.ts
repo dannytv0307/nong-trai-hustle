@@ -247,3 +247,48 @@ describe('actionPose — nhún bằng code', () => {
     expect(Math.abs(actionPose(0.98, 0.5, 0.12, 0.05, pose).scaleY - 1)).toBeLessThan(0.02);
   });
 });
+
+describe('tileAction — loại việc (T-003: một lần rê một loại việc)', () => {
+  it('rảnh thì nhận mọi loại; đang làm / đang chờ loại khác thì không nhận', () => {
+    const s = createTileActionState();
+    expect(s.kind).toBeNull();
+    expect(requestTile(s, { x: 0, y: 0 }, P, 'plant')).toBe(true);
+    expect(s.kind).toBe('plant');
+    expect(requestTile(s, { x: 1, y: 0 }, P, 'water')).toBe(false);
+    expect(requestTile(s, { x: 1, y: 0 }, P, 'plant')).toBe(true);
+    run(s, 1, 0.01); // bắt đầu ô đầu
+    expect(requestTile(s, { x: 2, y: 0 }, P, 'till')).toBe(false);
+    expect(s.kind).toBe('plant');
+  });
+
+  it('làm xong hết hàng chờ → kind về null, lần sau nhận loại mới', () => {
+    const s = createTileActionState();
+    requestTile(s, { x: 0, y: 0 }, P, 'water');
+    run(s, 30, 0.05);
+    expect(isBusy(s)).toBe(false);
+    expect(s.kind).toBeNull();
+    expect(requestTile(s, { x: 0, y: 0 }, P, 'harvest')).toBe(true);
+    expect(s.kind).toBe('harvest');
+  });
+
+  it('bỏ dở (cancel) → kind về null; ô bị bỏ qua hết (stillValid false) → kind về null', () => {
+    const s = createTileActionState();
+    requestTile(s, { x: 0, y: 0 }, P, 'till');
+    cancelTileAction(s);
+    expect(s.kind).toBeNull();
+    requestTile(s, { x: 0, y: 0 }, P, 'plant');
+    run(s, 1, 0.01, () => false);
+    expect(isBusy(s)).toBe(false);
+    expect(s.kind).toBeNull();
+  });
+
+  it('việc nhanh: mỗi ô 1 nhát × actionDuration, hàng chờ actionQueueMax (4)', () => {
+    const s = createTileActionState();
+    for (let x = 0; x < 6; x++) requestTile(s, { x, y: 0 }, P, 'plant');
+    // Chưa bước lần nào (chưa bắt đầu ô đầu) → hàng chờ giới hạn queueMax = 4 ô, ô 5–6 bị bỏ qua.
+    expect(s.queue.length).toBe(4);
+    const log = run(s, 200, 0.02);
+    expect(log.impact.map((t) => t.x)).toEqual([0, 1, 2, 3]);
+    expect(log.finished).toBe(4);
+  });
+});

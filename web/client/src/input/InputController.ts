@@ -2,7 +2,9 @@
 // (moveUp, interact, openBag...), không đọc phím trực tiếp — sau này thêm gamepad/màn cảm ứng
 // hay cho đổi phím chỉ cần sửa file này.
 import Phaser from 'phaser';
+import { gameConfig } from '../config/gameConfig';
 import type { Vec2 } from '../systems/movement';
+import { accumulateWheel, createWheelAccumulator, wheelDeltaPx } from './wheel';
 
 export type Action =
   | 'moveUp'
@@ -13,7 +15,8 @@ export type Action =
   | 'openBag' // E hoặc Tab
   | 'openQuests' // Q
   | 'menu' // Esc
-  | 'confirm'; // Space
+  | 'confirm' // Space
+  | 'devNextDay'; // G — phím thử "qua đêm" (chỉ bản dev, gameConfig.devCheatsEnabled)
 
 const KC = Phaser.Input.Keyboard.KeyCodes;
 
@@ -28,6 +31,7 @@ const DEFAULT_BINDINGS: Record<Action, number[]> = {
   openQuests: [KC.Q],
   menu: [KC.ESC],
   confirm: [KC.SPACE],
+  devNextDay: [KC.G],
 };
 
 const HOTBAR_KEYS = [KC.ONE, KC.TWO, KC.THREE, KC.FOUR, KC.FIVE, KC.SIX, KC.SEVEN, KC.EIGHT, KC.NINE];
@@ -51,6 +55,20 @@ export class InputController {
    * (nhấn + nhả lọt giữa hai frame, dễ gặp khi FPS thấp) vẫn được tính, để "bấm phím đi = bỏ dở cuốc" không trượt (BUG-007).
    */
   private movePressed = false;
+  /**
+   * Phím vừa nhấn (theo SỰ KIỆN keydown, bỏ lặp do giữ phím) chờ gameplay hỏi: phím 1–9, E/Tab, Esc, G…
+   * Không dùng JustDown vì nhấn + nhả lọt giữa hai frame thì Phaser xóa cờ "vừa nhấn" (gõ phím nhanh bị mất).
+   */
+  private readonly pressedCodes = new Set<number>();
+  /** Số nấc cuộn chuột dồn lại từ lần hỏi trước (dương = cuộn xuống). */
+  private wheelSteps = 0;
+  /** Phần cuộn chưa đủ một nấc (BUG-009: touchpad bắn nhiều sự kiện deltaY nhỏ → cộng dồn đủ wheelStepDelta). */
+  private readonly wheelAcc = createWheelAccumulator();
+  /**
+   * Ô hotbar của phím số bấm SAU CÙNG (theo thứ tự sự kiện keydown) từ lần hỏi trước, null = chưa bấm (BUG-010:
+   * bấm "9" rồi "4" trong cùng một frame thì chọn ô 4, không phải ô có số lớn hơn).
+   */
+  private lastHotbarIndex: number | null = null;
 
   constructor(scene: Phaser.Scene) {
     const kb = scene.input.keyboard;
@@ -63,9 +81,20 @@ export class InputController {
     const moveCodes = new Set<number>(
       (['moveUp', 'moveDown', 'moveLeft', 'moveRight'] as const).flatMap((a) => DEFAULT_BINDINGS[a]),
     );
-    kb.on(Phaser.Input.Keyboard.Events.ANY_KEY_DOWN, (e: KeyboardEvent) => {
+    // Nghe keydown thẳng từ trình duyệt (không qua ANY_KEY_DOWN của Phaser): Phaser xử lý lại hàng đợi phím nhiều
+    // lần trong một frame nên có thể phát lại một keydown CŨ sau keydown mới → sai thứ tự "phím bấm sau cùng"
+    // (BUG-010) và có thể đếm trùng. Sự kiện DOM thì đúng thứ tự, mỗi lần nhấn một lần.
+    const onKeyDown = (e: KeyboardEvent) => {
       if (moveCodes.has(e.keyCode)) this.movePressed = true;
-    });
+      if (e.repeat) return;
+      this.pressedCodes.add(e.keyCode);
+      const hotbar = HOTBAR_KEYS.indexOf(e.keyCode);
+      if (hotbar >= 0) this.lastHotbarIndex = hotbar;
+    };
+    window.addEventListener('keydown', onKeyDown);
+    const detach = () => window.removeEventListener('keydown', onKeyDown);
+    scene.events.once(Phaser.Scenes.Events.SHUTDOWN, detach);
+    scene.events.once(Phaser.Scenes.Events.DESTROY, detach);
     // Chuột phải dùng để ăn (GDD §4) → tắt menu chuột phải của trình duyệt.
     scene.input.mouse?.disableContextMenu();
 
@@ -73,6 +102,13 @@ export class InputController {
     scene.input.on(Phaser.Input.Events.POINTER_DOWN, (p: Phaser.Input.Pointer) => {
       if (p.leftButtonDown()) this.primaryPressed = true;
     });
+    scene.input.on(
+      Phaser.Input.Events.POINTER_WHEEL,
+      (p: Phaser.Input.Pointer, _over: unknown, _dx: number, dy: number) => {
+        const mode = (p.event as WheelEvent | undefined)?.deltaMode ?? 0;
+        this.wheelSteps += accumulateWheel(this.wheelAcc, wheelDeltaPx(dy, mode), gameConfig.wheelStepDelta);
+      },
+    );
     scene.input.on(Phaser.Input.Events.GAME_OUT, () => (this.pointerInside = false));
     scene.input.on(Phaser.Input.Events.GAME_OVER, () => (this.pointerInside = true));
     scene.input.on(Phaser.Input.Events.POINTER_MOVE, () => (this.pointerInside = true));
@@ -105,6 +141,31 @@ export class InputController {
   pointerWorld(camera: Phaser.Cameras.Scene2D.Camera, out: Phaser.Math.Vector2): Phaser.Math.Vector2 {
     const p = this.input.activePointer;
     return camera.getWorldPoint(p.x, p.y, out);
+  }
+
+  /** Toạ độ con trỏ trên khung game (hệ 1920×1080 của UI, không theo camera). Ghi vào `out`. */
+  pointerScreen(out: Phaser.Math.Vector2): Phaser.Math.Vector2 {
+    const p = this.input.activePointer;
+    return out.set(p.x, p.y);
+  }
+
+  /** Số nấc cuộn chuột từ lần hỏi trước (dương = cuộn xuống), rồi xóa. Gọi một lần mỗi frame. */
+  consumeWheelSteps(): number {
+    const n = this.wheelSteps;
+    this.wheelSteps = 0;
+    return n;
+  }
+
+  /**
+   * Hành động vừa được nhấn kể từ lần hỏi trước (theo sự kiện — gõ nhanh không mất). true một lần mỗi lần nhấn.
+   * Dùng cho phím bấm-một-lần (E mở gùi, Esc, G). Gọi một lần cho mỗi action mỗi frame.
+   */
+  consumePressed(action: Action): boolean {
+    let pressed = false;
+    for (const code of DEFAULT_BINDINGS[action]) {
+      if (this.pressedCodes.delete(code)) pressed = true;
+    }
+    return pressed;
   }
 
   /** Vừa nhấn phím đi kể từ lần hỏi trước (true một lần mỗi lần nhấn, kể cả chạm rất nhanh). Gọi một lần mỗi frame. */
@@ -140,12 +201,24 @@ export class InputController {
     };
   }
 
-  /** Ô hotbar vừa chọn bằng phím 1–9 (đếm từ 0), hoặc null. */
+  /**
+   * Ô hotbar vừa chọn bằng phím 1–9 (đếm từ 0), hoặc null. Theo sự kiện keydown (gõ nhanh không mất);
+   * nhấn nhiều phím trong một frame thì lấy phím BẤM SAU CÙNG (BUG-010). Gọi một lần mỗi frame.
+   */
   hotbarPressed(): number | null {
-    let index: number | null = null;
-    this.hotbarKeys.forEach((k, i) => {
-      if (Phaser.Input.Keyboard.JustDown(k)) index = i;
-    });
+    const index = this.lastHotbarIndex;
+    this.lastHotbarIndex = null;
+    for (const k of this.hotbarKeys) this.pressedCodes.delete(k.keyCode);
     return index;
+  }
+
+  /**
+   * Gọi CUỐI mỗi frame: bỏ các lần nhấn phím / cuộn chưa ai hỏi tới (vd phím F khi chưa có tính năng F) —
+   * để một lần nhấn cũ không bất ngờ "lọt" sang frame sau hay sang tính năng thêm về sau.
+   */
+  endFrame(): void {
+    this.pressedCodes.clear();
+    this.wheelSteps = 0;
+    this.lastHotbarIndex = null;
   }
 }

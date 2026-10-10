@@ -23,6 +23,12 @@ export interface TileActionState {
   strikesDone: number;
   /** Các ô chờ làm tiếp. */
   queue: TileXY[];
+  /**
+   * Loại việc của ô đang làm + hàng chờ (T-003: "till", "plant", "water"…). Cả hàng chung một loại — GDD §3.3
+   * "một lần rê một loại việc"; đang cuốc thì không nhận gieo/tưới (D-022: không đổi việc giữa chừng).
+   * null = rảnh và hàng chờ trống.
+   */
+  kind: string | null;
 }
 
 export interface TileActionParams {
@@ -35,7 +41,7 @@ export interface TileActionParams {
 }
 
 export function createTileActionState(): TileActionState {
-  return { current: null, elapsed: 0, impacted: false, strikesLeft: 0, strikesDone: 0, queue: [] };
+  return { current: null, elapsed: 0, impacted: false, strikesLeft: 0, strikesDone: 0, queue: [], kind: null };
 }
 
 export const isBusy = (s: TileActionState): boolean => s.current !== null;
@@ -56,12 +62,16 @@ export function queuePosition(s: TileActionState, t: TileXY): number {
  * Xin làm ô `t` (người gọi đã kiểm "trong tầm + làm được"). Trả về true nếu đã nhận.
  * Không nhận nếu ô đang làm / đã chờ sẵn, hoặc hàng chờ đầy. Đang rảnh thì luôn nhận
  * (kể cả `queueMax` = 0 — tắt hàng chờ chứ không tắt click).
+ * `kind` = loại việc; đang làm / đang chờ việc loại khác thì không nhận (hàng chờ luôn chung một loại).
  */
-export function requestTile(s: TileActionState, t: TileXY, p: TileActionParams): boolean {
+export function requestTile(s: TileActionState, t: TileXY, p: TileActionParams, kind: string | null = null): boolean {
   if (isPending(s, t)) return false;
+  const occupied = s.current !== null || s.queue.length > 0;
+  if (occupied && s.kind !== kind) return false;
   const limit = s.current ? p.queueMax : Math.max(1, p.queueMax);
   if (s.queue.length >= limit) return false;
   s.queue.push({ x: t.x, y: t.y });
+  s.kind = kind;
   return true;
 }
 
@@ -77,6 +87,7 @@ export function cancelTileAction(s: TileActionState): TileXY | null {
   s.strikesLeft = 0;
   s.strikesDone = 0;
   s.queue.length = 0;
+  s.kind = null;
   return was;
 }
 
@@ -162,6 +173,8 @@ export function stepTileAction(
     }
     break;
   }
+  // Hết việc và hàng chờ trống → rảnh, lần bấm sau chọn loại việc mới.
+  if (!s.current && s.queue.length === 0) s.kind = null;
   return out;
 }
 

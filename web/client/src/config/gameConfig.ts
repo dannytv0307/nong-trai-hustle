@@ -225,6 +225,50 @@ export const gameConfig = {
   /** Hái xong ô trở về đất chưa cuốc. */
   harvestResetsSoil: true,
 
+  // ---- Gùi + hotbar (T-003, GDD §3.3, §3.9) ----
+  /** Số ô gùi lúc đầu (2 hàng × 9, hàng 1 = hotbar). */
+  bagSlotsStart: 18,
+  /** Mỗi ô chồng tối đa bấy nhiêu món cùng loại. */
+  stackMax: 20,
+  /** Hạt có sẵn lúc bắt đầu (id cây trong crops.json → số hạt), xếp vào hotbar theo thứ tự này từ ô 1. */
+  startSeeds: { 'rau-cai': 6, 'khoai-lang': 3 } as Readonly<Record<string, number>>,
+  /** Phím thử (G: qua đêm…) chỉ bật khi chạy dev (`npm run dev`), tắt ở bản build. */
+  devCheatsEnabled: import.meta.env.DEV,
+
+  // ---- Gieo, tưới, hái: hiệu ứng (T-003, GDD §8) ----
+  /** Bong bóng chữ trên đầu nhân vật ("hết hạt rồi", "gùi đầy") hiện bao lâu (giây). */
+  bubbleSeconds: 1.8,
+  /** Tưới: số giọt nước bắn ra, sống bao lâu (giây). */
+  waterDropCount: 10,
+  waterDropLifeSeconds: 0.5,
+  /** Gieo: số hạt rơi xuống ô. */
+  plantSeedDropCount: 4,
+  /** Ô đã tưới phủ màu sẫm bấy nhiêu (độ đục lớp mực). */
+  wateredSoilAlpha: 0.32,
+  /** Cây khát (hôm qua không tưới) — ô phủ màu đất khô bấy nhiêu. */
+  thirstySoilAlpha: 0.35,
+  /** Hái: cây bật lên cao bấy nhiêu ô và mờ dần trong `harvestPopSeconds`. */
+  harvestPopHeight: 0.7,
+  harvestPopSeconds: 0.35,
+  /** Hái: icon bay từ ô ruộng vào ô hotbar/gùi mất bao lâu (giây). */
+  harvestFlySeconds: 0.5,
+  /** Ô hotbar "nảy" khi nhận đồ: phóng thêm bấy nhiêu (0.2 = 20%) trong `hotbarBounceSeconds`. */
+  hotbarBounceScale: 0.2,
+  hotbarBounceSeconds: 0.22,
+  /** Gieo: tiếng "lách tách" (AUD-SFX-101) lệch cao độ ngẫu nhiên ± bấy nhiêu cent (70 ≈ ±4%) cho đỡ lặp. */
+  plantSfxDetuneCents: 70,
+  /**
+   * Hái liên tiếp: tiếng "pop" (AUD-SFX-102, không random cao độ) lên dần theo thang ngũ cung (cent so với nốt gốc C5),
+   * tới nấc cao nhất thì giữ.
+   */
+  harvestPitchLadderCents: [0, 200, 400, 700, 900, 1200] as readonly number[],
+  /** Ngừng hái quá bấy nhiêu giây (giờ game) thì tiếng hái về nấc đầu. */
+  harvestPitchResetSeconds: 1.2,
+
+  // ---- Cuộn chuột chọn ô hotbar (BUG-009) ----
+  /** Cộng dồn deltaY (px) đủ bấy nhiêu mới tính 1 nấc. Chuột thường ~100 px/nấc → 1 ô; touchpad vuốt nhẹ không nhảy vèo. */
+  wheelStepDelta: 100,
+
   // ---- Nhân vật / tên (GDD §11 Đặt tên) ----
   /** Tên mặc định của nhân vật chính ({ten}). */
   defaultPlayerName: 'Tý',

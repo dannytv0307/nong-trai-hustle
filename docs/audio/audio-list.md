@@ -17,6 +17,8 @@
 | AUD-SFX-006 | Meme zoom "tùng–tùng–TÙNG" | SFX | `dramaticZoom` | 2.35 s | không | 1 | `raw/AUD-SFX-006/final.wav` → `sfx/meme-zoom-trong.wav` | Must | Approved | AUD-SFX-FOLK |
 | AUD-SFX-007 | Meme "ối dồi ôi" (chũm chọe + chiêng) | SFX | `oiDoiOi` | 2.62 s | không | 1 | `raw/AUD-SFX-007/final.wav` → `sfx/meme-oi-doi-oi.wav` | Must | Approved | AUD-SFX-FOLK |
 | AUD-SFX-008 | Càu nhàu "ú ớ" (+ "hừm") | SFX (giọng) | Bong bóng chửi thề | 0.48 / 0.47 s | không | 2 | `raw/AUD-SFX-008/final(-2).wav` → `sfx/voice-cau-nhau-1/2.wav` | Must | Approved | AUD-SFX-FOLK |
+| AUD-SFX-101 | Gieo hạt "lách tách" + tay vùi đất | SFX | Gieo hạt (việc nhanh 0.4 s, lặp khi rê luống) | 0.26 / 0.28 s | không | 2 | `raw/T-003-sfx/gieo-hat-1/2.wav` → `sfx/gieo-hat-1/2.wav` (key `sfx-gieo-hat-1/2`) | Must | Approved / In-game (T-003: chọn ngẫu nhiên 1/2, lệch cao độ ±70 cent ≈ ±4%) | [AUD-SFX-101](prompts/AUD-SFX-101.md) |
+| AUD-SFX-102 | Hái cây "pop" (rễ bật + đất rơi), nốt gốc C5 để game detune cao dần | SFX | Hái cây | 0.34 / 0.35 s | không | 2 | `raw/T-003-sfx/hai-cay-1/2.wav` → `sfx/hai-cay-1/2.wav` (key `sfx-hai-cay-1/2`) | Must | Approved / In-game (T-003: chọn ngẫu nhiên 1/2, không random cao độ; hái liên tiếp detune 0/+200/+400/+700/+900/+1200 cent, giữ nấc cao nhất, ngừng 1.2 s về nấc đầu — `harvestPitchLadderCents`, `harvestPitchResetSeconds`) | [AUD-SFX-102](prompts/AUD-SFX-102.md) |
 
 ## Kế hoạch (Planned — chi tiết hóa ở chặng 4)
 
@@ -27,7 +29,7 @@
 | AUD-MUS-006 | Nhạc Menu | MUS | Lyria | GDD §5 | Must | Planned |
 | AUD-MUS-007 | Nhạc mặc cả nhà bố vợ | MUS | Lyria | GDD §3.10 | Should | Planned |
 | AUD-JNG-001…004 | Jingle: bắt được cá, xong nhiệm vụ (chiêng), tổng kết ngày, cảnh cưới (kèn trống) | JNG | Lyria jingle có kết | GDD §8 | Must | Planned |
-| AUD-SFX-1xx | Hành động: gieo hạt, hái cây (pop cao dần), cây héo, chặt củi "cốc", hái nấm, nông cụ cùn, quăng câu "vút + tõm", phao giật, cuộn dây, cá sổng "phựt", dép "bẹp", nỏ trúng/trượt, ăn, bụng réo, ngáp, ngáy, bước chân, vải "phạch" | SFX | `gen_folk_sfx.py` (thêm công thức) | GDD §8 | Must/Should | Planned |
+| AUD-SFX-1xx | Hành động: cây héo, chặt củi "cốc", hái nấm, nông cụ cùn, quăng câu "vút + tõm", phao giật, cuộn dây, cá sổng "phựt", dép "bẹp", nỏ trúng/trượt, ăn, bụng réo, ngáp, ngáy, bước chân, vải "phạch" | SFX | `gen_folk_sfx.py` (thêm công thức) | GDD §8 | Must/Should | Planned |
 | AUD-SFX-2xx | Mặc cả: "hừm", quạt, trà "xụp", cười "khà khà" + trống; đếm "tách tách"; ăn cháo "xì" | SFX | tổng hợp | GDD §8 | Must | Planned |
 | AUD-AMB-001…003 | Nền: mưa + sấm xa, gà gáy 6h, chim, búa rèn, cưa bào, ồn chợ | AMB | tổng hợp / Lyria | GDD §8, story bible | Should | Planned |
 | AUD-VOX-001… | Giọng lẩm bẩm NPC (U Hến, bà Ba Trầu, cụ Bá Kẹo, cô Bưởi, ông Bễ, chú Đục, chị Thóc, bà Cân, ông Gật), "hế hế!" khoe, gia súc, mèo Mướp "mi-ao" | VOX | `gen_folk_sfx.py` (giọng formant) | story bible Handoff | Should | Planned |
@@ -40,4 +42,5 @@
 - 2026-10-09 — Bước 2.3 (D-018): AUD-MUS-001 + AUD-SFX-001…008 Approved (file tạm trong `audio-source/raw/`, chuyển ở bước 3.1); thêm danh sách Planned.
 - 2026-10-10 — Bước 3.3 (T-002): người dùng góp ý "bộp" chưa giống cuốc → làm lại AUD-SFX-003 bằng công thức mới `hoe_soil` (4 ứng viên, chọn v1 + v2), trạng thái Processed — chờ người dùng nghe duyệt rồi mới ghi đè file game.
 - 2026-10-10 — AUD-SFX-003 bản 2: người dùng duyệt ứng viên 1 + 2 → chép vào `web/client/public/assets/audio/sfx/cuoc-dat-1/2.wav`, chạy `audio:convert`.
+- 2026-10-10 — Bước 3.3 (T-003): thêm AUD-SFX-101 gieo hạt (`sow_seed`) và AUD-SFX-102 hái cây (`harvest_pop`), mỗi loại 4 ứng viên, đề xuất 2. Trạng thái Processed, chờ người dùng nghe duyệt rồi mới chép vào game.
 - 2026-10-09 — Bước 3.1: copy nhạc Vườn + 8 SFX (13 file) vào `web/client/public/assets/audio/`, thêm `npm run audio:convert` (WAV → OGG + MP3 bằng ffmpeg-static).
