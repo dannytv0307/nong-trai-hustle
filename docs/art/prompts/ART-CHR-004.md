@@ -13,6 +13,8 @@
 | File trong game | `web/client/public/assets/art/characters/hero-t1-walk-down.png`, `-up.png`, `-right.png`, `-left.png` |
 | Trạng thái | Processed (chờ người dùng duyệt) |
 
+> **2026-10-10:** hướng ngang được làm lại ở [ART-CHR-005](ART-CHR-005.md) (6 khung, profile rõ). Lỗi: `hero-t1-walk-left.png` của thẻ này bị đảo thứ tự khung (4-3-2-1 → đi lùi) vì `sheet-split --flip` lật cả ảnh trước khi cắt; đã sửa `tools/process_image.py` (đảo lại thứ tự khi `--flip`).
+
 ## Mô tả (tiếng Việt)
 
 Chu trình đi 4 khung kiểu cổ điển: **chạm gót (contact) – qua chân (passing) – chạm gót chân kia – qua chân**, tay vung ngược chân, đầu nảy nhẹ ở khung passing. Nhân vật giữ nguyên nón lá rách quai đỏ, áo nâu rách, vá chàm khuỷu tay (lưng: vá vuông giữa lưng), quần xắn lệch, chân đất.

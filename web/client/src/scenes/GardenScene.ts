@@ -2,7 +2,7 @@
 // (Arcade Physics), camera bám theo trong biên bản đồ, hoạt ảnh đi bằng code (D-020).
 // Nhà, cây, ao, rào là hình khối màu theo palette (chưa có asset thật).
 import Phaser from 'phaser';
-import { heroTextureKey, heroWalkKey, HERO_WALK_FRAME } from '../config/assets';
+import { heroTextureKey, heroTurnKey, heroWalkKey } from '../config/assets';
 import { gameConfig } from '../config/gameConfig';
 import { palette } from '../config/palette';
 import { textStyles } from '../config/theme';
@@ -17,8 +17,11 @@ import {
   type TileRect,
 } from '../systems/garden';
 import { facingFromDirection, moveVelocity, type Facing } from '../systems/movement';
+import { createTurnAnimState, startTurn, stepTurn, turnFrameIndex, type TurnDiagonal } from '../systems/turnAnim';
 import {
+  clearWalkBob,
   createWalkAnimState,
+  isSideFacing,
   onWalkFrame,
   smoothSpeedRatio,
   stepWalkAnim,
@@ -59,11 +62,13 @@ const WALK_PARAMS: WalkAnimParams = {
   blendRate: gameConfig.walkBlendRate,
   breathScale: gameConfig.idleBreathScale,
   breathRate: gameConfig.idleBreathRate,
-  turnSeconds: gameConfig.turnFlipSeconds,
-  turnSquash: gameConfig.turnFlipSquash,
   dustEverySteps: gameConfig.walkDustEverySteps,
   upBobPx: gameConfig.walkUpBobPx,
+  sideContactFrames: gameConfig.walkSideContactFrames,
+  verticalContactFrames: gameConfig.walkVerticalContactFrames,
 };
+/** Mỗi khung xoay hiện bao lâu (giây). */
+const TURN_FRAME_SEC = gameConfig.turnFrameMs / 1000;
 
 /** Trạng thái cho QA/Playwright đọc qua window.__game.scene.getScene('Garden').debugState. */
 export interface GardenDebugState {
@@ -80,10 +85,12 @@ export interface GardenDebugState {
   bobOffset: number;
   /** Số lần chạm gót từ đầu. */
   steps: number;
-  /** Texture sprite đang dùng: `hero-t1-<hướng>` (đứng) hoặc `hero-t1-walk-<hướng>` (đi). */
+  /** Texture sprite đang dùng: `hero-t1-<hướng>` (đứng), `hero-t1-walk-<hướng>` (đi), `hero-t1-turn` (xoay). */
   textureKey: string;
-  /** Anim đi: key, khung (0..3), có đang chạy, hệ số tốc độ khung. */
+  /** Anim đi: key, khung đang hiện (dọc 0..3, ngang 0..5, xoay 0..3; ảnh đứng -1), có đang chạy, hệ số tốc độ khung. */
   anim: { key: string | null; frame: number; playing: boolean; timeScale: number };
+  /** Khung xoay chéo đang hiện (null = không xoay). */
+  turnFrame: TurnDiagonal | null;
   /** Vùng thế giới camera đang thấy (px). */
   view: { x: number; y: number; w: number; h: number };
   zoom: number;
@@ -99,6 +106,7 @@ export class GardenScene extends Phaser.Scene {
   private heroShadow!: Phaser.GameObjects.Ellipse;
   private facing: Facing = 'down';
   private readonly walk = createWalkAnimState();
+  private readonly turn = createTurnAnimState();
   private prevFootX = 0;
   private prevFootY = 0;
   /** Tỷ lệ tốc độ thật đã làm mượt (0..1). */
@@ -385,23 +393,26 @@ export class GardenScene extends Phaser.Scene {
 
     this.heroShadow = this.add.ellipse(x, y + fh / 2, 46, 16, palette.ink, 0.3).setDepth(DEPTH_SHADOW);
     // Gốc toạ độ ở chân (0.5, 1): co giãn quanh bàn chân, và depth = Y chân.
-    // Đứng: ảnh chống nạnh (hero-t1-<hướng>). Đi: anim 4 khung (hero-t1-walk-<hướng>).
+    // Đứng: ảnh chống nạnh (hero-t1-<hướng>). Đi: anim dọc 4 / ngang 6 khung (hero-t1-walk-<hướng>).
+    // Đổi hướng: chèn khung chéo (hero-t1-turn).
     this.hero = this.add.sprite(x, y + fh / 2, heroTextureKey(1, this.facing)).setOrigin(0.5, 1);
     this.createWalkAnims();
-    // Mỗi lần anim đổi khung: khung 0, 2 = gót chạm đất → bụi chân; đi lên thì nhích 1px.
+    // Mỗi lần anim đổi khung: khung chạm gót → bụi chân; đi lên thì nhích 1px.
     this.hero.on(Phaser.Animations.Events.ANIMATION_UPDATE, this.handleWalkFrame, this);
     this.hero.on(Phaser.Animations.Events.ANIMATION_START, this.handleWalkFrame, this);
   }
 
-  /** 4 animation đi (một cho mỗi hướng), khung 0-1-2-3 lặp. Chỉ tạo một lần cho cả game. */
+  /** 4 animation đi (một cho mỗi hướng), lặp vô hạn: dọc 4 khung, ngang 6 khung. Chỉ tạo một lần cho cả game. */
   private createWalkAnims(): void {
     for (const facing of ['down', 'up', 'left', 'right'] as const) {
       const key = heroWalkKey(1, facing);
       if (this.anims.exists(key)) continue;
+      const side = isSideFacing(facing);
+      const count = side ? gameConfig.walkSideFrames : gameConfig.walkVerticalFrames;
       this.anims.create({
         key,
-        frames: this.anims.generateFrameNumbers(key, { start: 0, end: HERO_WALK_FRAME.count - 1 }),
-        frameRate: gameConfig.walkFrameRate,
+        frames: this.anims.generateFrameNumbers(key, { start: 0, end: count - 1 }),
+        frameRate: side ? gameConfig.walkSideFrameRate : gameConfig.walkVerticalFrameRate,
         repeat: -1,
       });
     }
@@ -409,7 +420,7 @@ export class GardenScene extends Phaser.Scene {
 
   private handleWalkFrame(_anim: Phaser.Animations.Animation, frame: Phaser.Animations.AnimationFrame): void {
     const index = Number(frame.textureFrame);
-    const event = onWalkFrame(this.walk, index, this.facing === 'up', WALK_PARAMS);
+    const event = onWalkFrame(this.walk, index, this.facing, WALK_PARAMS);
     if (event === 'dust') this.kickDust(this.feetBody.center.x, this.feetBody.bottom, this.lastDirX);
   }
 
@@ -486,17 +497,21 @@ export class GardenScene extends Phaser.Scene {
     if (dir.x !== 0) this.lastDirX = dir.x;
 
     const newFacing = facingFromDirection(dir, this.facing);
-    const turned = newFacing !== this.facing;
-    if (turned) this.facing = newFacing;
+    // Tiến khung xoay đang dở TRƯỚC, rồi mới bắt đầu cú xoay mới (nếu có) — cú mới giữ đủ thời gian.
+    stepTurn(this.turn, dt, TURN_FRAME_SEC);
+    if (newFacing !== this.facing) {
+      startTurn(this.turn, this.facing, newFacing, this.lastDirX, TURN_FRAME_SEC);
+      this.facing = newFacing;
+    }
 
-    stepWalkAnim(this.walk, { speedRatio: this.speedRatio, turned }, dt, WALK_PARAMS);
-    this.updateHeroAnim(walkTimeScale(this.speedRatio), turned);
+    stepWalkAnim(this.walk, this.speedRatio, dt, WALK_PARAMS);
+    this.updateHeroAnim(walkTimeScale(this.speedRatio));
     const pose = this.walk.pose;
     const footBottom = this.feetBody.bottom;
 
     this.hero
       .setPosition(fx, footBottom + pose.offsetY)
-      .setScale(pose.scaleX, pose.scaleY)
+      .setScale(1, pose.scaleY)
       .setDepth(footBottom);
     this.heroShadow.setPosition(fx, footBottom - 2);
 
@@ -504,23 +519,37 @@ export class GardenScene extends Phaser.Scene {
     this.updateDust(dt);
   }
 
-  /** Đang đi → chạy anim đúng hướng với tốc độ khung theo tốc độ thật; dừng → về ảnh đứng. */
-  private updateHeroAnim(timeScale: number, turned: boolean): void {
+  /**
+   * Chọn hình cho nhân vật, theo thứ tự ưu tiên:
+   * 1. Đang xoay → khung chéo (anim đi tạm dừng; vật lý vẫn chạy bình thường — chỉ đổi hình).
+   * 2. Đang đi → anim bước đúng hướng, tốc độ khung theo tốc độ thật; xoay xong thì vào khung đầu.
+   * 3. Đứng → ảnh chống nạnh.
+   */
+  private updateHeroAnim(timeScale: number): void {
     const anims = this.hero.anims;
-    if (timeScale > 0) {
+    const diagonal = this.turn.frame;
+    if (diagonal) {
+      if (anims.isPlaying) anims.stop();
+      clearWalkBob(this.walk);
+      this.showStill(heroTurnKey(1), turnFrameIndex(diagonal));
+    } else if (timeScale > 0) {
       const key = heroWalkKey(1, this.facing);
       if (!anims.isPlaying || anims.currentAnim?.key !== key) {
-        // Đổi hướng giữa chừng: giữ nguyên khung đang bước cho liền nhịp chân.
-        const startFrame = anims.isPlaying ? (anims.currentFrame?.index ?? 1) - 1 : 0;
-        this.hero.play({ key, startFrame });
+        // Luôn vào khung đầu (chạm gót) của chu trình — nối tiếp khung xoay vừa hiện.
+        this.hero.play({ key, startFrame: 0 });
       }
       anims.timeScale = timeScale;
-    } else if (anims.isPlaying) {
-      anims.stop();
-      this.hero.setTexture(heroTextureKey(1, this.facing));
-    } else if (turned) {
-      this.hero.setTexture(heroTextureKey(1, this.facing));
+    } else {
+      if (anims.isPlaying) anims.stop();
+      this.showStill(heroTextureKey(1, this.facing));
     }
+  }
+
+  /** Đặt ảnh tĩnh cho sprite — chỉ khi khác ảnh đang hiện (gọi setTexture mỗi frame là thừa). */
+  private showStill(key: string, frame?: number): void {
+    const frameName = frame === undefined ? '__BASE' : String(frame);
+    if (this.hero.texture.key === key && String(this.hero.frame.name) === frameName) return;
+    this.hero.setTexture(key, frame);
   }
 
   /**
@@ -557,10 +586,12 @@ export class GardenScene extends Phaser.Scene {
       textureKey: this.hero?.texture.key ?? '',
       anim: {
         key: this.hero?.anims.currentAnim?.key ?? null,
-        frame: Number(this.hero?.anims.currentFrame?.textureFrame ?? -1),
+        // Khung đang HIỆN trên sprite (kể cả khi anim dừng để hiện khung xoay); ảnh đứng = -1.
+        frame: this.hero && this.hero.frame.name !== '__BASE' ? Number(this.hero.frame.name) : -1,
         playing: this.hero?.anims.isPlaying ?? false,
         timeScale: this.hero?.anims.timeScale ?? 0,
       },
+      turnFrame: this.turn.frame,
       view: { x: cam.worldView.x, y: cam.worldView.y, w: cam.worldView.width, h: cam.worldView.height },
       zoom: cam.zoom,
       mapPx: { w: L.cols * T, h: L.rows * T },

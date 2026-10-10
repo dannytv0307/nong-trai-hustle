@@ -83,20 +83,33 @@ export const gameConfig = {
   /** Độ mượt camera bám theo (0–1 mỗi frame). Nhỏ = trễ/mềm hơn, 1 = dính chặt. */
   cameraLerp: 0.12,
 
-  // ---- Hoạt ảnh đi (D-020 đã sửa: khung thật ART-CHR-004 + vài hiệu ứng bằng code) ----
+  // ---- Hoạt ảnh đi (D-020 đã sửa: khung thật ART-CHR-004/005/006 + vài hiệu ứng bằng code) ----
+  /** Đi lên/xuống: số khung của chu trình bước (ART-CHR-004). */
+  walkVerticalFrames: 4,
   /**
-   * Số khung/giây của chu trình bước 4 khung khi đi đủ tốc độ `walkSpeed` (art gợi ý 6–10).
-   * 8 khung/giây = 2 vòng/giây = 4 lần chạm gót/giây → sải chân 1 ô ở walkSpeed 4.
-   * Đi chậm hơn (đuối, trượt dọc tường) thì khung tự chậm theo tỷ lệ tốc độ thật.
+   * Đi lên/xuống: khung/giây khi đi đủ tốc độ `walkSpeed`. 8 khung/giây = 2 vòng/giây
+   * = 4 lần chạm gót/giây → sải 1 ô/bước ở walkSpeed 4.
    */
-  walkFrameRate: 8,
+  walkVerticalFrameRate: 8,
+  /** Đi lên/xuống: khung chạm gót (tung bụi). */
+  walkVerticalContactFrames: [0, 2] as readonly number[],
+  /** Đi trái/phải: số khung của chu trình bước (ART-CHR-005, profile 6 khung). */
+  walkSideFrames: 6,
+  /**
+   * Đi trái/phải: khung/giây khi đi đủ tốc độ (art gợi ý 9–12). 12 khung/giây = 2 vòng/giây
+   * = 4 lần chạm gót/giây — cùng nhịp chân với đi dọc, sải 1 ô/bước. Chậm hơn (10) thì sải 1.2 ô,
+   * chân trông "trượt" nhiều hơn. Đi chậm (đuối, trượt dọc tường) thì khung tự chậm theo tốc độ thật.
+   */
+  walkSideFrameRate: 12,
+  /** Đi trái/phải: khung chạm gót (khung 1 và 4 trong art = chỉ số 0 và 3). */
+  walkSideContactFrames: [0, 3] as readonly number[],
   /** Độ mượt khi đo tốc độ thật để chỉnh nhịp khung (1/giây). Lớn = phản ứng nhanh, dễ giật. */
   walkSpeedSmoothing: 20,
   /** Đi lên: nhích sprite lên mấy px ở khung nhấc chân (dải hướng lên ít chuyển động dọc). */
   walkUpBobPx: 1,
   /** Tốc độ chuyển giữa đứng ↔ đi (1/giây) — cho nhịp thở hiện/tắt mềm. */
   walkBlendRate: 12,
-  /** Cứ mấy lần chạm gót (khung 0 và 2) thì tung bụi chân một lần. */
+  /** Cứ mấy lần chạm gót thì tung bụi chân một lần. */
   walkDustEverySteps: 2,
   /** Số đốm bụi có sẵn trong pool (tái dùng, không tạo mới khi đang chơi). */
   walkDustPoolSize: 12,
@@ -106,10 +119,11 @@ export const gameConfig = {
   idleBreathScale: 0.02,
   /** Nhịp thở (lần/giây). */
   idleBreathRate: 0.5,
-  /** Cú xoay khi đổi hướng kéo dài bao lâu (giây). */
-  turnFlipSeconds: 0.12,
-  /** Lúc bắt đầu xoay, bề ngang sprite co còn (1 − giá trị này). */
-  turnFlipSquash: 0.55,
+  /**
+   * Đổi hướng: mỗi khung xoay chéo 3/4 (ART-CHR-006) hiện bao lâu (mili-giây; art gợi ý 60–80).
+   * Quay 90° = 1 khung, quay 180° = 2 khung nối tiếp. 0 = tắt, đổi hình thẳng.
+   */
+  turnFrameMs: 70,
 
   // ---- 3.4 Ruộng và cây trồng ----
   startPlots: 9,

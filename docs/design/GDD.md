@@ -55,7 +55,7 @@ Pillar = trụ cột cảm giác của game. Tính năng nào không phục vụ
 | 11+ | Endless: mục tiêu tài sản mới (thêm ruộng, gia súc). **Level 12 + đã cưới: sắm "Bộ áo the Phú ông"** (bậc 4 — §3.14) | Lặp nhiệm vụ nhỏ hằng ngày (Could) |
 
 - **8 nhiệm vụ chính + 1 nhiệm vụ cưới** dẫn từ level 1 tới đám cưới (chi tiết §7).
-- Thợ rèn và thợ mộc ở **Đầu ngõ** (cổng vườn) ngay từ đầu, không phải ở chợ, để nhiệm vụ level 3–4 làm được trước khi mở chợ. (Giả định)
+- Thợ rèn và thợ mộc ở **Đầu ngõ** (cuối ngõ, đi từ cổng vườn ≈ 7 giây — §5) ngay từ đầu, không phải ở chợ, để nhiệm vụ level 3–4 làm được trước khi mở chợ. (Giả định)
 
 ### Ước lượng tiến trình tới đám cưới (mục tiêu cân bằng)
 
@@ -666,7 +666,7 @@ Người chơi không sống một mình giữa mảnh vườn: nhà {ten} nằm
 | Bà Ba Trầu (chỉ khi có việc: sau nhiệm vụ 5, nhiệm vụ 9) | Quán chè | Sang làng Sung (ẩn ở xóm) | — | — |
 | Bà Chém | Quán chè | Quán chè | Quán chè (đông nhất) | Về nhà |
 | Ông Khướt | Gốc đa (ngủ) | Gốc đa (ngủ) | Quán chè (xin rượu) | **Gốc đa (ngủ luôn — không bao giờ về nhà)** |
-| Cô Ngóng | Sau bờ rào nhà cô (sát vườn {ten}) | Giếng làng | Sau bờ rào | Trong nhà |
+| Cô Ngóng | Sau bờ rào nhà cô (sát hiên nhà {ten}, nhìn sang vườn) | Giếng làng | Sau bờ rào | Trong nhà |
 | Anh Tráng | Sân đình (tập võ) | Sân đình | Sân đình | Về nhà |
 | Trẻ trâu Sún–Hĩm–Cò | Quanh giếng | Bờ ao đình | Sân đình | Về nhà |
 
@@ -743,7 +743,7 @@ Người chơi không sống một mình giữa mảnh vườn: nhà {ten} nằm
 - **Could**: liên kết thêm Google/Facebook vào tài khoản email đã có; đổi email; xác minh email.
 - **1 save cho mỗi tài khoản** ở bản đầu (Giả định). "Chơi mới" ghi đè save cũ sau khi hỏi xác nhận 2 lần.
 
-**Bản đồ làng** (Vườn là trung tâm, đi bộ qua cổng / đường mòn ở mép bản đồ):
+**Bản đồ làng** (Xóm làng Lầy là trung tâm — prototype chặng 3 thì là Vườn; đi bộ qua cổng / đường mòn ở mép bản đồ):
 
 | Khu | Kích thước dự kiến (ô) | Nối với | Cổng bị chặn tới khi | Có gì |
 |---|---|---|---|---|
@@ -780,7 +780,7 @@ Các khu khác chỉ cỡ 1,5–2 màn hình mỗi chiều: đi hết một khu 
 | **Nhà {ten} + U Hến** | x 18–24, y 3–9 | U ở chung nhà (không tách nhà riêng). Hiên có chõng tre |
 | **Vườn {ten}** | x 25–34, y 3–14 | Vùng ruộng 24 ô đặt sẵn (mở dần), cọc rào. Thúng bán ở cổng vườn x 28, y 15 |
 | **Nhà ông Gật** | x 37–45, y 3–14 | Nhà + vườn rau + chuồng gà. Hàng rào dâm bụt chung x 35–36 có **lỗ hở** ở y 11 (gà Mái Mơ chui sang) |
-| **Nhà cô Ngóng** | x 6–14, y 3–12 | Rào tre thấp sát vườn {ten}, cô đứng sau rào nhìn sang |
+| **Nhà cô Ngóng** | x 6–14, y 3–12 | Rào tre thấp ở x 15–16, sát hiên nhà {ten}; cô đứng sau rào nhìn sang hiên và vườn |
 | Đường xóm | y 16–17, x 4 → 59 | Đi ngang xóm. Mép đông = cổng **Suối** (cầu tre gãy tới Lv 4) |
 | Ngõ | x 28–30, y 17–28 | Từ cổng vườn xuống Đầu ngõ |
 | **Giếng làng** | x 18–19, y 21–22 | Giữa bãi đất trống (chỗ U, cô Ngóng, trẻ trâu tụ tập) |
@@ -789,11 +789,12 @@ Các khu khác chỉ cỡ 1,5–2 màn hình mỗi chiều: đi hết một khu 
 | **Lò rèn ông Bễ** | x 40–46, y 20–26 | Khói đen từ ống bễ (hạt khói bằng code) |
 | **Xưởng mộc chú Đục** | x 48–55, y 20–26 | Lán tre, ngựa cưa |
 | Đường cái | y 28–30, x 0 → 56 | Mép tây = cổng **làng Sung** (rào + biển "đường đang sửa" tới Lv 6) |
-| **Đình làng + sân đình** | Đình x 18–32, y 34–38; sân x 20–30, y 31–33 | Trang trí, không vào trong. Anh Tráng tập võ ở sân. Nơi intro diễn ra |
-| Ao đình | x 38–50, y 32–38 | Nước tĩnh (dùng lại tile nước suối, tối màu hơn), biển "Ao đình — cấm câu" (click: {ten} "Tiên sư cái biển!"; không câu được) |
+| **Đình làng + sân đình** | Đình x 18–32, y 34–37; sân x 20–30, y 31–33 | Trang trí, không vào trong. Anh Tráng tập võ ở sân. Nơi intro diễn ra |
+| Ao đình | x 38–50, y 32–37 | Nước tĩnh (dùng lại tile nước suối, tối màu hơn), biển "Ao đình — cấm câu" (click: {ten} "Tiên sư cái biển!"; không câu được) |
 | Nhà dân trang trí | x 4–12, y 19–25 và x 6–14, y 31–36 | 2 biến thể nhà mái rạ, không vào được |
 
-- **Chuyển từ prototype**: bản đồ Vườn 48×32 của chặng 3 được dựng lại thành Xóm 60×40 trong Tiled. Ruộng, nhà, thúng bán giữ nguyên cách hoạt động, chỉ đổi tọa độ (vị trí ô ruộng đọc từ lớp đối tượng của Tiled, không viết cứng trong code — `game-dev` lưu ý từ T-00x để chặng 4 chuyển rẻ).
+- **Chuyển từ prototype**: bản đồ Vườn 48×32 của chặng 3 (T-001 dựng bằng code, chưa dùng Tiled) được dựng lại thành Xóm 60×40 trong Tiled ở chặng 4. Ruộng, nhà, giường, thùng bán, sạp hạt giữ nguyên cách hoạt động, chỉ đổi tọa độ. Ở chặng 4, vị trí các thứ này đọc từ lớp đối tượng của Tiled. Trong prototype chỉ cần **gom tọa độ về một chỗ** (một bảng dữ liệu bản đồ hoặc `gameConfig.ts`), không rải số trong code gameplay — đây là lưu ý, không thêm việc cho T-001…T-009.
+- Mép lũy tre (2 ô) luôn là vật cản; mọi công trình nằm trong x 2–57, y 2–37.
 - Save cũ của prototype không cần giữ (Giả định: save prototype chỉ để thử).
 
 ```mermaid
@@ -1065,7 +1066,7 @@ Không có cho bản đầu tay (giả định). Chơi miễn phí trên web, kh
 
 **Phạm vi prototype chặng 3 (D-019):** chỉ bản đồ Vườn bằng hình khối/tile thử; đi lại + va chạm, cuốc–gieo–tưới–hái (rau cải, khoai lang), thanh Sức + đuối + ăn khoai sống, đồng hồ ngày + màu trời, gùi 18 ô + hotbar (chưa kéo thả), thùng bán, **sạp hạt tạm** (hộp, không phải NPC), ngủ / ngủ gục, qua đêm (lớn, khát, héo), tổng kết ngày, tự lưu localStorage, 1 bong bóng chửi thề khi đuối/ngủ gục. Chưa có: NPC, mặc cả, khu khác, nấu ăn, thời tiết, level/nhiệm vụ, hướng dẫn ngày 1, meme, đăng nhập (3.4). Câu hỏi cần trả lời: "làm nông có vui không?".
 
-**Prototype không đổi vì D-021**: vẫn bản đồ Vườn 48×32 (`gardenMapSize`), không NPC. Xóm làng 60×40 (`villageMapSize`) làm ở chặng 4. Chỉ một lưu ý rẻ cho `game-dev`: đặt vị trí ruộng, nhà, thúng bán bằng lớp đối tượng Tiled (không viết cứng tọa độ) để chặng 4 chuyển sang bản đồ Xóm nhanh.
+**Prototype không đổi vì D-021**: vẫn bản đồ Vườn 48×32 (`gardenMapSize`, dựng bằng code như T-001), không NPC, không lịch trình, không dân làng. Xóm làng 60×40 (`villageMapSize`) làm ở chặng 4. Chỉ một lưu ý rẻ cho `game-dev` (không phải việc mới): gom tọa độ ruộng, nhà, giường, thùng bán, sạp hạt về một chỗ dữ liệu, để chặng 4 chuyển sang lớp đối tượng Tiled của bản đồ Xóm nhanh. Playtest 3.5 vẫn chơi trên Vườn; góp ý về "làng" (nếu có) ghi vào `docs/playtests.md` để dùng ở 4.1.
 
 **Tham số mới cho prototype** (thêm vào `gameConfig.ts`):
 
@@ -1200,7 +1201,7 @@ Không có cho bản đầu tay (giả định). Chơi miễn phí trên web, kh
 8. ~~Câu chửi có nên mạnh hơn~~: chốt ở D-010 — người dùng chọn giữ mức hiện tại ("đéo, mẹ kiếp, mả cha, tiên sư" viết đầy đủ), không dùng từ tục tình dục.
 9. ~~(A) Cây trái mùa~~: chốt ở D-009 — chọn A1, vẫn lớn tiếp tới khi hái.
 10. ~~(B) Thức quá 24h~~: chốt ở D-009 — chọn B2, ngủ gục ngoài đồng, sáng hôm sau còn 70% Sức (§3.1).
-11. Thợ rèn, thợ mộc đặt ở **Đầu ngõ** (phía nam bản đồ Vườn) từ level 1 thay vì ở chợ (Giả định — để nhiệm vụ level 3–4 làm được trước khi mở chợ ở level 6). Đã giải thích ở story bible §2.2: Đầu ngõ là chỗ ngõ xóm đổ ra đường cái, dưới gốc đa.
+11. Thợ rèn, thợ mộc đặt ở **Đầu ngõ** (giữa bản đồ Xóm làng Lầy, cuối ngõ từ cổng vườn — §5, D-021) từ level 1 thay vì ở chợ (Giả định — để nhiệm vụ level 3–4 làm được trước khi mở chợ ở level 6). Đã giải thích ở story bible §2.2: Đầu ngõ là chỗ ngõ xóm đổ ra đường cái, dưới gốc đa.
 12. Cân bằng tiền: tổng thu nhập dự kiến tới ngày 24 (~4800 quan) dư khá nhiều so với tổng chi (~2700 quan gồm nâng cấp, sửa đồ, ăn, sính lễ). Cố ý để rộng tay cho người mới; chỉnh lại ở playtest nếu cưới quá sớm.
 13. **Chọn công cụ** (D-009, Giả định): nông cụ tự chọn theo thứ được click, hotbar chỉ chứa hạt, đồ ăn, lễ vật. Nếu chơi thử thấy thiếu "cảm giác cầm đồ" như Stardew thì đổi sang mỗi nông cụ một ô hotbar (sửa khoảng 3–4 giờ code).
 14. **Phong cách hình ảnh và tileset** (bước 2.1): gen tile nối liền nhau bằng AI khó. `art-director` cần thử sớm 1 tileset đất/cỏ/nước để biết có làm được không. Nếu không được thì chọn hướng vẽ "mảng lớn" (nền là một ảnh lớn, chỉ ruộng và vật cản là ô).
@@ -1210,6 +1211,7 @@ Không có cho bản đầu tay (giả định). Chơi miễn phí trên web, kh
 18. **App review của Facebook và màn xác nhận của Google**: app Facebook ở chế độ phát triển thì chỉ tài khoản được thêm làm tester mới đăng nhập được. Muốn mở cho mọi người phải chuyển sang chế độ Live (cần trang quyền riêng tư, icon, danh mục, có thể cần xác minh doanh nghiệp/cá nhân). Google OAuth chỉ xin email + hồ sơ cơ bản nên thường không cần thẩm định lâu, nhưng phải điền màn đồng ý (consent screen) và xác minh tên miền. Nếu Facebook bị chậm: **phát hành với email + Google trước**, Facebook bật sau (nằm trong danh sách cắt).
 19. **Chi phí chạy server**: Cloud Run tính theo lượt dùng (ít người chơi gần như miễn phí). Cloud SQL bản nhỏ nhất tốn khoảng 7–10 USD/tháng kể cả khi không ai chơi. Phương án rẻ hơn nếu cần: Postgres miễn phí của dịch vụ khác, hoặc tắt Cloud SQL khi chưa phát hành. Hỏi người dùng ở chặng phát hành.
 20. **Nhiều slot save**: bản đầu 1 save/tài khoản (Giả định). Nếu người dùng muốn 3 slot thì thêm khoảng 3–4 giờ (màn chọn slot + cột `slot` trong bảng `SaveGame`).
+21. **Xóm làng Lầy (D-021) — đã chốt 2026-10-10**: người dùng chọn làm đầy đủ Must (§3.16), một bản đồ Xóm 60×40 liền, cửa hàng mở 6–19h. Không ảnh hưởng chặng 3.
 
 ## Changelog
 
@@ -1226,3 +1228,5 @@ Không có cho bản đầu tay (giả định). Chơi miễn phí trên web, kh
 - 2026-10-09 — D-017: v0.9, thêm **§3.15 Meme nhái**: 15 meme (8 Must, 5 Should, 2 Could), luật nhái (không ảnh/âm thanh gốc, không mặt người thật, không tên meme trong prompt), luật chạy (lần đầu luôn hiện, tối đa 4/ngày, cách 90 giây, meme thay câu chửi lần đó), bảng tham số, dữ liệu `MemeData` → `memes.json`. Cập nhật §3 (danh sách file dữ liệu), §6 nội dung, §7 tổng kết ngày (mũi tên lãi), §8 (6 dòng juice meme), §11 (vị trí thẻ meme + chữ meme, cài đặt Meme là Could), §14 (Must/Should/Could, ước lượng 27–35 tuần, ~10 ảnh + ~14 SFX, mục cắt 0c).
 - 2026-10-09 — Bước 3.2 (D-019): v0.10. §14: người dùng làm **15 giờ/tuần** → ước lượng còn khoảng 16–19 tuần (230–280 giờ); thêm **lộ trình ngắn** (gate chặng 3 ~20/11/2026, mốc giữa chặng 4 ~21/12/2026, phát hành ~cuối 02 – đầu 03/2027), phạm vi prototype "một ngày ở Vườn" và bảng tham số mới cho prototype (`gardenMapSize`, `cameraLerp`, `playerFootHitbox`, `screenShakeLight`, `skyTintMaxAlpha`, `startSeeds`, `devCheatsEnabled`). Task: `docs/tasks.md` T-001 … T-009.
 - 2026-10-09 — D-021: v0.11, **Xóm làng Lầy** (định hướng chặng 4, prototype chặng 3 không đổi). Thêm §3.16 (3 lớp NPC, lịch trình 4 khung giờ, cửa hàng mở 6–19h, nói chuyện bằng bong bóng có điều kiện, bark/đi bộ/chào hỏi +XP là Should, tặng quà một chạm là Could, thanh thân thiện để sau; bảng tham số `villageMapSize`, `npcSlotHours`, `shopOpenHour`/`shopCloseHour`, `npc*`, `dailyChatXp`, `giftXp`; dữ liệu `NpcData` → `npcs.json`). §5: khu nhà thành Xóm làng Lầy 60×40, sơ đồ + bảng vị trí, ghi chú chuyển từ prototype. §2 level 1, §6, §9 (dân làng phụ; ông Gật lên Must). §14: ước lượng 17–21 tuần (255–312 giờ), lộ trình chặng 4 (+1,7–2 tuần, phát hành ~giữa 03/2027), cách chen vào 4.1/4.2/4.4, khối lượng + chi phí ảnh (~7–13 USD Must), Must/Should/Could/Won't, mục cắt 0d.
+- 2026-10-10 — D-021 (hoàn tất phần bị ngắt): §2 Đầu ngõ là cuối ngõ (không phải cổng vườn); §3.16 + §5 nhà cô Ngóng sát hiên nhà {ten} (khớp tọa độ); đình và ao lùi khỏi mép lũy tre (y ≤ 37); ghi chú chuyển từ prototype khớp T-001 (bản đồ dựng bằng code, chỉ cần gom tọa độ, không thêm việc chặng 3); đầu bảng §5 "Xóm là trung tâm"; §15 câu 11 cập nhật vị trí, thêm câu 21 (chi tiết xóm chờ người dùng duyệt).
+- 2026-10-10 — Người dùng duyệt D-021: đầy đủ Must, một bản đồ Xóm liền, cửa hàng 6–19h (§15 câu 21).

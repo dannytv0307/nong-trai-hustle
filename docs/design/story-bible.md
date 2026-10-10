@@ -79,7 +79,7 @@ Cảm giác cần có: **nhà {ten} là một nóc nhà trong xóm**, không ph�
 - **Nhà {ten}**: túp nhà tranh nhỏ, mái rạ xơ xác, vách đất có chỗ nứt, cửa liếp tre. Hiên trước có chõng tre. Trong nhà: giường tre, **bếp rơm** (3 hòn đầu rau, ám khói) — sau nâng cấp thành **bếp gạch** đỏ có ống khói; hũ gạo, rương gỗ. Sau cưới có thêm chuồng tre ở góc vườn.
 - **Vườn**: ruộng 3×3 ô lúc đầu, xung quanh là đất đầy cỏ dại; các ô mở rộng có cọc rào tre cắm sẵn. Thùng bán là **cái thúng tre có nắp** đặt ở cổng vườn. Bờ rào dâm bụt đỏ.
 - Hàng xóm phía đông: **nhà ông Gật** sát bên — nhà mái rạ thấp, vườn rau, chuồng gà tre; hàng rào dâm bụt chung có **lỗ hở** (nơi gà Mái Mơ chui sang). (Could: mèo Mướp ngồi trên nóc nhà ông.)
-- Hàng xóm phía tây: **nhà cô Ngóng** — rào tre thấp chỉ cao tới ngực, nên lúc nào cũng thấy đầu cô nhô lên nhìn sang vườn {ten}. Cửa sổ nhỏ hướng ra đường xóm.
+- Hàng xóm phía tây: **nhà cô Ngóng** — sát hiên nhà {ten}, rào tre thấp chỉ cao tới ngực, nên lúc nào cũng thấy đầu cô nhô lên nhìn sang hiên và vườn {ten}. Cửa sổ nhỏ hướng ra đường xóm.
 - **Giếng làng**: giếng tròn thành gạch, gáo dừa buộc dây, giữa bãi đất trống — chỗ U và cô Ngóng gánh nước buổi chiều, trẻ trâu chạy vòng.
 - Vài **nhà dân** mái rạ trang trí (không vào được), khói bếp bốc lên buổi sáng và buổi tối.
 - Cổng ra 3 hướng: **bắc** sau nhà lên núi (lúc đầu có **thân cây đổ** chắn), **đông** cuối đường xóm ra suối (lúc đầu **cầu tre gãy**), **tây** cuối đường cái sang làng Sung (lúc đầu **rào tre + biển gỗ "đường đang sửa"**). Mỗi cổng có biển "Lv N".
@@ -447,7 +447,7 @@ Câu mẫu:
 
 | Mục | Nội dung |
 |---|---|
-| Vai trò gameplay | Không có luật. Nhà sát vườn {ten} phía tây; đứng sau rào nhìn sang vườn mỗi sáng. Là **nguồn tin của chị Thóc** (giải thích vì sao chuyện trong vườn {ten} hôm sau cả làng biết). Chiều ra giếng cạnh U Hến. |
+| Vai trò gameplay | Không có luật. Nhà sát nhà {ten} phía tây; đứng sau rào nhìn sang hiên và vườn mỗi sáng. Là **nguồn tin của chị Thóc** (giải thích vì sao chuyện trong vườn {ten} hôm sau cả làng biết). Chiều ra giếng cạnh U Hến. |
 | Tính cách (3 từ) | **Tò mò, giả vờ vô tình, nhanh tai** |
 | Mong muốn / nỗi sợ | Muốn: biết chuyện **trước** chị Thóc một lần. Sợ: bị bảo là nhiều chuyện. |
 | Visual hook | **Đầu nhô qua bờ rào + một tay khum sau tai**, tay kia cầm rổ rau. |
@@ -826,12 +826,12 @@ Giọng: lầy, ngắn, như dân làng bình luận. Chữ to ≤ 30 ký tự, 
 ## 8. Giả định đã đặt (bước 1.3)
 
 - Làng giàu bên cạnh tên **làng Sung**; GDD giữ tên kỹ thuật "Chợ làng bên".
-- Thêm 3 NPC so với "khoảng 5 NPC" của GDD: **chị Thóc** (bắt buộc vì quán hạt cần người bán), **bà Cân** (nhiệm vụ 6 đã có "bà hàng chợ"), **U Hến** (Must nhẹ: chỉ chân dung + khung intro). **Ông Gật + gà Mái Mơ** là Should (đã có "gà hàng xóm" trong Should của GDD).
+- Thêm 3 NPC so với "khoảng 5 NPC" của GDD: **chị Thóc** (bắt buộc vì quán hạt cần người bán), **bà Cân** (nhiệm vụ 6 đã có "bà hàng chợ"), **U Hến** (Must nhẹ: chỉ chân dung + khung intro). **Ông Gật + gà Mái Mơ** là Should (đã có "gà hàng xóm" trong Should của GDD). *(Sửa bởi D-021: sprite đứng của U Hến và ông Gật lên Must vì cả hai đứng trên bản đồ Xóm theo giờ; sự kiện gà mổ rau vẫn Should.)*
 - Intro tăng từ 3 lên **4 khung** + màn đặt tên (vẫn ≤ 5).
 - Tên người chơi: tối đa 10 ký tự, không đổi sau khi đặt.
 - Khoe khoang dùng chung xác suất và thời gian nghỉ với chửi thề (không thêm tham số mới).
 - ~~Mức chửi mạnh nhất~~: **người dùng đã chốt** (D-010) — "đéo", "mẹ kiếp", "mả cha", "tiên sư" viết đầy đủ, không dùng từ tục tình dục. Câu "Đ** mẹ" trong GDD §3.12 đã đổi thành câu không che.
-- ~~Giữ U Hến~~: **người dùng đã chốt** (D-010) — giữ ở mức Must nhẹ (chân dung + khung intro; sprite ở hiên là Should).
+- ~~Giữ U Hến~~: **người dùng đã chốt** (D-010) — giữ ở mức Must nhẹ (chân dung + khung intro; sprite ở hiên là Should — *sprite lên Must từ D-021*).
 - Màn đặt tên trên web là ô nhập chữ HTML đè lên game (để gõ được tiếng Việt có dấu bằng bộ gõ Unikey/EVKey) — Giả định, xem GDD §12 (D-011).
 - Con không có giới tính riêng (1 kiểu sprite), gọi bé Cả / Hai / Út.
 - (D-015) Bộ đồ bậc 2 bán ở quán chị Thóc, bậc 3–4 ở sạp bà Cân: không thêm NPC thợ may. Áo the bậc 4 màu nâu đỏ sẫm để khác cụ Bá Kẹo. Túi tiền bậc 3 màu nâu. U, ông Bễ không đổi cách gọi theo bậc (để làm câu đùa).
@@ -847,3 +847,4 @@ Giọng: lầy, ngắn, như dân làng bình luận. Chữ to ≤ 30 ký tự, 
 - 2026-10-09 — D-015: v1.1, **4 bậc ngoại hình của {ten}**. Thêm §3.1a (bảng 4 bậc, Handoff cho Art từng bậc có ghi chú chống turban cho khăn xếp bậc 4, giữ chi tiết đỏ son ở mọi bậc, ngân sách art: sprite Must, 14 chân dung Should + quy tắc dùng biểu cảm gần nghĩa cùng bậc, Handoff Audio, 15 câu thoại lên bậc + câu U tặng đồ cưới). §2.1 "làng nhìn áo mà gọi". §3.0 bảng xưng hô đổi sang theo bậc (U, ông Bễ không đổi). §3.11 con lớn lấy nón cũ trên vách. §5.3 cảnh cưới mặc bộ bậc 3, U tặng đồ cưới nếu chưa có. §5.5, §7 thuật ngữ (bậc ngoại hình, Phú ông, áo the), §8 giả định. Ngân sách chữ ~316 câu.
 - 2026-10-09 — D-017: v1.2, **meme nhái**. Thêm 2 dòng Nên/Không nên cho meme (§1), dòng ngân sách 35 câu (tổng ~351), nhân vật **mèo Mướp** + Handoff Art/Audio (§3.10), **§6.5 chữ đi kèm 15 meme** (phụ đề mèo, khóc, zoom, ổn mà, lãi/lỗ, chọn/không chọn, cụ cười gượng, ối dồi ôi, còn cái nịt, ét o ét, trừ sĩ diện, gét gô, đỉnh nóc, vỗ tay chậm), §7 thuật ngữ, §8 giả định.
 - 2026-10-09 — D-021: v1.3, **Xóm làng Lầy** (chặng 4; prototype chặng 3 không đổi). §2.2 khu trung tâm thành Xóm 60×40: bố cục, nhà ông Gật và nhà cô Ngóng hai bên, giếng giữa xóm, quán chè bà Chém, đình + sân đình, ao đình "cấm câu", lũy tre. §1: anh Tráng dọn cây đổ mở Núi; ngân sách chữ +45 câu (~396). Thêm **§3.13 dân làng phụ** (bà Chém, ông Khướt, cô Ngóng, anh Tráng, trẻ trâu Sún–Hĩm–Cò; ông Mõ Could) với tính cách, mong muốn/nỗi sợ, visual hook, 4 câu mẫu, Handoff Art/Audio; **§3.14** câu đóng cửa / theo giờ của NPC chính. U Hến và ông Gật có sprite Must. §7 thuật ngữ, §8 giả định.
+- 2026-10-10 — D-021 (hoàn tất phần bị ngắt): nhà cô Ngóng sát hiên nhà {ten} (khớp tọa độ GDD §5); §8 ghi chú giả định cũ (U Hến, ông Gật là Should) đã được D-021 nâng sprite lên Must. Chi tiết xóm còn chờ người dùng duyệt (GDD §15 câu 21).

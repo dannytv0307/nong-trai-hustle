@@ -19,8 +19,10 @@ interface S {
   moving: boolean;
   facing: string;
   bobOffset: number;
-  rotationDeg: number;
   steps: number;
+  textureKey: string;
+  anim: { key: string | null; frame: number; playing: boolean; timeScale: number };
+  turnFrame: string | null;
   view: { x: number; y: number; w: number; h: number };
   zoom: number;
   mapPx: { w: number; h: number };
@@ -70,7 +72,9 @@ async function startRec(page: Page) {
         fy: s.footY,
         moving: s.moving,
         off: s.bobOffset,
-        rot: s.rotationDeg,
+        frame: s.anim.frame,
+        turn: s.turnFrame,
+        tex: s.textureKey,
         sx: hero.scaleX,
         sy: hero.scaleY,
         steps: s.steps,
@@ -209,11 +213,14 @@ test('Q1 đi chéo không nhanh hơn đi thẳng (đo theo frame)', async ({ pag
 
 test('Q2 ép chéo vào mặt ngoài tường nhà và trượt qua mối nối khối tường: không kẹt', async ({ page }) => {
   // Hộp chân 40×20. Mặt trái ngoài nhà x=320 (cột 5), mối nối khối tường ở y=256 và y=640.
+  // Điểm xuất phát y=690 (mép trên hộp chân cách góc dưới tường 24px > cornerNudgePx 16): nếu đứng
+  // sát góc hơn, frame đầu chỉ có 1 phím (Playwright nhấn lần lượt) sẽ "nắn" vòng qua góc xuống dưới
+  // — đúng thiết kế, nhưng làm ca này đi sai mặt tường.
   const cases: { name: string; at: [number, number]; keys: string[]; done: (s: S) => boolean }[] = [
-    { name: 'mặt trái, D+W lên qua y=640', at: [300, 700], keys: ['KeyD', 'KeyW'], done: (s) => s.footY < 600 },
+    { name: 'mặt trái, D+W lên qua y=640', at: [300, 690], keys: ['KeyD', 'KeyW'], done: (s) => s.footY < 600 },
     { name: 'mặt trái, D+W lên qua y=256', at: [300, 300], keys: ['KeyD', 'KeyW'], done: (s) => s.footY < 230 },
     { name: 'mặt trái, D+S xuống', at: [300, 230], keys: ['KeyD', 'KeyS'], done: (s) => s.footY > 720 },
-    { name: 'mặt phải, A+W lên', at: [1044, 700], keys: ['KeyA', 'KeyW'], done: (s) => s.footY < 230 },
+    { name: 'mặt phải, A+W lên', at: [1044, 690], keys: ['KeyA', 'KeyW'], done: (s) => s.footY < 230 },
     { name: 'mặt phải, A+S xuống', at: [1044, 230], keys: ['KeyA', 'KeyS'], done: (s) => s.footY > 720 },
   ];
   const stuck: string[] = [];
@@ -221,11 +228,12 @@ test('Q2 ép chéo vào mặt ngoài tường nhà và trượt qua mối nối 
     await tpPx(page, c.at[0], c.at[1]);
     await startRec(page);
     for (const k of c.keys) await page.keyboard.down(k);
-    // tối đa 80 frame game (đủ ~2 lần quãng đường cần đi)
+    // Giới hạn theo THỜI GIAN GAME (tổng delta), không theo số frame: 80 frame ở 60 FPS chỉ đi được
+    // ~240px, chưa hết mặt tường. 4 giây game ≈ 2 lần quãng đường cần đi; kẹt thì không bao giờ tới đích.
     let s = await st(page);
-    for (let i = 0; i < 400 && !c.done(s); i++) {
-      const n = await page.evaluate(() => (window as any).__rec.length);
-      if (n > 80) break;
+    for (let i = 0; i < 1000 && !c.done(s); i++) {
+      const gameMs = await page.evaluate(() => (window as any).__rec.reduce((a: number, r: any) => a + r.d, 0));
+      if (gameMs > 4000) break;
       await page.waitForTimeout(40);
       s = await st(page);
     }
@@ -297,7 +305,8 @@ test('Q4 trượt quanh ao và gốc cây không kẹt', async ({ page }) => {
 test('Q5 thả phím giữa bước: hạ chân về đứng, không đứng khựng giữa không trung; có thở', async ({ page }) => {
   await tp(page, 28, 18);
   await page.keyboard.down('KeyD');
-  await expect.poll(async () => (await st(page)).bobOffset, { timeout: 5000, intervals: [10] }).toBeLessThan(-4);
+  // Đang bước bằng khung thật ART-CHR-004 (D-020 đã sửa: không còn nảy bằng code khi đi ngang).
+  await expect.poll(async () => (await st(page)).anim.playing, { timeout: 5000, intervals: [10] }).toBe(true);
   await page.evaluate(() => {
     window.addEventListener('keyup', () => { (window as any).__upAt = (window as any).__rec.length; }, { once: true });
   });
@@ -311,9 +320,11 @@ test('Q5 thả phím giữa bước: hạ chân về đứng, không đứng kh�
   console.log('frame sau keyup còn di chuyển:', moveFrames, 'offY lúc thả', first.off);
   expect(moveFrames).toBeLessThanOrEqual(1);
   const last = rec[rec.length - 1];
-  console.log('lúc thả off=', first.off, 'cuối off=', last.off, 'rot=', last.rot, 'sx', last.sx, 'sy', last.sy);
+  console.log('lúc thả off=', first.off, 'cuối off=', last.off, 'sx', last.sx, 'sy', last.sy);
   expect(Math.abs(last.off)).toBeLessThan(0.05);
-  expect(Math.abs(last.rot)).toBeLessThan(0.2);
+  const after = await st(page);
+  expect(after.anim.playing).toBe(false); // thả phím → dừng anim bước
+  expect(after.textureKey).toBe('hero-t1-right'); // về dáng đứng chống nạnh
   // nhân vật dừng ngay (không trôi quá 1 frame bước)
   // chân sprite không bao giờ dưới chân hộp (không lún) và không lơ lửng khi đứng
   expect(Math.abs(last.heroY - last.body)).toBeLessThan(0.1);
@@ -333,7 +344,7 @@ test('Q5 thả phím giữa bước: hạ chân về đứng, không đứng kh�
   expect(idle.every((r) => Math.abs(r.off) < 0.05)).toBe(true);
 });
 
-test('Q6 hoạt ảnh khi đi: nghiêng theo hướng, lật khi đổi hướng, bụi, nhịp bước khớp quãng đường', async ({ page }) => {
+test('Q6 hoạt ảnh khi đi: khung bước thật, khung xoay khi đổi hướng, bụi, nhịp bước khớp quãng đường', async ({ page }) => {
   await tp(page, 20, 22);
   await page.keyboard.down('KeyD');
   await page.waitForTimeout(300);
@@ -344,31 +355,32 @@ test('Q6 hoạt ảnh khi đi: nghiêng theo hướng, lật khi đổi hướng
   const dist = Math.hypot(rec[rec.length - 1].fx - rec[0].fx, rec[rec.length - 1].fy - rec[0].fy);
   const steps = rec[rec.length - 1].steps - rec[0].steps;
   const stride = dist / steps / TILE;
-  const maxRot = Math.max(...rec.map((r) => r.rot));
   const minOff = Math.min(...rec.map((r) => r.off));
   const maxDust = Math.max(...rec.map((r) => r.dust));
-  const sy = rec.map((r) => r.sy);
-  console.log({ stride, steps, maxRot, minOff, maxDust, syMin: Math.min(...sy), syMax: Math.max(...sy) });
-  expect(stride).toBeGreaterThan(0.7);
-  expect(stride).toBeLessThan(0.95); // sải 0.8 ô = walkSpeed/walkBobRate
-  expect(maxRot).toBeGreaterThan(3); // nghiêng phải
-  expect(minOff).toBeLessThan(-4.5);
-  expect(minOff).toBeGreaterThan(-6.01);
+  const frames = new Set(rec.map((r) => r.frame));
+  console.log({ stride, steps, minOff, maxDust, frames: [...frames] });
+  // Đi ngang 6 khung (ART-CHR-005) ở walkSideFrameRate 12 → 4 lần chạm gót/giây (khung 0, 3)
+  // ở walkSpeed 4 → sải ≈ 1 ô. Biên rộng vì FPS headless thấp làm khung/vật lý lệch nhịp nhau một chút.
+  expect(stride).toBeGreaterThan(0.8);
+  expect(stride).toBeLessThan(1.3);
+  expect(frames.size).toBeGreaterThanOrEqual(4); // chạy qua nhiều khung của chu trình 6 khung
+  expect(Math.max(...frames)).toBeGreaterThanOrEqual(4); // có khung 4/5 → đúng là dải 6 khung
+  expect(Math.abs(minOff)).toBeLessThan(0.01); // đi ngang: không nảy bằng code (khung thật lo)
   expect(maxDust).toBeGreaterThan(0);
-  expect(Math.max(...sy) - Math.min(...sy)).toBeGreaterThan(0.05); // co giãn đặt chân
+  // Không còn bóp scaleX khi đổi hướng (thay bằng khung xoay ART-CHR-006).
+  expect(rec.every((r) => r.sx === 1)).toBe(true);
 
-  // đi trái → nghiêng âm; đổi hướng có scaleX co lại
+  // đi trái (quay 180°) → hiện khung xoay chéo xuống-phải, xuống-trái, rồi chu trình đi trái
   await startRec(page);
   await page.keyboard.down('KeyA');
   await waitFrames(page, 30);
   rec = await stopRec(page);
   await page.keyboard.up('KeyA');
-  const minSx = Math.min(...rec.map((r: any) => r.sx));
-  const minRot = Math.min(...rec.map((r) => r.rot));
-  console.log({ turnMinScaleX: minSx, minRot, facing: (await st(page)).facing });
-  // Cú lật chỉ 0.12 s: ở FPS headless rất thấp có thể lọt giữa 2 frame → chỉ yêu cầu có co ngang.
-  expect(minSx).toBeLessThan(1);
-  expect(minRot).toBeLessThan(-3);
+  const turns = rec.map((r: any) => r.turn).filter((t: string | null, i: number, a: (string | null)[]) => t !== null && t !== a[i - 1]);
+  console.log({ turns, facing: (await st(page)).facing });
+  expect(turns).toEqual(['down-right', 'down-left']);
+  expect(rec.every((r: any) => r.sx === 1)).toBe(true);
+  expect(rec.some((r: any) => r.tex === 'hero-t1-turn')).toBe(true);
   expect((await st(page)).facing).toBe('left');
 
   // ép tường: không nảy tại chỗ (rào dưới)

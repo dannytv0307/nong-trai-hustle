@@ -13,17 +13,17 @@ const P: WalkAnimParams = {
   blendRate: 12,
   breathScale: 0.02,
   breathRate: 0.5,
-  turnSeconds: 0.12,
-  turnSquash: 0.55,
   dustEverySteps: 2,
   upBobPx: 1,
+  sideContactFrames: [0, 3],
+  verticalContactFrames: [0, 2],
 };
 const DT = 1 / 60;
 
 function run(state: WalkAnimState, frames: number, speedRatio: number) {
   const scaleY: number[] = [];
   for (let i = 0; i < frames; i++) {
-    stepWalkAnim(state, { speedRatio, turned: false }, DT, P);
+    stepWalkAnim(state, speedRatio, DT, P);
     scaleY.push(state.pose.scaleY);
   }
   return scaleY;
@@ -59,21 +59,12 @@ describe('stepWalkAnim', () => {
     const sy = run(s, 60, 1);
     expect(s.moving).toBe(true);
     expect(sy[sy.length - 1]).toBeCloseTo(1, 6);
-    expect(s.pose.scaleX).toBe(1);
-  });
-
-  it('đổi hướng: bề ngang co lại rồi trở về 1', () => {
-    const s = createWalkAnimState();
-    stepWalkAnim(s, { speedRatio: 0, turned: true }, DT, P);
-    expect(s.pose.scaleX).toBeLessThan(0.7);
-    run(s, 20, 0);
-    expect(s.pose.scaleX).toBeCloseTo(1, 6);
   });
 
   it('dừng lại thì bỏ nhích của hướng lên', () => {
     const s = createWalkAnimState();
     run(s, 10, 1);
-    onWalkFrame(s, 1, true, P);
+    onWalkFrame(s, 1, 'up', P);
     expect(s.pose.offsetY).toBe(-1);
     run(s, 1, 0);
     expect(Math.abs(s.pose.offsetY)).toBe(0);
@@ -81,20 +72,28 @@ describe('stepWalkAnim', () => {
 });
 
 describe('onWalkFrame — bụi chân theo khung chạm gót', () => {
-  it('khung 0 và 2 là chạm gót; bụi mỗi dustEverySteps lần', () => {
+  it('đi dọc (4 khung): khung 0 và 2 là chạm gót; bụi mỗi dustEverySteps lần', () => {
     const s = createWalkAnimState();
-    const events = [0, 1, 2, 3, 0, 1, 2, 3].map((f) => onWalkFrame(s, f, false, P));
+    const events = [0, 1, 2, 3, 0, 1, 2, 3].map((f) => onWalkFrame(s, f, 'down', P));
     expect(events).toEqual(['step', 'none', 'dust', 'none', 'step', 'none', 'dust', 'none']);
     expect(s.stepCount).toBe(4);
   });
 
+  it('đi ngang (6 khung): khung 0 và 3 là chạm gót', () => {
+    const s = createWalkAnimState();
+    const events = [0, 1, 2, 3, 4, 5].map((f) => onWalkFrame(s, f, 'left', P));
+    expect(events).toEqual(['step', 'none', 'none', 'dust', 'none', 'none']);
+    // Đi ngang không nhích bằng code (khung thật đã nảy đầu).
+    expect(Math.abs(s.pose.offsetY)).toBe(0);
+  });
+
   it('đi lên: nhích 1px ở khung nhấc chân (1, 3), các hướng khác không nhích', () => {
     const s = createWalkAnimState();
-    onWalkFrame(s, 1, true, P);
+    onWalkFrame(s, 1, 'up', P);
     expect(s.pose.offsetY).toBe(-P.upBobPx);
-    onWalkFrame(s, 2, true, P);
+    onWalkFrame(s, 2, 'up', P);
     expect(Math.abs(s.pose.offsetY)).toBe(0);
-    onWalkFrame(s, 3, false, P);
+    onWalkFrame(s, 3, 'down', P);
     expect(Math.abs(s.pose.offsetY)).toBe(0);
   });
 });

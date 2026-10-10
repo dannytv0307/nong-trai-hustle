@@ -264,6 +264,10 @@ def sheet_split(src, out, n, cell=(64, 96), pad=1, height=None, color=None, tol=
         xs = np.nonzero(top)[1]
         anchor = xs.mean() if len(xs) else sub.width / 2   # tâm ngang của nón/đầu
         frames.append((sub, anchor))
+    if flip:
+        # Lật cả ảnh làm đảo thứ tự khung trái-phải -> đảo lại để giữ đúng thứ tự gốc
+        # (không đảo thì chu trình bước chạy ngược = "đi lùi")
+        frames.reverse()
     if order:
         frames = [frames[i] for i in order]
     tw, th = cell

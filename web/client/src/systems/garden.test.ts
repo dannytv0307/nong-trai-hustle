@@ -76,6 +76,20 @@ describe('tileSolidGrid + cornerNudge (BUG-001)', () => {
     expect(solid[ty][tx]).toBe(false);
     expect(solid[L.house.y][L.house.x]).toBe(true);
   });
+  it('vòng tường nhà liền một mạch trên lưới (chỉ hở ô cửa) → Tilemap không có mép trong ở mối nối', () => {
+    const h = L.house;
+    const bottom = h.y + h.h - 1;
+    const right = h.x + h.w - 1;
+    for (let x = h.x; x <= right; x++) {
+      expect(solid[h.y][x], `tường trên (${x})`).toBe(true);
+      const isDoor = x >= h.doorX && x < h.doorX + h.doorW;
+      expect(solid[bottom][x], `tường dưới (${x})`).toBe(!isDoor);
+    }
+    for (let y = h.y; y <= bottom; y++) {
+      expect(solid[y][h.x], `tường trái (${y})`).toBe(true);
+      expect(solid[y][right], `tường phải (${y})`).toBe(true);
+    }
+  });
   it('lệch trái mép cửa ≤ 16px khi đi lên → nắn sang phải vào cửa', () => {
     expect(cornerNudge(solid, box(doorL + 20 - 10), { x: 0, y: -1 }, T, 16)).toEqual({ x: 1, y: 0 });
   });

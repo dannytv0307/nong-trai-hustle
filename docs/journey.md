@@ -5,14 +5,7 @@
 
 **Đang ở: 3.3**
 
-> **📝 Ghi chú dừng phiên (2026-10-09):** đang ở T-001 (bước 3.3).
-> - Đã xong: bản đồ Vườn, va chạm, camera, chu trình bước đi thật (ART-CHR-004, đã duyệt), favicon (BUG-002).
-> - **Đã DỪNG 2 agent giữa chừng theo yêu cầu người dùng** (code/tài liệu có thể đang dở):
->   - `game-dev`: đang gắn bước đi thật + sửa BUG-001 (kẹt mối nối tường khi đi chéo) — dừng ở lúc sửa config/assets/preload → **có thể build đang lỗi**, phải kiểm và làm nốt.
->   - `game-planner`: đang viết thiết kế "Xóm làng Lầy" (GDD §5, story-bible §2.2, D-021 chưa ghi) — dừng giữa chừng, phải đọc lại và viết nốt.
-> - Người dùng quyết: **bỏ QA vòng lại cho T-001**; sửa xong thì để người dùng tự thử.
-> - Lần tới (`/next`): kiểm tra code đã build/test xanh chưa (`cd web && npm run build && npm run test`), hoàn tất phần dở nếu agent bị ngắt, nhờ người dùng đi thử → đánh dấu T-001 ✅ → tổng hợp thiết kế xóm làng → sang T-002.
-
+> **📝 Ghi chú (2026-10-10):** T-001 ✅ (người dùng duyệt sau khi thay đi ngang 6 khung + khung xoay). Đang làm T-002. Mở: BUG-003 (môi trường Docker: cổng 5432 bận, thiếu `.env`) — cho `backend-dev` sửa trước 3.4.
 
 Ký hiệu: 👤 việc của bạn · 🤖 agent phụ trách · ✅ điều kiện để coi là xong
 

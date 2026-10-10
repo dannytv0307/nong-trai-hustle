@@ -8,8 +8,14 @@ const AUDIO = 'assets/audio';
 /** Khóa texture nhân vật theo bậc ngoại hình + hướng, vd `hero-t1-down`. */
 export const heroTextureKey = (tier: number, facing: Facing): string => `hero-t${tier}-${facing}`;
 
-/** Khóa spritesheet chu trình bước đi (ART-CHR-004), vd `hero-t1-walk-down`. Cũng là khóa animation. */
+/**
+ * Khóa spritesheet chu trình bước đi, vd `hero-t1-walk-down`. Cũng là khóa animation.
+ * Dọc 4 khung (ART-CHR-004), ngang 6 khung (ART-CHR-005) — số khung/fps ở gameConfig.
+ */
 export const heroWalkKey = (tier: number, facing: Facing): string => `hero-t${tier}-walk-${facing}`;
+
+/** Khóa spritesheet khung xoay chéo (ART-CHR-006): 0 xuống-phải, 1 xuống-trái, 2 lên-phải, 3 lên-trái. */
+export const heroTurnKey = (tier: number): string => `hero-t${tier}-turn`;
 
 const facings: Facing[] = ['down', 'up', 'left', 'right'];
 
@@ -36,13 +42,14 @@ export const images: Record<string, string> = {
   'tile-dirt-test': `${ART}/tiles/tile-dirt-test.png`,
 };
 
-/** Kích thước một khung trong spritesheet bước đi (px). */
-export const HERO_WALK_FRAME = { width: 64, height: 96, count: 4 } as const;
+/** Kích thước một khung trong mọi spritesheet nhân vật (px). */
+export const HERO_FRAME = { width: 64, height: 96 } as const;
 
-/** Spritesheet: dải ngang nhiều khung bằng nhau. Bậc 1, 4 hướng × 4 khung (ART-CHR-004). */
-export const spritesheets: Record<string, string> = Object.fromEntries(
-  facings.map((d) => [heroWalkKey(1, d), `${ART}/characters/hero-t1-walk-${d}.png`]),
-);
+/** Spritesheet: dải ngang nhiều khung 64×96 bằng nhau. Bậc 1: đi 4 hướng + khung xoay. */
+export const spritesheets: Record<string, string> = {
+  ...Object.fromEntries(facings.map((d) => [heroWalkKey(1, d), `${ART}/characters/hero-t1-walk-${d}.png`])),
+  [heroTurnKey(1)]: `${ART}/characters/hero-t1-turn.png`,
+};
 
 /** Âm thanh: ghi đường dẫn không đuôi; Preload tự thêm .ogg (ưu tiên) và .mp3 (Safari). */
 export const audio: Record<string, string> = {

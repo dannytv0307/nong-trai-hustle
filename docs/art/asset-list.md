@@ -19,6 +19,8 @@
 | ART-TIL-001 | Tile cỏ (thử nối liền) | TIL | 256 = 4×4 ô 64 | — | Bản đồ | Must | Generated (thử) | [ART-TIL-001](prompts/ART-TIL-001.md) |
 | ART-TIL-002 | Tile đất cuốc (thử nối liền) | TIL | 256 = 4×4 ô 64 | — | Ruộng | Must | Generated (thử) | [ART-TIL-001](prompts/ART-TIL-001.md) |
 | ART-CHR-004 | {ten} — chu trình bước đi 4 khung × 4 hướng (**bậc 1** xong; bậc 2–4 sau) | CHR | 64×96/khung, dải 256×96 | 4/hướng, 8 fps | Bản đồ | Must | **Processed** (chờ người dùng duyệt) — sheet `art-source/raw/hero-walk/walk-sheet.png`, GIF `preview-<hướng>.gif` | [ART-CHR-004](prompts/ART-CHR-004.md) |
+| ART-CHR-005 | {ten} — chu trình đi **ngang** v2: 6 khung, profile rõ, sải dài, tay đổi bên (bậc 1); trái = lật gương | CHR | 64×96/khung, dải 384×96 | 6/hướng, 12 fps trong game (gợi ý 10) | Bản đồ (thay hướng ngang của ART-CHR-004) | Must | **Đã gắn vào game** (người dùng duyệt 2026-10-10) — `characters/hero-t1-walk-right.png`, `-left.png` | [ART-CHR-005](prompts/ART-CHR-005.md) |
+| ART-CHR-006 | {ten} — 4 khung xoay chéo 3/4 (xuống-phải/trái, lên-phải/trái) chèn 1 nhịp khi đổi hướng (bậc 1) | CHR | 64×96 ×4, dải 256×96 | 1 khung × 70 ms (quay 180° = 2 khung) | Bản đồ — đổi hướng | Should | **Đã gắn vào game** (người dùng duyệt 2026-10-10) — `characters/hero-t1-turn.png` | [ART-CHR-006](prompts/ART-CHR-006.md) |
 
 **Vị trí file trong game** (bước 3.1, `game-dev` copy từ `art-source/raw/`; gốc `web/client/public/assets/art/`):
 
@@ -28,6 +30,8 @@
 | ART-CHR-003 | `characters/hero-tier1-down.png` … `hero-tier4-down.png` (từ `raw/hero-tiers/`) |
 | ART-POR-001…009 | `portraits/portrait-hero-a-smirk.png` … `portrait-hero-i-money-eyes.png` (từ `raw/hero-expressions/final/`) |
 | ART-CHR-004 | `characters/hero-t1-walk-down.png`, `-up.png`, `-right.png`, `-left.png` — mỗi file 256×96 = 4 khung 64×96 một hàng, pivot giữa đáy (từ `raw/hero-walk/final/`; bản 2x ở `raw/hero-walk/final-2x/`) |
+| ART-CHR-005 | `characters/hero-t1-walk-right.png`, `-left.png` — dải 384×96 = 6 khung 64×96 (đã ghi đè bản 4 khung, nguồn `art-source/raw/hero-walk2/final/hero-t1-walk-<right|left>.v2.png`) |
+| ART-CHR-006 | `characters/hero-t1-turn.png` — dải 256×96 = 4 khung 64×96: 0 xuống-phải, 1 xuống-trái, 2 lên-phải, 3 lên-trái (nguồn `art-source/raw/hero-walk2/final/hero-t1-turn.v2.png`) |
 | ART-TIL-001 / 002 | `tiles/tile-grass-test.png`, `tiles/tile-dirt-test.png` (256×256 = 4×4 ô, từ `raw/tile-test/tiletest-*-256_256.png`) |
 
 ## Changelog
@@ -39,3 +43,5 @@
 - 2026-10-09 — Người dùng duyệt: 9 biểu cảm, 4 hướng, 4 bậc ngoại hình → Approved. Ảnh mẫu bậc 2–4 chép vào `art-source/reference/hero-tier{2,3,4}-src.png`.
 - 2026-10-09 — Bước 3.1: copy asset Approved + tile thử vào `web/client/public/assets/art/` (bảng "Vị trí file trong game").
 - 2026-10-09 — ART-CHR-004 bậc 1 (làm sớm theo yêu cầu người dùng): gen 10 ảnh `--hq` 21:9 (một ảnh = 4 khung một hướng), cắt bằng `process_image.py sheet-split`, đặt 4 spritesheet vào `characters/hero-t1-walk-*.png`. Chờ duyệt.
+- 2026-10-10 — Góp ý người dùng (đi ngang chưa tự nhiên, xoay hướng giật): thêm ART-CHR-005 (đi ngang 6 khung v2) và ART-CHR-006 (4 khung xoay chéo). Gen 12 ảnh `--hq` (≈ 1,61 USD). Phát hiện lỗi: dải `hero-t1-walk-left.png` cũ bị đảo thứ tự khung (đi lùi) do `sheet-split --flip`; đã sửa tool. Ứng viên ở `art-source/raw/hero-walk2/final/`, chưa ghi đè file game.
+- 2026-10-10 — ART-CHR-005/006 người dùng duyệt → game-dev gắn vào game: ghi đè `hero-t1-walk-right/left.png` (6 khung), thêm `hero-t1-turn.png`.
