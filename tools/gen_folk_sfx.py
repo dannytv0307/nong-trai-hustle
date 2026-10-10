@@ -266,6 +266,63 @@ def r_hoe(rng, v):
     return out
 
 
+# Biến thể của hoe_soil (T-002, góp ý "bộp chưa giống cuốc"): mỗi v là một tính cách khác nhau
+HOE_SOIL = {
+    #     body_hz: "thụp" trầm  dec: độ dài thân  metal: lưỡi sắt  wet: đất ẩm "phập"  grains/pebbles: đất vụn/sỏi
+    1: dict(body_hz=105, dec=0.050, metal=0.30, metal_hz=1900, wet=0.55, grains=16, pebbles=2, dur=0.36),
+    2: dict(body_hz=85, dec=0.065, metal=0.18, metal_hz=1650, wet=0.85, grains=11, pebbles=1, dur=0.38),
+    3: dict(body_hz=120, dec=0.045, metal=0.30, metal_hz=2100, wet=0.40, grains=22, pebbles=4, dur=0.34),
+    4: dict(body_hz=95, dec=0.055, metal=0.50, metal_hz=2350, wet=0.55, grains=13, pebbles=2, dur=0.36),
+}
+
+
+def r_hoe_soil(rng, v):
+    """Cuốc xắn đất ẩm: lưỡi sắt cắm (transient + kim loại tắt ngay) + 'thụp' nhiễu trầm không cao độ
+    + 'phập' đất ẩm (dải 250–900 Hz trượt xuống) + đuôi đất vụn / sỏi lạo xạo. Attack ở t=0 (khớp khung chạm)."""
+    P = HOE_SOIL[(v - 1) % len(HOE_SOIL) + 1]
+    j = rng.uniform(0.97, 1.03)
+    dur = P["dur"]
+    t = tt(dur)
+    # 1) lưỡi cuốc cắm: nhiễu rộng rất ngắn + mode kim loại bị đất "bóp" tắt nhanh
+    bite = fft_filter(noise(dur, rng), lo=600, hi=7000) * np.exp(-t / 0.005)
+    bite /= np.abs(bite).max()
+    metal = modal(P["metal_hz"] * j, [1, 2.31, 3.68, 5.13], [1, 0.55, 0.3, 0.15],
+                  [0.028, 0.018, 0.011, 0.007], dur, rng)
+    metal /= np.abs(metal).max()
+    # 2) thân "thụp": nhiễu trầm (không cao độ như trống) + một chút sine tụt pitch cho sức nặng
+    a = 1 - np.exp(-t / 0.002)
+    body = fft_filter(noise(dur, rng), lo=45, hi=380, order=3) * a * np.exp(-t / P["dec"])
+    body /= np.abs(body).max()
+    f = P["body_hz"] * j * (1 + 0.7 * np.exp(-t / 0.012))
+    low = np.sin(2 * np.pi * np.cumsum(f) / SR) * a * np.exp(-t / (P["dec"] * 0.8))
+    # 3) "phập" đất ẩm: dải giữa, đỉnh muộn hơn một chút, tâm trượt xuống (ghép 2 dải chồng thời gian)
+    wa = fft_filter(noise(dur, rng), lo=500, hi=1100) * (t / 0.006) * np.exp(1 - t / 0.006)
+    wb = fft_filter(noise(dur, rng), lo=220, hi=650) * ((t / 0.022) * np.exp(1 - t / 0.022))
+    wet = wa / (np.abs(wa).max() + 1e-9) * 0.6 + wb / (np.abs(wb).max() + 1e-9)
+    out = 0.9 * body + 0.8 * low + P["wet"] * wet + 0.5 * bite + P["metal"] * metal
+    # 4) đuôi: nền lạo xạo + hạt đất vụn rơi thưa dần + vài viên sỏi "tích"
+    bed_env = ((t - 0.03).clip(0) / 0.05) * np.exp(1 - (t - 0.03).clip(0) / 0.05)
+    bed = fft_filter(noise(dur, rng), lo=1200, hi=5500) * bed_env
+    out += 0.22 * bed / (np.abs(bed).max() + 1e-9)
+    for _ in range(P["grains"]):
+        at = 0.03 + rng.exponential(0.07)
+        if at > dur - 0.03:
+            continue
+        gl = rng.uniform(0.004, 0.012)
+        lo = rng.uniform(900, 2500)
+        g = fft_filter(noise(gl, rng), lo=lo, hi=lo * 2.5) * np.exp(-tt(gl) / (gl / 4))
+        place(out, g / (np.abs(g).max() + 1e-9) * rng.uniform(0.15, 0.4) * np.exp(-at / 0.15), at)
+    for _ in range(P["pebbles"]):
+        at = rng.uniform(0.06, min(0.22, dur - 0.06))
+        p = modal(rng.uniform(2600, 4200), [1, 1.9, 2.8], [1, 0.4, 0.2], [0.012, 0.007, 0.004], 0.05, rng)
+        place(out, p / (np.abs(p).max() + 1e-9) * rng.uniform(0.18, 0.32), at)
+    # nhấn dải giữa cho loa laptop, bỏ hạ âm, mềm phần chói (bản sắc mộc, không gắt)
+    out = fft_filter(out, lo=55, hi=8000) + 0.5 * fft_filter(out, lo=300, hi=2500)
+    # bão hòa nhẹ: nén đỉnh transient để tổng thể chắc, to ngang bản cũ
+    out = np.tanh(2.2 * out / (np.abs(out).max() + 1e-9)) / np.tanh(2.2)
+    return out
+
+
 def r_coin(rng, v):
     """Nhặt xu 'leng keng': 2–3 đồng chạm nhau, lần sau cao hơn (tích cực)."""
     base = 2300 * (1 + 0.04 * (v - 1))
@@ -404,7 +461,8 @@ def r_coin_bright(rng, v):
 
 
 RECIPES = {
-    "hoe": (r_hoe, "sfx-cuoc-dat", "Cuốc đất 'bộp'"),
+    "hoe": (r_hoe, "sfx-cuoc-dat", "Cuốc đất 'bộp' (bản cũ, bước 2.3)"),
+    "hoe_soil": (r_hoe_soil, "sfx-cuoc-dat-soil", "Cuốc xắn đất ẩm 'phập' + đất vụn (v1–v4 khác tính cách)"),
     "coin": (r_coin, "sfx-nhat-xu", "Nhặt xu 'leng keng'"),
     "water": (r_water, "sfx-tuoi-nuoc", "Tưới nước 'róc rách'"),
     "levelup": (r_levelup, "sfx-len-level", "Lên level: trống + sáo (v1) / kèn bầu (v2)"),

@@ -9,6 +9,9 @@ export default defineConfig({
   outputDir: './test-results',
   timeout: 60_000,
   fullyParallel: false,
+  // Một worker: game vẽ WebGL bằng CPU trong headless, nhiều trình duyệt song song làm đồng hồ game chậm hẳn
+  // → các ca đo nhịp cuốc chập chờn (BUG-008). Chậm hơn nhưng ổn định.
+  workers: 1,
   reporter: [['list']],
   use: {
     ...devices['Desktop Chrome'],

@@ -2,7 +2,7 @@
 
 > Phụ đề tiếng Việt: *Làng Lầy Cưới Vợ*
 >
-> Chủ sở hữu: `game-planner` · Phiên bản: v0.11 (concept B, bản web trình duyệt PC — xem D-004 … D-021) · Tiến độ: xem [journey.md](../journey.md)
+> Chủ sở hữu: `game-planner` · Phiên bản: v0.12 (concept B, bản web trình duyệt PC — xem D-004 … D-022) · Tiến độ: xem [journey.md](../journey.md)
 
 ## 1. Tổng quan
 
@@ -29,6 +29,7 @@ Pillar = trụ cột cảm giác của game. Tính năng nào không phục vụ
 
 - **Core loop (≤ 30s):** Core loop = vòng hành động lặp lại liên tục.
   Đi tới bằng WASD, click ô hoặc vật thể cạnh nhân vật (đất, bụi cây, mặt nước, con gà) → nhân vật làm việc kèm tiếng "bộp", hạt bụi, màn hình nảy nhẹ → nhận đồ hoặc tiền bay lên, thanh Sức giảm một chút.
+  - Riêng **cuốc đất là "việc nặng"** (D-022): một click, {ten} tự bổ 6 nhát trong khoảng 5 giây, đất đổi dần từng nấc; xong ô là một thành quả nhỏ. Gieo, tưới, hái vẫn nhanh, gọn (§3.3a).
 - **Vòng một ngày (10 phút thật):** 6h sáng thức dậy (thanh Sức đầy) → buổi sáng chăm vườn → buổi trưa/chiều đi núi, suối, chợ kiếm đồ → ăn để hồi Sức khi đuối → tối về nhà; click giường để ngủ (quá 24h chưa ngủ thì ngủ gục tại chỗ, §3.1) → **cuối ngày bán đồ trong thùng bán** (chợ làng bên bán ngay, giá cao hơn — §3.9) → màn tổng kết ngày: tiền và tiếng tăm nhận được.
   - Nhịp gợi ý: 1 ngày ≈ 3–4 "chuyến" (mỗi chuyến 2–3 phút ở một khu, tính cả đi bộ qua đường mòn).
 - **Meta loop (lý do chơi lại):** Meta loop = mục tiêu dài hạn khiến người chơi quay lại.
@@ -131,7 +132,7 @@ Phải đủ **cả** các điều kiện sau thì bà mối mới chịu đến
 | Tham số | Giá trị | Đơn vị | Khoảng hợp lý | Ảnh hưởng |
 |---|---|---|---|---|
 | `staminaMax` | 100 | Sức | 80–150 | Một ngày làm được bao nhiêu trước khi phải ăn |
-| `staminaCostTill` | 2 | Sức/lần | 1–4 | Cuốc đất (cuốc sắt: 1) |
+| `staminaCostTill` | 4 (D-022, trước là 2) | Sức/ô | 2–6 | Cuốc xong 1 ô (6 nhát). Kiểm đủ Sức khi bắt đầu/làm tiếp, **trừ khi xong ô**; bỏ dở không mất Sức. Cuốc sắt: 2 (người dùng chọn C, §3.8). 9 ô = 36 Sức — "việc nặng" thật nhưng còn dư cho gieo/tưới/hái |
 | `staminaCostPlant` | 1 | Sức/lần | 0–2 | Gieo hạt |
 | `staminaCostWater` | 1 | Sức/lần | 0–2 | Tưới (mỗi lần tưới, kể cả thùng tưới 3 ô) |
 | `staminaCostHarvest` | 1 | Sức/lần | 0–2 | Hái, dọn cây héo |
@@ -162,7 +163,8 @@ Phải đủ **cả** các điều kiện sau thì bà mối mới chịu đến
 
 **Làm việc: click chuột trái vào ô/vật thể trong tầm với.**
 - Ô dưới con trỏ được **viền sáng** nếu nằm trong tầm `interactRange` quanh nhân vật; ngoài tầm thì viền xám và click không làm gì.
-- **Giữ chuột trái và rê** qua các ô liền nhau → làm lần lượt từng ô (mỗi `actionDuration` một ô). Làm cả luống ruộng chỉ cần giữ chuột và đi dọc luống.
+- **Giữ chuột trái và rê** qua các ô liền nhau → làm lần lượt từng ô (mỗi `actionDuration` một ô). Gieo, tưới, hái cả luống chỉ cần giữ chuột và đi dọc luống. **Riêng cuốc** thì khác: nhân vật đứng yên cuốc từng ô, rê chuột chỉ xếp hàng tối đa `tillQueueMax` ô (§3.3a, D-022).
+- Một lần giữ chuột rê chỉ làm **một loại việc**, theo ô bấm đầu tiên (bấm vào ô chưa cuốc → chỉ nhận ô chưa cuốc; bấm vào ô đã cuốc → chỉ gieo). Tránh rê qua luống lẫn lộn mà làm nhầm việc.
 - **Cách chọn công cụ (đề xuất, giả định): hành động tự động theo ô, hotbar chỉ cho đồ tiêu hao.**
   - Nhân vật **tự chọn đúng nông cụ** theo thứ được click (giữ logic "việc hợp lý" của D-008). Người chơi không bao giờ phải đổi cuốc sang bình tưới, nên không có lỗi "cầm nhầm đồ".
   - **Hotbar** (thanh 9 ô dưới màn, phím 1–9 hoặc cuộn chuột) chứa **hạt giống, đồ ăn, lễ vật** — những thứ người chơi thật sự phải chọn. Ô đang chọn quyết định gieo hạt gì, chuột phải thì ăn món gì.
@@ -171,7 +173,7 @@ Phải đủ **cả** các điều kiện sau thì bà mối mới chịu đến
 
 | Click vào | Nhân vật làm |
 |---|---|
-| Ô đất chưa cuốc | Cuốc |
+| Ô đất chưa cuốc, hoặc cuốc dở | Cuốc nhiều nhát (≈ 5 giây, §3.3a); ô cuốc dở thì làm tiếp phần còn lại |
 | Ô đã cuốc, trống | Gieo **hạt đang chọn trên hotbar**. Ô hotbar đang chọn không phải hạt → dùng hạt gieo lần trước. Hết hạt: bong bóng "hết hạt rồi" |
 | Ô đã gieo, chưa tưới hôm nay | Tưới |
 | Ô cây chín | Hái (đồ vào gùi) |
@@ -190,13 +192,76 @@ Phải đủ **cả** các điều kiện sau thì bà mối mới chịu đến
 |---|---|---|---|---|
 | `walkSpeed` | 4 | ô/giây | 3–6 | Nhanh nhẹn hay ì ạch. Bản đồ lớn nên nhanh hơn bản điện thoại |
 | `exhaustedWalkSpeed` | — | — | — | = `walkSpeed` × `staminaExhaustedSpeedMultiplier` |
-| `interactRange` | 1.5 | ô (tính từ tâm nhân vật) | 1–2.5 | Với tới bao xa. Nhỏ thì phải đi sát, lớn thì làm nhanh |
-| `actionDuration` | 0.4 | giây | 0.2–0.8 | Thời gian một động tác (cuốc, hái…). Ngắn thì "đã tay" |
+| `interactRange` | 2.5 (người dùng chỉnh sau thử T-002) | ô (tính từ tâm nhân vật) | 1–2.5 | Với tới bao xa. Nhỏ thì phải đi sát, lớn thì làm nhanh |
+| `actionDuration` | 0.4 | giây | 0.2–0.8 | Thời gian một động tác **nhanh** (gieo, tưới, hái, dọn, hái lượm). Ngắn thì "đã tay". Cuốc không dùng số này (D-022, §3.3a) |
+| `actionImpactAt` | 0.5 | tỷ lệ động tác | 0–0.8 | Lúc "chạm" trong một động tác / một nhát cuốc (ô đổi, bụi, tiếng) |
+| `actionQueueMax` | 4 | ô | 2–6 | Giữ chuột rê việc nhanh: nhớ tối đa bấy nhiêu ô chờ làm |
 | `hotbarSlots` | 9 | ô | 6–10 | Số ô hotbar (phím 1–9) |
+
+### 3.3a Cuốc đất là "việc nặng" (D-022)
+
+Ý đồ: làm nông **cực nhọc mà đáng công**. Mỗi ô cuốc xong là một thành quả nhỏ nhìn thấy được (pillar "Làm giàu từ hai bàn tay"). Chỉ một click, không bắt bấm liên tục nên không mỏi tay; cái "nặng" nằm ở thời gian và Sức.
+
+**Luật:**
+1. **Click ô chưa cuốc trong tầm** → {ten} quay mặt về ô, đứng tại chỗ và tự bổ `tillStrikesPerPlot` nhát liên tiếp, mỗi nhát `tillStrikeSeconds` giây (6 × 0.85 ≈ **5,1 giây**). Thả chuột ra vẫn cuốc tiếp.
+2. **Mỗi nhát**: giơ cuốc → bổ xuống ở `actionImpactAt` → tiếng "bộp" + bụi đất + nhún. Thanh tiến độ trên ô đầy thêm 1 đốt.
+3. **Đất đổi dần** theo `tillVisualStages` nấc (3): sau nhát 2 "vỡ cỏ", sau nhát 4 "lổn nhổn", nhát 6 "đất tơi" = đã cuốc.
+4. **Nhát cuối** (xong ô): bụi nhiều gấp `tillFinishDustMultiplier`, khựng hình `tillFinishHitStopSeconds`, ô nảy nhẹ, tiếng chốt khác các nhát thường. Trừ Sức (chữ "−4 Sức" bay lên — từ T-004), cuốc −1 độ bền (khi có hệ nông cụ).
+5. **Bỏ dở**: bấm bất kỳ phím đi (WASD / mũi tên) → dừng ngay, nhân vật đi được luôn (nhát đang giơ mà chưa chạm thì không tính), **hàng chờ bị xóa**. Ô giữ số nhát đã cuốc (thanh tiến độ còn, mờ đi). Không mất Sức, không mất bền.
+6. **Click lại ô cuốc dở** → cuốc tiếp từ nhát đã dừng (ví dụ đã 4/6 thì còn 2 nhát).
+7. **Ô cuốc dở giữ nguyên qua đêm** (`tillProgressKeepsOvernight`), có trong save. Không phạt (nguyên tắc chống phạt).
+8. **Hàng chờ**: đang cuốc mà click hoặc giữ chuột rê qua ô chưa cuốc/cuốc dở khác trong tầm → ô đó vào hàng chờ (tối đa `tillQueueMax` = 3 ô, có số thứ tự nhỏ trên ô). Cuốc xong ô này tự sang ô kế. Hàng chờ đầy thì bỏ qua. Không có "đổi ô ngay giữa chừng": muốn đổi thì bấm WASD bỏ dở rồi click ô khác.
+9. **Sức**: bắt đầu hoặc làm tiếp một ô cần Sức ≥ `staminaCostTill` (thiếu → không làm, bong bóng "đuối rồi…"). Trừ một lần khi xong ô. Cuốc cùn: × `brokenToolStaminaMultiplier`.
+10. **Trong lúc cuốc**: đồng hồ ngày vẫn chạy (là làm việc). Mở gùi (E), Esc, mất focus → cuốc **tạm dừng cùng game**, đóng lại thì cuốc tiếp, không mất nhát. Chuột phải ăn vẫn được, không ngắt cuốc. Rê chuột vẫn thấy viền ô như thường.
+11. Gieo, tưới, hái, dọn cây héo **giữ nhanh** (`actionDuration`), không khóa chân, vẫn vừa giữ chuột vừa đi được.
+
+**Một ngày cuốc được bao nhiêu** (1 giờ game ≈ 33 giây thật, ngày 600 giây):
+
+| Ruộng | Cuốc gỗ (6 nhát ≈ 5,1 s) | Cuốc sắt (5 nhát ≈ 4,2 s) | Gieo + tưới + hái cả ruộng (0.4 s/việc, chưa tính đi) |
+|---|---|---|---|
+| 9 ô (đầu game) | 46 s ≈ 1,4 giờ game · 36 Sức | 38 s ≈ 1,1 giờ · 18 Sức | 11 s |
+| 12 ô (level 2–3) | 61 s ≈ 1,8 giờ · 48 Sức | 51 s ≈ 1,5 giờ · 24 Sức | 14 s |
+| 24 ô (tối đa) | 122 s ≈ 3,7 giờ · 96 Sức | 102 s ≈ 3,1 giờ · 48 Sức | 29 s |
+
+- Thực tế không phải cuốc lại cả ruộng mỗi ngày: chỉ ô vừa hái mới về đất chưa cuốc (`harvestResetsSoil`), cây 1–3 ngày nên trung bình cuốc lại khoảng 1/2 ruộng mỗi ngày.
+- Kết luận: giữ `dayLengthSeconds` 600. Cuốc cả 24 ô bằng cuốc sắt mất khoảng 1/6 ngày (102 / 600 giây); thực tế chỉ cuốc lại khoảng một nửa nên còn đủ giờ đi núi, suối, chợ. Ở prototype (chỉ có Vườn) ngày sẽ "rỗi" sau buổi sáng — đúng điều T-009 cần hỏi.
+
+**Lộ trình nâng cấp cuốc** (để ruộng to lên không thành cực hình):
+
+| Cuốc | Nhát/ô | Thời gian/ô | Sức/ô | Mở |
+|---|---|---|---|---|
+| Cuốc gỗ | 6 | ≈ 5,1 s | 4 | Có sẵn |
+| Cuốc sắt | 5 (người dùng chọn C, 2026-10-10 — §15 câu 22) | ≈ 4,2 s | 2 | Level 3 (đúng lúc ruộng lên 12–15 ô) |
+| Bậc cao hơn | — | — | — | Để sau (chỉ thêm nếu playtest thấy 24 ô vẫn nặng) |
+
+Số nhát nằm trong dữ liệu `ToolData.tillStrikesPerPlot` khi có hệ nông cụ (prototype dùng `gameConfig.tillStrikesPerPlot`).
+
+**Giữ cho 5 giây không chán** (cách giảm rủi ro "nhàm" và "bị khóa chân"):
+- **Thấy tiến độ**: thanh 6 đốt, mỗi nhát một đốt; đất đổi 3 nấc.
+- **Tiếng không lặp**: 2 biến thể "bộp" + lệch cao độ ±1 nửa cung; nhát cuối là tiếng chốt riêng (đầy đặn hơn).
+- **Nhân vật "diễn" sức nặng**: từ nhát 3 có giọt mồ hôi bay; nhát cuối chống cuốc, ưỡn lưng một nhịp (hình bằng code ở prototype).
+- **Bong bóng khi xong ô** (từ T-004, khi có hệ bong bóng): xác suất `tillDoneBarkChance`, cách nhau ít nhất `tillDoneBarkCooldownSeconds`, câu than/khoe ngắn kiểu "Ối cái lưng tôi…", "Luống này thẳng như kẻ chỉ!" (6–8 câu, story bible bổ sung sau).
+- **Không bị nhốt**: WASD bỏ dở bất cứ lúc nào mà không mất gì; hàng chờ 3 ô cho người chơi "giao việc" rồi ngồi xem.
+- **Chỉnh được**: nếu playtest thấy nặng nề → giảm `tillStrikeSeconds` (0.7) hoặc `tillStrikesPerPlot` (5) ở T-009, không cần sửa code.
+
+| Tham số | Giá trị | Đơn vị | Khoảng hợp lý | Ảnh hưởng |
+|---|---|---|---|---|
+| `tillStrikesPerPlot` | 6 | nhát/ô | 4–8 | Cuốc một ô mấy nhát (cuốc gỗ). Nhiều thì "cực", ít thì nhanh |
+| `tillStrikeSeconds` | 0.85 | giây/nhát | 0.6–1.2 | Nhịp bổ cuốc. Chậm thì nặng nề, nhanh thì vội. 6 × 0.85 ≈ 5,1 s/ô |
+| `tillVisualStages` | 3 | nấc | 2–4 | Đất đổi mấy lần trong lúc cuốc (chia đều số nhát) |
+| `tillQueueMax` | 3 | ô | 0–4 | Đang cuốc nhớ thêm tối đa mấy ô. 0 = tắt hàng chờ. Nhiều thì như "treo máy" |
+| `tillFinishDustMultiplier` | 2 | hệ số | 1–3 | Nhát cuối bụi nhiều gấp mấy lần |
+| `tillFinishHitStopSeconds` | 0.05 | giây | 0–0.1 | Khựng hình lúc xong ô — cảm giác "chốt" |
+| `tillSweatFromStrike` | 3 | nhát thứ | 1–6 | Từ nhát này có mồ hôi bay |
+| `tillDoneBarkChance` | 0.25 | xác suất | 0–0.5 | (T-004) Xong ô có lầm bầm không |
+| `tillDoneBarkCooldownSeconds` | 20 | giây thật | 10–60 | (T-004) Lầm bầm cách nhau ít nhất bao lâu |
+| `tillProgressKeepsOvernight` | true | bật/tắt | — | Ô cuốc dở giữ tiến độ qua đêm |
+| `tillScreenShake` | false | bật/tắt | — | Cuốc không rung màn (người dùng chọn ở T-002) |
 
 ### 3.4 Ruộng và cây trồng
 
-**Vòng đời một ô:** đất chưa cuốc → (cuốc) đã cuốc → (gieo) đang lớn → (đủ ngày) chín → (hái) **trở về đất chưa cuốc**.
+**Vòng đời một ô:** đất chưa cuốc → (cuốc 6 nhát, có thể dừng giữa chừng ở trạng thái **cuốc dở** — §3.3a) đã cuốc → (gieo) đang lớn → (đủ ngày) chín → (hái) **trở về đất chưa cuốc**.
+- Ô cuốc dở giữ số nhát qua đêm; ô đã cuốc mà chưa gieo cũng giữ nguyên qua đêm.
 - Cây chỉ **lớn thêm 1 ngày** nếu ô được tưới trong ngày đó (hoặc trời mưa). Không tưới: cây không lớn, lá rũ (ô hiện màu khô).
 - **Bỏ `unwateredDaysToWither` ngày liên tiếp không tưới → cây héo** (mất hạt, click để dọn). Ngày mưa tính là đã tưới. Ngày không mở game không tính vì ngày game chỉ trôi khi chơi.
 - Cây chín để đó **không hỏng** (chờ hái bao lâu cũng được).
@@ -313,7 +378,7 @@ Gà rừng: bán 80 quan, nướng hồi 70 Sức, lễ vật giá trị 120, XP
 
 | Nông cụ | Bậc 1 (độ bền) | Bậc 2 (độ bền) | Bậc 2 hơn ở chỗ | Mất bền khi |
 |---|---|---|---|---|
-| Cuốc | Cuốc gỗ (30) — có sẵn | Cuốc sắt (80) | Tốn 1 Sức thay vì 2 | Mỗi lần cuốc |
+| Cuốc | Cuốc gỗ (30) — có sẵn | Cuốc sắt (80) | **5 nhát/ô thay vì 6** (≈ 4,2 s thay vì 5,1 s) và 2 Sức/ô thay vì 4 (D-022, người dùng chọn C, 2026-10-10) | Mỗi ô cuốc xong (bỏ dở không mòn) |
 | Rìu | Rìu cũ (30) — có sẵn | Rìu sắt (80) | 2 món mỗi nhát | Mỗi nhát |
 | Cần câu | Cần tre (25) | Cần trúc (60) | Vùng xanh rộng ×1.2 | Mỗi lượt quăng |
 | Nỏ | Nỏ (20) | — | — | Mỗi lượt bắn |
@@ -710,9 +775,9 @@ Người chơi không sống một mình giữa mảnh vườn: nhà {ten} nằm
 
 | Phím / chuột | Hành động | Ghi chú |
 |---|---|---|
-| **W A S D** (hoặc mũi tên) | Đi lại 8 hướng | |
-| **Chuột trái** (click) | Làm việc với ô/vật thể dưới con trỏ trong tầm với (§3.3) | Tự chọn nông cụ đúng |
-| **Giữ chuột trái + rê** | Làm liên tục các ô dưới con trỏ | Cuốc/tưới cả luống |
+| **W A S D** (hoặc mũi tên) | Đi lại 8 hướng | Đang cuốc: bấm = **bỏ dở** (giữ tiến độ, §3.3a) |
+| **Chuột trái** (click) | Làm việc với ô/vật thể dưới con trỏ trong tầm với (§3.3) | Tự chọn nông cụ đúng. Cuốc: 1 click = cả ô (≈ 5 giây) |
+| **Giữ chuột trái + rê** | Làm liên tục các ô dưới con trỏ | Gieo/tưới/hái cả luống; cuốc thì xếp hàng tối đa 3 ô |
 | **Chuột phải** | Dùng món đang chọn trên hotbar: ăn đồ ăn | Click NPC/vật bằng chuột phải cũng = nói chuyện/mở |
 | **1 – 9** / **cuộn chuột** | Chọn ô hotbar (hạt, đồ ăn, lễ vật) | |
 | **F** | Tương tác với vật/NPC gần nhất (thùng bán, bếp, giường, cửa, NPC) | Cho ai không thích rê chuột |
@@ -918,7 +983,9 @@ Juice = các hiệu ứng nhỏ làm hành động "đã tay". Trên PC không c
 | Sự kiện | Hình ảnh | Âm thanh | Rung màn / hiệu ứng |
 |---|---|---|---|
 | Rê chuột qua ô trong tầm | Viền sáng ô (xám nếu ngoài tầm) | — | — |
-| Cuốc đất | Đất văng, nhân vật nhún, ô đổi màu | "Bộp" | Nhẹ |
+| Cuốc đất — mỗi nhát (D-022, 6 nhát/ô) | Đất văng, nhân vật nhún, thanh tiến độ trên ô thêm 1 đốt; đất đổi nấc sau nhát 2 và 4; từ nhát 3 có mồ hôi bay | "Bộp" (2 biến thể, lệch cao độ ±1 nửa cung) | **Không rung** (người dùng chọn, `tillScreenShake` false) |
+| Cuốc đất — xong ô | Bụi ×2, ô nảy, {ten} chống cuốc ưỡn lưng một nhịp, thanh tiến độ lóe sáng rồi tắt, "−4 Sức" bay lên; đôi khi bong bóng lầm bầm | Tiếng chốt riêng, đầy hơn "bộp" | Khựng hình 0.05 giây |
+| Cuốc đất — bỏ dở | Thanh tiến độ mờ còn khoảng 50%, vẫn nằm trên ô | — | — |
 | Gieo hạt | Hạt rơi, ô hơi lún | "Lách tách" | — |
 | Tưới | Giọt nước bắn, đất sẫm màu | "Róc rách" ngắn | — |
 | Hái cây | Cây bật lên, icon bay vào hotbar/gùi, "+2 XP" bay lên | "Pop", cao dần nếu hái liên tiếp | Ô hotbar nảy |
@@ -1075,7 +1142,7 @@ Không có cho bản đầu tay (giả định). Chơi miễn phí trên web, kh
 | `gardenMapSize` | 48, 32 | ô | 34–56 × 20–36 | Bản đồ Vườn rộng cỡ nào (§5) |
 | `cameraLerp` | 0.12 | hệ số/khung | 0.05–0.3 | Camera bám sát (cao) hay trôi mềm (thấp) |
 | `playerFootHitbox` | 40, 20 | px | 24–56 × 12–32 | Hộp va chạm ở chân. To thì dễ kẹt giữa cây, nhỏ thì như đi xuyên vật |
-| `screenShakeLight` | 0.05 ô / 0.1 giây | ô, giây | 0.02–0.1 | Rung màn nhẹ khi cuốc (§8) |
+| `screenShakeLight` | 0.05 ô / 0.1 giây | ô, giây | 0.02–0.1 | Rung màn nhẹ cho sự kiện lớn (§8). **Cuốc không rung** (`tillScreenShake` false — người dùng thấy khó chịu khi thử T-002) |
 | `grumbleBubbleSeconds` | 2.5 | giây | 1.5–4 | Đã có ở §3.12, dùng sớm ở prototype |
 | `skyTintMaxAlpha` | 0.45 | độ mờ | 0.3–0.6 | Nửa đêm tối cỡ nào. Tối quá thì khó thấy ruộng |
 | `startSeeds` | cải 6, khoai 3 | hạt | — | Hạt có sẵn ngày 1 (prototype chưa có quán chị Thóc) |
@@ -1212,6 +1279,7 @@ Không có cho bản đầu tay (giả định). Chơi miễn phí trên web, kh
 19. **Chi phí chạy server**: Cloud Run tính theo lượt dùng (ít người chơi gần như miễn phí). Cloud SQL bản nhỏ nhất tốn khoảng 7–10 USD/tháng kể cả khi không ai chơi. Phương án rẻ hơn nếu cần: Postgres miễn phí của dịch vụ khác, hoặc tắt Cloud SQL khi chưa phát hành. Hỏi người dùng ở chặng phát hành.
 20. **Nhiều slot save**: bản đầu 1 save/tài khoản (Giả định). Nếu người dùng muốn 3 slot thì thêm khoảng 3–4 giờ (màn chọn slot + cột `slot` trong bảng `SaveGame`).
 21. **Xóm làng Lầy (D-021) — đã chốt 2026-10-10**: người dùng chọn làm đầy đủ Must (§3.16), một bản đồ Xóm 60×40 liền, cửa hàng mở 6–19h. Không ảnh hưởng chặng 3.
+22. ~~Cuốc sắt có rút thời gian cuốc xuống dưới 5 giây không?~~ — **chốt (D-022): người dùng chọn C (2026-10-10)**: cuốc sắt 5 nhát ≈ 4,2 giây/ô + 2 Sức/ô. Vẫn gần mức "≥ 5 giây" mà nâng cấp vẫn thấy được. Không ảnh hưởng prototype (chưa có cuốc sắt).
 
 ## Changelog
 
@@ -1230,3 +1298,5 @@ Không có cho bản đầu tay (giả định). Chơi miễn phí trên web, kh
 - 2026-10-09 — D-021: v0.11, **Xóm làng Lầy** (định hướng chặng 4, prototype chặng 3 không đổi). Thêm §3.16 (3 lớp NPC, lịch trình 4 khung giờ, cửa hàng mở 6–19h, nói chuyện bằng bong bóng có điều kiện, bark/đi bộ/chào hỏi +XP là Should, tặng quà một chạm là Could, thanh thân thiện để sau; bảng tham số `villageMapSize`, `npcSlotHours`, `shopOpenHour`/`shopCloseHour`, `npc*`, `dailyChatXp`, `giftXp`; dữ liệu `NpcData` → `npcs.json`). §5: khu nhà thành Xóm làng Lầy 60×40, sơ đồ + bảng vị trí, ghi chú chuyển từ prototype. §2 level 1, §6, §9 (dân làng phụ; ông Gật lên Must). §14: ước lượng 17–21 tuần (255–312 giờ), lộ trình chặng 4 (+1,7–2 tuần, phát hành ~giữa 03/2027), cách chen vào 4.1/4.2/4.4, khối lượng + chi phí ảnh (~7–13 USD Must), Must/Should/Could/Won't, mục cắt 0d.
 - 2026-10-10 — D-021 (hoàn tất phần bị ngắt): §2 Đầu ngõ là cuối ngõ (không phải cổng vườn); §3.16 + §5 nhà cô Ngóng sát hiên nhà {ten} (khớp tọa độ); đình và ao lùi khỏi mép lũy tre (y ≤ 37); ghi chú chuyển từ prototype khớp T-001 (bản đồ dựng bằng code, chỉ cần gom tọa độ, không thêm việc chặng 3); đầu bảng §5 "Xóm là trung tâm"; §15 câu 11 cập nhật vị trí, thêm câu 21 (chi tiết xóm chờ người dùng duyệt).
 - 2026-10-10 — Người dùng duyệt D-021: đầy đủ Must, một bản đồ Xóm liền, cửa hàng 6–19h (§15 câu 21).
+- 2026-10-10 — D-022: v0.12, **cuốc là "việc nặng" ≈ 5 giây/ô**. Thêm §3.3a (6 nhát × 0.85 s, thanh tiến độ, đất đổi 3 nấc, WASD bỏ dở giữ tiến độ, click lại làm tiếp, giữ qua đêm, hàng chờ 3 ô, một lần rê một loại việc, bảng "một ngày cuốc được bao nhiêu", lộ trình cuốc sắt 4 nhát, cách chống nhàm, bảng tham số `tillStrikesPerPlot`, `tillStrikeSeconds`, `tillVisualStages`, `tillQueueMax`, `tillFinish*`, `tillSweatFromStrike`, `tillDoneBark*`, `tillProgressKeepsOvernight`, `tillScreenShake`). §2 core loop, §3.2 `staminaCostTill` 2 → 4 Sức/ô (trừ khi xong ô), §3.3 (rê chuột, bảng click, `actionDuration` chỉ cho việc nhanh, thêm `actionImpactAt`, `actionQueueMax`), §3.4 vòng đời có "cuốc dở", §3.8 cuốc sắt, §4 phím, §8 juice cuốc (3 dòng, bỏ rung), §15 câu 22. Giữ `dayLengthSeconds` 600.
+- 2026-10-10 — D-022: người dùng chọn **C cho cuốc sắt** (5 nhát ≈ 4,2 s/ô, 2 Sức/ô). Sửa §3.2, §3.3a (bảng "một ngày cuốc được bao nhiêu": cuốc sắt 9/12/24 ô = 38/51/102 s; lộ trình cuốc), §3.8, §15 câu 22 (đã chốt).

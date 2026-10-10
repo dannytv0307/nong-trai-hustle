@@ -5,7 +5,7 @@
 
 **Đang ở: 3.3**
 
-> **📝 Ghi chú (2026-10-10):** T-001 ✅ (người dùng duyệt sau khi thay đi ngang 6 khung + khung xoay). Đang làm T-002. Mở: BUG-003 (môi trường Docker: cổng 5432 bận, thiếu `.env`) — cho `backend-dev` sửa trước 3.4.
+> **📝 Ghi chú (2026-10-10):** T-001 ✅, T-002 ✅ (cuốc ~5 s/ô theo D-022). Đang làm T-003. Mở: BUG-003 (môi trường Docker: cổng 5432 bận, thiếu `.env`) — cho `backend-dev` sửa trước 3.4; BUG-006 (một số test e2e còn chờ cố định).
 
 Ký hiệu: 👤 việc của bạn · 🤖 agent phụ trách · ✅ điều kiện để coi là xong
 

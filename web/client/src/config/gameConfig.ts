@@ -38,7 +38,8 @@ export const gameConfig = {
 
   // ---- 3.2 Sức và ăn uống ----
   staminaMax: 100,
-  staminaCostTill: 2,
+  /** Sức mỗi ô cuốc (D-022: 2 → 4, trừ một lần khi XONG ô; bỏ dở không mất). Dùng từ T-004. */
+  staminaCostTill: 4,
   staminaCostPlant: 1,
   staminaCostWater: 1,
   staminaCostHarvest: 1,
@@ -57,12 +58,100 @@ export const gameConfig = {
   // ---- 3.3 Di chuyển và hành động ----
   /** Tốc độ đi (ô/giây). Đổi sang px/giây = walkSpeed × tileSize. */
   walkSpeed: 4,
-  /** Tầm với (ô, tính từ tâm nhân vật). */
-  interactRange: 1.5,
-  /** Thời gian một động tác (giây). */
+  /**
+   * Tầm với (ô, tính từ tâm nhân vật). 2.5 = đứng giữa ô với tới ô cách 2 (thẳng) và ô chéo (2,1)
+   * (2.24 ô), nhưng không tới góc chéo (2,2) (2.83 ô). Người dùng chỉnh 1.5 → 2.5 sau khi thử T-002.
+   */
+  interactRange: 2.5,
+  /**
+   * Thời gian một động tác NHANH (giây): gieo, tưới, hái, dọn (T-003). Cuốc không dùng số này mà dùng
+   * `tillStrikesPerPlot` × `tillStrikeSeconds` (D-022).
+   */
   actionDuration: 0.4,
   /** Số ô hotbar (phím 1–9). */
   hotbarSlots: 9,
+
+  // ---- Chỉ ô bằng chuột & làm việc trên ô (T-002, GDD §3.3, §8) ----
+  /**
+   * Điểm "chạm" trong một động tác / một nhát cuốc, theo tỷ lệ thời gian của nó (0–1). 0.5 = giơ cuốc nửa đầu,
+   * bổ xuống ở giữa (ô đổi, bụi, "bộp"), nửa sau thu cuốc. 0 = chạm ngay khi bắt đầu.
+   */
+  actionImpactAt: 0.5,
+  /** Giữ chuột rê việc NHANH (T-003): nhớ tối đa bấy nhiêu ô chờ làm. Cuốc dùng `tillQueueMax`. */
+  actionQueueMax: 4,
+  /** Nhún khi bổ cuốc: độ bẹp scale Y lúc chạm (0.12 = bẹp 12%, phình ngang tương ứng). */
+  actionSquash: 0.12,
+  /** Giơ cuốc: nhân vật vươn cao thêm bấy nhiêu (tỷ lệ scale Y) trước khi bổ xuống. */
+  actionStretch: 0.05,
+  /** Số hạt bụi đất văng ra mỗi nhát cuốc. (7 → 9 sau góp ý T-002: bỏ rung nên cho đất văng rõ hơn.) */
+  tillDustCount: 9,
+  /** Hạt bụi đất sống bao lâu (giây). */
+  tillDustLifeSeconds: 0.45,
+  /** Tốc độ văng ra của bụi đất (ô/giây). */
+  tillDustSpeed: 2.6,
+  /** Cuốc đất có rung màn (`screenShakeLight`) không. Tắt sau góp ý T-002: cuốc liền nhiều ô thấy khó chịu. */
+  tillScreenShake: false,
+
+  // ---- Cuốc là "việc nặng" ≈ 5 giây/ô (D-022, GDD §3.3a) ----
+  /** Cuốc một ô mấy nhát (cuốc gỗ). Sau này lấy từ dữ liệu nông cụ (`ToolData.tillStrikesPerPlot`). */
+  tillStrikesPerPlot: 6,
+  /** Một nhát cuốc dài bao lâu (giây). Chạm ở `actionImpactAt` của nhát. 6 × 0.85 ≈ 5,1 giây/ô. */
+  tillStrikeSeconds: 0.85,
+  /** Đất đổi hình mấy nấc trong lúc cuốc (chia đều số nhát): 6 nhát / 3 nấc → đổi sau nhát 2, 4, nhát 6 = xong. */
+  tillVisualStages: 3,
+  /** Đang cuốc thì nhớ thêm tối đa mấy ô chờ (có số 1/2/3 trên ô). 0 = tắt hàng chờ. */
+  tillQueueMax: 3,
+  /** Nhát cuối (xong ô): bụi đất nhiều gấp mấy lần nhát thường. */
+  tillFinishDustMultiplier: 2,
+  /** Nhát cuối: khựng hình bao lâu (giây) — cảm giác "chốt". */
+  tillFinishHitStopSeconds: 0.05,
+  /** Từ nhát thứ mấy (trong một ô) thì có giọt mồ hôi bay. */
+  tillSweatFromStrike: 3,
+  /** Ô cuốc dở giữ tiến độ qua đêm (T-007 ngủ, T-008 lưu `tillStrikes`). */
+  tillProgressKeepsOvernight: true,
+  /** (T-004) Xong ô có lầm bầm không (xác suất). */
+  tillDoneBarkChance: 0.25,
+  /** (T-004) Lầm bầm cách nhau ít nhất bao lâu (giây thật). */
+  tillDoneBarkCooldownSeconds: 20,
+  /** Thanh tiến độ của ô cuốc dở khi KHÔNG đang cuốc: độ đục (GDD §8 "mờ còn khoảng 50%"). */
+  tillProgressIdleAlpha: 0.5,
+  /** Nhát cuối: lệch cao độ tiếng chốt (cent, âm = trầm hơn). Tạm dùng file "bộp" tới khi audio có tiếng riêng. */
+  tillFinishSfxDetune: -400,
+  /** Nhát cuối: tiếng chốt to hơn nhát thường bấy nhiêu lần (vẫn bị chặn ở 1). */
+  tillFinishSfxVolumeMultiplier: 1.25,
+  /** Nhát cuối: ô "nảy" phóng to thêm bấy nhiêu (0.12 = 12%) trong `tillFinishBounceSeconds`. */
+  tillFinishBounceScale: 0.12,
+  tillFinishBounceSeconds: 0.22,
+  /** Thanh tiến độ lóe sáng rồi tắt khi xong ô (giây). */
+  tillFinishFlashSeconds: 0.3,
+  /** Mồ hôi: số giọt mỗi nhát, sống bao lâu (giây), bay nhanh bao nhiêu (ô/giây). */
+  tillSweatCount: 2,
+  tillSweatLifeSeconds: 0.5,
+  tillSweatSpeed: 1.6,
+
+  // ---- Viền ô dưới con trỏ (góp ý T-002: viền cũ khó thấy) ----
+  /** Độ dày nét viền sáng/xám (px thế giới): trong tầm / ngoài tầm. */
+  tileHighlightWidth: [6, 3] as readonly [number, number],
+  /**
+   * Viền mực lót ngoài + trong nét sáng (px mỗi bên) — tạo tương phản trên mọi nền (cỏ sáng, đất khô, đất cuốc sẫm).
+   * Trong tầm / ngoài tầm.
+   */
+  tileHighlightOutline: [3, 2] as readonly [number, number],
+  /** Độ đục viền mực lót: trong tầm / ngoài tầm. */
+  tileHighlightOutlineAlpha: [0.95, 0.4] as readonly [number, number],
+  /** Nền mờ phủ trong ô (độ đục, 0 = không phủ): trong tầm / ngoài tầm. */
+  tileHighlightFillAlpha: [0.3, 0] as readonly [number, number],
+  /** Ô trong tầm "thở": số nhịp mỗi giây (0 = đứng yên). Ô ngoài tầm không nhấp nháy. */
+  tileHighlightPulseRate: 1.6,
+  /** Độ đục thấp nhất khi thở (1 = không đổi). Mới rê vào ô thì bắt đầu từ sáng nhất. */
+  tileHighlightPulseMinAlpha: 0.6,
+
+  // ---- Rung màn (GDD §8: nhẹ 0.05 ô / 0.1 s, vừa 0.1 ô / 0.15 s, mạnh 0.2 ô / 0.25 s) ----
+  /**
+   * Rung nhẹ: biên độ (ô) và thời gian (giây). Giữ cho sự kiện lớn hơn sau này (cuốc không rung nữa
+   * — xem `tillScreenShake`).
+   */
+  screenShakeLight: { amplitudeTiles: 0.05, durationSeconds: 0.1 },
 
   // ---- Bản đồ Vườn, va chạm, camera (T-001, GDD §5, §12) ----
   /** Kích thước bản đồ Vườn [cột, hàng] (ô). */

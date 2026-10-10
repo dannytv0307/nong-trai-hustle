@@ -14,7 +14,7 @@
 |---|---|---|---|---|
 | AUD-SFX-001 | Lên level: marimba C–E–G–C đi lên (nốt đà Sol) + mõ + glockenspiel + vỗ tay | `levelup_bright` v2 | −1 | không |
 | AUD-SFX-002 | Nhặt xu: xu chạm + "ting" glockenspiel đi lên | `coin_bright` v1 (chính), v2 (biến thể) | −1 | ±4% |
-| AUD-SFX-003 | Cuốc đất "bộp" | `hoe` v1, v2 | −1 | ±4% |
+| AUD-SFX-003 | Cuốc đất "bộp" — **đang thay bằng bản 2, xem [AUD-SFX-003](AUD-SFX-003.md)** | `hoe` v1, v2 | −1 | ±4% |
 | AUD-SFX-004 | Tưới nước | `water` v1, v2 | −1 | ±4% |
 | AUD-SFX-005 | Bố vợ nhăn: mõ + đàn bầu luyến xuống Rê → La | `frown` v2 | −1 | không |
 | AUD-SFX-006 | Meme zoom: 3 tiếng trống to dần + chũm chọe nhẹ | `damn` v2 | −1 | không |

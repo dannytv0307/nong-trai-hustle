@@ -12,7 +12,7 @@ export class GardenHudScene extends Phaser.Scene {
 
   create(): void {
     const { gameWidth: w, gameHeight: h } = gameConfig;
-    // Góc dưới phải: gợi ý phím (T-001).
-    this.add.text(w - 40, h - 32, 'WASD: đi', textStyles.body).setOrigin(1, 1);
+    // Góc dưới phải: gợi ý phím (T-001, T-002). T-005 thay bằng dòng đầy đủ.
+    this.add.text(w - 40, h - 32, 'WASD: đi (đang cuốc thì bỏ dở) · Click: cuốc · Giữ chuột rê: xếp hàng', textStyles.body).setOrigin(1, 1);
   }
 }

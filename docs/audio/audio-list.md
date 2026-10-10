@@ -11,7 +11,7 @@
 | AUD-MUS-001 | Nhạc Vườn (ngày) | MUS | Ở khu Vườn + Nhà + Đầu ngõ ban ngày | 30.77 s | có | 1 | `raw/AUD-MUS-001/final.wav` → `music/vuon-loop.wav` | Must | Approved | [AUD-MUS-001](prompts/AUD-MUS-001.md) |
 | AUD-SFX-001 | Lên level (tươi) | SFX | Lên level; dùng lại cao hơn 1 nấc khi lên bậc ngoại hình | 1.66 s | không | 1 | `raw/AUD-SFX-001/final.wav` → `sfx/len-level.wav` | Must | Approved | [AUD-SFX-FOLK](prompts/AUD-SFX-FOLK.md) |
 | AUD-SFX-002 | Nhặt xu "leng keng" | SFX | Nhận tiền | 0.83 / 0.89 s | không | 2 | `raw/AUD-SFX-002/final(-2).wav` → `sfx/nhat-xu-1/2.wav` | Must | Approved | AUD-SFX-FOLK |
-| AUD-SFX-003 | Cuốc đất "bộp" | SFX | Cuốc đất | 0.35 s | không | 2 | `raw/AUD-SFX-003/final(-2).wav` → `sfx/cuoc-dat-1/2.wav` | Must | Approved | AUD-SFX-FOLK |
+| AUD-SFX-003 | Cuốc đất — bản 2 "phập" lưỡi sắt xắn đất ẩm + đất vụn (thay "bộp") | SFX | Cuốc đất (khung chạm) | 0.36 / 0.38 s | không | 2 | `raw/AUD-SFX-003-v2/moi-cuoc-dat-1/2.wav` → `sfx/cuoc-dat-1/2.wav` (chưa ghi đè; game vẫn dùng bản "bộp" cũ) | Must | Approved (người dùng chọn 1 + 2, 2026-10-10) — In-game | [AUD-SFX-003](prompts/AUD-SFX-003.md) |
 | AUD-SFX-004 | Tưới nước | SFX | Tưới | 0.60 s | không | 2 | `raw/AUD-SFX-004/final(-2).wav` → `sfx/tuoi-nuoc-1/2.wav` | Must | Approved | AUD-SFX-FOLK |
 | AUD-SFX-005 | Bố vợ nhăn (mõ + đàn bầu) | SFX | Mặc cả: mặt nhăn | 1.23 s | không | 1 | `raw/AUD-SFX-005/final.wav` → `sfx/bo-vo-nhan.wav` | Must | Approved | AUD-SFX-FOLK |
 | AUD-SFX-006 | Meme zoom "tùng–tùng–TÙNG" | SFX | `dramaticZoom` | 2.35 s | không | 1 | `raw/AUD-SFX-006/final.wav` → `sfx/meme-zoom-trong.wav` | Must | Approved | AUD-SFX-FOLK |
@@ -38,4 +38,6 @@
 
 - 2026-10-09 — Tạo danh sách.
 - 2026-10-09 — Bước 2.3 (D-018): AUD-MUS-001 + AUD-SFX-001…008 Approved (file tạm trong `audio-source/raw/`, chuyển ở bước 3.1); thêm danh sách Planned.
+- 2026-10-10 — Bước 3.3 (T-002): người dùng góp ý "bộp" chưa giống cuốc → làm lại AUD-SFX-003 bằng công thức mới `hoe_soil` (4 ứng viên, chọn v1 + v2), trạng thái Processed — chờ người dùng nghe duyệt rồi mới ghi đè file game.
+- 2026-10-10 — AUD-SFX-003 bản 2: người dùng duyệt ứng viên 1 + 2 → chép vào `web/client/public/assets/audio/sfx/cuoc-dat-1/2.wav`, chạy `audio:convert`.
 - 2026-10-09 — Bước 3.1: copy nhạc Vườn + 8 SFX (13 file) vào `web/client/public/assets/audio/`, thêm `npm run audio:convert` (WAV → OGG + MP3 bằng ffmpeg-static).
