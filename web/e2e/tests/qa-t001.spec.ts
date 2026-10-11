@@ -502,7 +502,7 @@ test.describe('1366x768', () => {
     expect(box!.height).toBeLessThanOrEqual(768);
     const hint = await page.evaluate(() => {
       const hud = (window as any).__game.scene.getScene('GardenHud');
-      const t = hud.children.list.find((o: any) => o.type === 'Text');
+      const t = hud.children.list.find((o: any) => o.type === 'Text' && String(o.text).includes('WASD')); // T-004: HUD có thêm chữ thanh Sức
       const b = t.getBounds();
       return { text: t.text, x: b.x, y: b.y, w: b.width, h: b.height, fontSize: t.style.fontSize };
     });

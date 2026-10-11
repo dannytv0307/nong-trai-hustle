@@ -132,7 +132,7 @@ describe('items — hạt và nông sản', () => {
     expect(isSeedItem('rau-cai')).toBe(false);
     expect(isSeedItem('hat-khong-co')).toBe(false);
     expect(cropOfSeed('hat-khoai-lang')).toBe('khoai-lang');
-    expect(itemInfo('hat-rau-cai')).toEqual({ id: 'hat-rau-cai', kind: 'seed', cropId: 'rau-cai', name: 'Hạt rau cải' });
+    expect(itemInfo('hat-rau-cai')).toEqual({ id: 'hat-rau-cai', kind: 'seed', cropId: 'rau-cai', name: 'Hạt rau cải', staminaRestore: 0 });
     expect(itemInfo('khoai-lang')?.name).toBe('Khoai lang');
     expect(itemInfo('la-la')).toBeNull();
   });

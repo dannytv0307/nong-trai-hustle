@@ -24,3 +24,16 @@ export interface CropData {
   /** Ghi chú thiết kế (không hiện trong game). */
   note?: string;
 }
+
+/**
+ * Thông tin thêm của một món đồ (GDD §3.2 `ItemData`) — file `items.json`. Prototype chỉ ghi những gì crops.json
+ * chưa có: món ăn được và hồi bao nhiêu Sức. Tên / loại món (hạt, nông sản) vẫn suy ra từ crops.json (systems/items.ts).
+ */
+export interface ItemData {
+  /** Mã món, trùng mã trong gùi (vd nông sản 'khoai-lang' = id cây). */
+  id: string;
+  /** Ăn (chuột phải) hồi bao nhiêu Sức. Không có / 0 = không ăn được. */
+  staminaRestore?: number;
+  /** Ghi chú thiết kế (không hiện trong game). */
+  note?: string;
+}

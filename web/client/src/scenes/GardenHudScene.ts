@@ -3,14 +3,16 @@
 // T-003: hotbar 9 ô giữa dưới màn (ô chọn viền vàng, số lượng ở góc), nút "Gùi", cửa sổ gùi (E) 2 × 9 có tên món
 // khi rê chuột, icon đồ hái bay vào ô + ô nảy. Scene này CHỈ VẼ: gùi, ô chọn, cửa sổ mở/đóng, ô dưới con trỏ
 // đều do GardenScene giữ (qua InputController) — HUD đọc mỗi frame, chỉ vẽ lại khi `inventoryRevision` đổi.
-// Các task sau (đồng hồ T-005, thanh Sức T-004) sẽ thêm vào đây.
+// T-004: thanh Sức góc trên trái (xanh lá → vàng < 50% → đỏ < 20%), viền màn tối khi đuối, ô hotbar nảy khi ăn.
+// Các task sau (đồng hồ T-005, tiền T-006) sẽ thêm vào đây.
 import Phaser from 'phaser';
 import { gameConfig } from '../config/gameConfig';
 import { cssColor, palette } from '../config/palette';
 import { textStyles, uiFontFamily } from '../config/theme';
 import type { ItemStack } from '../systems/inventory';
 import { itemInfo } from '../systems/items';
-import { BAG_WINDOW, bagButtonRect, bagPanelRect, bagSlotRect, hotbarSlotRect, type Rect } from '../ui/hudLayout';
+import { staminaBand, staminaLabel, staminaRatio, type StaminaBand } from '../systems/stamina';
+import { BAG_WINDOW, bagButtonRect, bagPanelRect, bagSlotRect, hotbarSlotRect, staminaFillRect, staminaPanelRect, type Rect } from '../ui/hudLayout';
 import { drawItemIcon } from '../ui/itemArt';
 import type { GardenScene } from './GardenScene';
 
@@ -32,7 +34,23 @@ export interface HudDebugState {
   selectedFrame: number;
   /** Chữ số lượng đang hiện trên từng ô hotbar ('' = ô trống). */
   hotbarCounts: string[];
+  /** Thanh Sức (T-004): chữ "64/100", dải màu, màu ruột đang tô (0xRRGGBB), tỷ lệ ruột đang vẽ. */
+  staminaText: string;
+  staminaBand: StaminaBand;
+  staminaFillColor: number;
+  staminaFillRatio: number;
+  /** Độ đục viền màn tối (đuối) đang hiện (0 = tắt). */
+  vignetteAlpha: number;
+  /** Số lần ô hotbar nảy vì ăn (chuột phải) + ô nảy lần gần nhất. */
+  eatBounces: number;
+  lastEatSlot: number;
 }
+
+/** Màu ruột thanh Sức theo dải (palette Art Bible). */
+const STAMINA_COLORS: Readonly<Record<StaminaBand, number>> = { green: palette.sprout, yellow: palette.gold, red: palette.vermilion };
+/** Texture viền màn tối (vẽ một lần, độ phân giải thấp rồi phóng — gradient mượt nên không vỡ). */
+const VIGNETTE_TEX = 'fx-vignette';
+const VIGNETTE_TEX_SIZE = { w: 480, h: 270 } as const;
 
 /** Một ô vẽ (hotbar hoặc cửa sổ gùi): khung, icon, số lượng, số phím. */
 interface SlotView {
@@ -85,6 +103,17 @@ export class GardenHudScene extends Phaser.Scene {
   private readonly bounceT: number[] = [];
   private bagBounceT = 0;
   private landed = 0;
+  // ---- Thanh Sức + viền đuối (T-004) ----
+  private staminaFill!: Phaser.GameObjects.Graphics;
+  private staminaText!: Phaser.GameObjects.Text;
+  /** Sức + dải màu lần vẽ trước — chỉ vẽ lại khi đổi. */
+  private staminaDrawn = -1;
+  private staminaDrawnBand: StaminaBand = 'green';
+  private vignette!: Phaser.GameObjects.Image;
+  /** 0 → 1: mức hiện của viền đuối (tăng/giảm dần trong exhaustedVignetteFadeSeconds). */
+  private vignetteLevel = 0;
+  private eatBounces = 0;
+  private lastEatSlot = -1;
 
   constructor() {
     super('GardenHud');
@@ -98,10 +127,16 @@ export class GardenHudScene extends Phaser.Scene {
     this.bounceT.length = 0;
     this.hotbar.length = 0;
     this.bagSlots.length = 0;
+    this.staminaDrawn = -1;
+    this.vignetteLevel = 0;
+
+    // Viền màn tối khi đuối: vẽ trước tiên để mọi thứ HUD khác nằm đè lên.
+    this.buildVignette();
+    this.buildStaminaBar();
 
     // Góc dưới phải: gợi ý phím (T-005 thay bằng dòng đầy đủ). Nằm phải nút gùi, không đè hotbar.
-    const hint = ['WASD: đi · Click: làm việc', '1–9 / cuộn: chọn ô · E: gùi'];
-    if (gameConfig.devCheatsEnabled) hint.push('G: qua một đêm (phím thử)');
+    const hint = ['WASD: đi · Click: làm việc', '1–9 / cuộn: chọn ô · E: gùi', 'Chuột phải: ăn món đang chọn'];
+    if (gameConfig.devCheatsEnabled) hint.push('Phím thử: G qua đêm · F8 −20 Sức');
     this.add
       .text(w - 32, h - 28, hint.join('\n'), { ...textStyles.body, fontSize: '20px', strokeThickness: 5, align: 'right' })
       .setOrigin(1, 1);
@@ -134,8 +169,92 @@ export class GardenHudScene extends Phaser.Scene {
     }
 
     const onGained = (e: ItemGainedEvent) => this.spawnFlyer(e);
+    // Ăn (chuột phải): ô hotbar vừa bớt 1 món nảy một nhịp.
+    const onEaten = (e: { slot: number }) => {
+      if (e.slot < 0 || e.slot >= this.bounceT.length) return;
+      this.bounceT[e.slot] = gameConfig.hotbarBounceSeconds;
+      this.eatBounces++;
+      this.lastEatSlot = e.slot;
+    };
     this.garden.events.on('item-gained', onGained);
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.garden.events.off('item-gained', onGained));
+    this.garden.events.on('item-eaten', onEaten);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.garden.events.off('item-gained', onGained);
+      this.garden.events.off('item-eaten', onEaten);
+    });
+  }
+
+  /** Thanh Sức góc trên trái: nhãn "Sức", khung mực, ruột tô màu theo tỷ lệ, chữ "64/100" giữa thanh. */
+  private buildStaminaBar(): void {
+    const p = staminaPanelRect();
+    const f = staminaFillRect();
+    const bg = this.add.graphics();
+    bg.fillStyle(palette.ink, 0.92).fillRoundedRect(p.x - 3, p.y - 3, p.w + 6, p.h + 6, 14);
+    bg.fillStyle(palette.earth, 1).fillRoundedRect(p.x, p.y, p.w, p.h, 12);
+    // Rãnh tối dưới ruột thanh (phần Sức đã mất).
+    bg.fillStyle(palette.ink, 0.75).fillRoundedRect(f.x, f.y, f.w, f.h, 8);
+    this.add
+      .text(p.x + (f.x - p.x) / 2 + 2, p.y + p.h / 2, 'Sức', { ...textStyles.nameTag, fontSize: '24px', strokeThickness: 5 })
+      .setOrigin(0.5);
+    this.staminaFill = this.add.graphics();
+    this.staminaText = this.add
+      .text(f.x + f.w / 2, f.y + f.h / 2, '', { fontFamily: uiFontFamily, fontSize: '26px', fontStyle: 'bold', color: cssColor('paper'), stroke: cssColor('ink'), strokeThickness: 6 })
+      .setOrigin(0.5);
+  }
+
+  /** Vẽ lại ruột thanh + chữ khi Sức đổi (không vẽ Graphics mỗi frame). */
+  private updateStaminaBar(): void {
+    const s = this.garden.stamina;
+    if (s.current === this.staminaDrawn) return;
+    this.staminaDrawn = s.current;
+    const ratio = staminaRatio(s);
+    const band = staminaBand(ratio, gameConfig.staminaBarYellowBelow, gameConfig.staminaBarRedBelow);
+    this.staminaDrawnBand = band;
+    const f = staminaFillRect();
+    const g = this.staminaFill;
+    g.clear();
+    const w = Math.round(f.w * Math.min(1, Math.max(0, ratio)));
+    if (w > 0) {
+      g.fillStyle(STAMINA_COLORS[band], 1).fillRoundedRect(f.x, f.y, w, f.h, Math.min(8, w / 2));
+      // Vệt sáng trên mép ruột cho có khối.
+      g.fillStyle(palette.paper, 0.25).fillRect(f.x + 4, f.y + 4, Math.max(0, w - 8), 5);
+    }
+    this.staminaText.setText(staminaLabel(s));
+  }
+
+  /** Texture gradient tối dần ra mép màn (mực, không đen thuần) — tạo một lần cho cả game. */
+  private buildVignette(): void {
+    const { gameWidth: w, gameHeight: h } = gameConfig;
+    if (!this.textures.exists(VIGNETTE_TEX)) {
+      const { w: tw, h: th } = VIGNETTE_TEX_SIZE;
+      const tex = this.textures.createCanvas(VIGNETTE_TEX, tw, th);
+      const ctx = tex?.getContext();
+      if (tex && ctx) {
+        // Elip theo tỷ lệ màn: giữa trong suốt, mép mực đậm dần.
+        ctx.save();
+        ctx.translate(tw / 2, th / 2);
+        ctx.scale(1, th / tw);
+        const r = tw * 0.62;
+        const grad = ctx.createRadialGradient(0, 0, r * 0.45, 0, 0, r);
+        grad.addColorStop(0, 'rgba(46,33,24,0)');
+        grad.addColorStop(0.6, 'rgba(46,33,24,0.55)');
+        grad.addColorStop(1, 'rgba(46,33,24,1)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(-tw, -tw, tw * 2, tw * 2);
+        ctx.restore();
+        tex.refresh();
+      }
+    }
+    this.vignette = this.add.image(0, 0, VIGNETTE_TEX).setOrigin(0).setDisplaySize(w, h).setAlpha(0).setVisible(false);
+  }
+
+  /** Viền màn tối hiện / tắt dần theo trạng thái đuối. */
+  private updateVignette(dt: number): void {
+    const target = this.garden.stamina.exhausted ? 1 : 0;
+    const step = dt / Math.max(0.01, gameConfig.exhaustedVignetteFadeSeconds);
+    this.vignetteLevel = target > this.vignetteLevel ? Math.min(target, this.vignetteLevel + step) : Math.max(target, this.vignetteLevel - step);
+    const alpha = this.vignetteLevel * gameConfig.exhaustedVignetteAlpha;
+    this.vignette.setAlpha(alpha).setVisible(alpha > 0);
   }
 
   /** Một ô: nền giấy viền mực, icon ở giữa, số lượng góc dưới-phải, (tuỳ chọn) số phím góc trên-trái. */
@@ -225,6 +344,8 @@ export class GardenHudScene extends Phaser.Scene {
     if (bagSel) this.bagSelectFrame.setPosition(bagSel.root.x, bagSel.root.y);
 
     this.bagWindow.setVisible(this.garden.bagOpen);
+    this.updateStaminaBar();
+    this.updateVignette(dt);
     this.updateTooltip();
     this.updateFlyers(dt);
     this.updateBounces(dt);
@@ -330,6 +451,13 @@ export class GardenHudScene extends Phaser.Scene {
       tooltipCenter: this.tooltip?.visible ? { x: this.tooltip.x, y: this.tooltip.y } : null,
       selectedFrame: this.hotbar.findIndex((v) => v.root.x === this.selectFrame?.x),
       hotbarCounts: this.hotbar.map((v) => v.count.text),
+      staminaText: this.staminaText?.text ?? '',
+      staminaBand: this.staminaDrawnBand,
+      staminaFillColor: STAMINA_COLORS[this.staminaDrawnBand],
+      staminaFillRatio: this.staminaDrawn < 0 ? 0 : this.staminaDrawn / this.garden.stamina.max,
+      vignetteAlpha: this.vignette?.visible ? this.vignette.alpha : 0,
+      eatBounces: this.eatBounces,
+      lastEatSlot: this.lastEatSlot,
     };
   }
 }

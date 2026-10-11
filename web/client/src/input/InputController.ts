@@ -16,7 +16,8 @@ export type Action =
   | 'openQuests' // Q
   | 'menu' // Esc
   | 'confirm' // Space
-  | 'devNextDay'; // G — phím thử "qua đêm" (chỉ bản dev, gameConfig.devCheatsEnabled)
+  | 'devNextDay' // G — phím thử "qua đêm" (chỉ bản dev, gameConfig.devCheatsEnabled)
+  | 'devDrainStamina'; // F8 — phím thử −20 Sức (chỉ bản dev)
 
 const KC = Phaser.Input.Keyboard.KeyCodes;
 
@@ -32,6 +33,7 @@ const DEFAULT_BINDINGS: Record<Action, number[]> = {
   menu: [KC.ESC],
   confirm: [KC.SPACE],
   devNextDay: [KC.G],
+  devDrainStamina: [KC.F8],
 };
 
 const HOTBAR_KEYS = [KC.ONE, KC.TWO, KC.THREE, KC.FOUR, KC.FIVE, KC.SIX, KC.SEVEN, KC.EIGHT, KC.NINE];
@@ -50,6 +52,8 @@ export class InputController {
    * click nhanh (nhấn + nhả lọt giữa hai frame) vẫn không bị mất.
    */
   private primaryPressed = false;
+  /** Đã bấm chuột PHẢI từ lần hỏi trước chưa (ăn món đang chọn — GDD §3.2). Cũng ghi theo sự kiện. */
+  private secondaryPressed = false;
   /**
    * Đã nhấn một phím đi (WASD/mũi tên) từ lần hỏi trước chưa — cũng ghi theo SỰ KIỆN keydown: chạm phím cực nhanh
    * (nhấn + nhả lọt giữa hai frame, dễ gặp khi FPS thấp) vẫn được tính, để "bấm phím đi = bỏ dở cuốc" không trượt (BUG-007).
@@ -101,6 +105,7 @@ export class InputController {
     this.input = scene.input;
     scene.input.on(Phaser.Input.Events.POINTER_DOWN, (p: Phaser.Input.Pointer) => {
       if (p.leftButtonDown()) this.primaryPressed = true;
+      if (p.rightButtonDown()) this.secondaryPressed = true;
     });
     scene.input.on(
       Phaser.Input.Events.POINTER_WHEEL,
@@ -130,6 +135,13 @@ export class InputController {
   consumePrimaryPress(): boolean {
     const pressed = this.primaryPressed;
     this.primaryPressed = false;
+    return pressed;
+  }
+
+  /** Chuột phải vừa được bấm kể từ lần hỏi trước (true một lần mỗi lần bấm). Gọi một lần mỗi frame. */
+  consumeSecondaryPress(): boolean {
+    const pressed = this.secondaryPressed;
+    this.secondaryPressed = false;
     return pressed;
   }
 

@@ -48,6 +48,21 @@ export const gameConfig = {
   staminaCostMinigame: 8,
   /** Đuối (hết Sức) thì đi chậm còn hệ số này. */
   staminaExhaustedSpeedMultiplier: 0.5,
+  /** Thanh Sức (GDD §11): dưới tỷ lệ này thì vàng, dưới `staminaBarRedBelow` thì đỏ (còn lại xanh lá). */
+  staminaBarYellowBelow: 0.5,
+  staminaBarRedBelow: 0.2,
+  /** Chữ "+8 Sức" / "−4 Sức" bay lên: bao lâu (giây), cao bao nhiêu ô. */
+  staminaFloatSeconds: 1,
+  staminaFloatRise: 0.6,
+  /** BUG-012: chữ cùng loại mới hiện chưa quá bấy nhiêu giây thì gộp thành một số cộng dồn ("+16 Sức"). */
+  staminaFloatMergeSeconds: 0.5,
+  /** BUG-012: chữ khác loại đang bay gần chỗ xuất phát → chữ mới đặt cao hơn bấy nhiêu ô. */
+  staminaFloatStackOffset: 0.45,
+  /** Đuối: viền màn tối nhẹ — độ đục mép màn (0–1) và thời gian hiện/tắt dần (giây). */
+  exhaustedVignetteAlpha: 0.6,
+  exhaustedVignetteFadeSeconds: 0.5,
+  /** Phím thử F8 (chỉ bản dev): trừ bấy nhiêu Sức. */
+  devStaminaDrain: 20,
   /** Giá một bát cơm (quan). */
   riceCost: 5,
   /** Nấu một món tốn bao nhiêu phút game. */
@@ -109,9 +124,9 @@ export const gameConfig = {
   tillSweatFromStrike: 3,
   /** Ô cuốc dở giữ tiến độ qua đêm (T-007 ngủ, T-008 lưu `tillStrikes`). */
   tillProgressKeepsOvernight: true,
-  /** (T-004) Xong ô có lầm bầm không (xác suất). */
+  /** Xong ô cuốc có lầm bầm không (xác suất; bong bóng thường, câu ở data/bubbles.json `tillDoneBarks`). */
   tillDoneBarkChance: 0.25,
-  /** (T-004) Lầm bầm cách nhau ít nhất bao lâu (giây thật). */
+  /** Lầm bầm cách nhau ít nhất bao lâu (giây thật — đồng hồ dừng khi game dừng). */
   tillDoneBarkCooldownSeconds: 20,
   /** Thanh tiến độ của ô cuốc dở khi KHÔNG đang cuốc: độ đục (GDD §8 "mờ còn khoảng 50%"). */
   tillProgressIdleAlpha: 0.5,
@@ -232,12 +247,17 @@ export const gameConfig = {
   stackMax: 20,
   /** Hạt có sẵn lúc bắt đầu (id cây trong crops.json → số hạt), xếp vào hotbar theo thứ tự này từ ô 1. */
   startSeeds: { 'rau-cai': 6, 'khoai-lang': 3 } as Readonly<Record<string, number>>,
-  /** Phím thử (G: qua đêm…) chỉ bật khi chạy dev (`npm run dev`), tắt ở bản build. */
+  /** Phím thử (G: qua đêm, F8: −20 Sức…) chỉ bật khi chạy dev (`npm run dev`), tắt ở bản build. */
   devCheatsEnabled: import.meta.env.DEV,
 
   // ---- Gieo, tưới, hái: hiệu ứng (T-003, GDD §8) ----
   /** Bong bóng chữ trên đầu nhân vật ("hết hạt rồi", "gùi đầy") hiện bao lâu (giây). */
   bubbleSeconds: 1.8,
+  /** Bong bóng chửi thề (răng cưa đỏ, lắc — GDD §3.12) hiện bao lâu (giây). */
+  grumbleBubbleSeconds: 2.5,
+  /** Bong bóng chửi thề lắc ngang: biên độ (px thế giới) và số lần lắc mỗi giây. */
+  grumbleShakePx: 3,
+  grumbleShakeRate: 9,
   /** Tưới: số giọt nước bắn ra, sống bao lâu (giây). */
   waterDropCount: 10,
   waterDropLifeSeconds: 0.5,

@@ -124,7 +124,7 @@ Phải đủ **cả** các điều kiện sau thì bà mối mới chịu đến
 
 **Thanh Sức** quyết định *làm được bao nhiêu việc*. Gộp đói, khát, mệt. Sáng nào thức dậy cũng đầy.
 - Mỗi việc tốn Sức (bảng dưới). Đi lại, nói chuyện, bán, mua, ăn: không tốn.
-- **Hết Sức → "đuối"** (không ngất): đi chậm còn ×`staminaExhaustedSpeedMultiplier`, bong bóng "đói quá…", không làm được việc tốn Sức. Vẫn đi, ăn, mua bán, nói chuyện được.
+- **Hết Sức → "đuối"** (không ngất): đi chậm còn ×`staminaExhaustedSpeedMultiplier`, lúc vừa đuối hiện bong bóng chửi thề răng cưa đỏ (story bible §6.3, 1 lần mỗi lần đuối; click việc khi đuối → "Đuối rồi…"), không làm được việc tốn Sức. Vẫn đi, ăn, mua bán, nói chuyện được.
 - **Ăn**: chọn đồ ăn trên hotbar (phím số / cuộn chuột) rồi **chuột phải**, hoặc chuột phải vào món trong túi đồ. Sức không vượt `staminaMax`. Đồ ăn nằm trong gùi.
 - **Nấu ở bếp** (trong nhà, Vườn): click bếp → chọn món → mất nguyên liệu, tốn `cookGameMinutes` phút game, món chín vào gùi. **Cơm** nấu từ hũ gạo trong nhà, trả `riceCost` quan mỗi lần (áp lực tiền cơm nhẹ ngay từ đầu).
 - **Bếp gạch** (nâng cấp level 9): mọi món hồi ×`kitchenUpgradeStaminaMultiplier`.

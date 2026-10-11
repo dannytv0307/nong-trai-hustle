@@ -86,3 +86,17 @@ export function bagSlotAt(px: number, py: number, slotCount: number, perRow = ga
   for (let i = 0; i < slotCount; i++) if (inside(bagSlotRect(i, slotCount, perRow), px, py)) return i;
   return -1;
 }
+
+/** Thanh Sức góc trên trái (GDD §11): lề, rộng/cao khung, nhãn "Sức" bên trái thanh. */
+export const STAMINA_BAR = { margin: 32, w: 420, h: 56, label: 78, pad: 8 } as const;
+
+/** Khung thanh Sức (gồm nhãn). */
+export function staminaPanelRect(): Rect {
+  return { x: STAMINA_BAR.margin, y: STAMINA_BAR.margin, w: STAMINA_BAR.w, h: STAMINA_BAR.h };
+}
+
+/** Phần ruột thanh (chỗ tô màu theo tỷ lệ Sức), nằm bên phải nhãn "Sức". */
+export function staminaFillRect(): Rect {
+  const p = staminaPanelRect();
+  return { x: p.x + STAMINA_BAR.label, y: p.y + STAMINA_BAR.pad, w: p.w - STAMINA_BAR.label - STAMINA_BAR.pad, h: p.h - STAMINA_BAR.pad * 2 };
+}

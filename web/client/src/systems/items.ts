@@ -1,6 +1,9 @@
 // Món đồ trong gùi (T-003). Prototype chỉ có 2 loại món, suy ra từ crops.json:
 // - hạt giống: id 'hat-<cropId>' (vd 'hat-rau-cai'), gieo được;
-// - nông sản: id = cropId (vd 'rau-cai'), hái được, bán được (T-006), khoai ăn được (T-004 sẽ thêm items.json).
+// - nông sản: id = cropId (vd 'rau-cai'), hái được, bán được (T-006).
+// T-004: món ăn được + số Sức hồi lấy từ data/items.json (`staminaRestore`) — hiện chỉ khoai lang sống +8.
+import itemsJson from '../data/items.json';
+import type { ItemData } from '../data/types';
 import { cropById } from './crops';
 import { addItem, countOf, createInventory, findSlot, type Inventory } from './inventory';
 
@@ -13,6 +16,16 @@ export interface ItemInfo {
   cropId: string;
   /** Tên hiện cho người chơi (tooltip trong gùi). */
   name: string;
+  /** Ăn hồi bao nhiêu Sức (0 = không ăn được). Hạt giống luôn 0. */
+  staminaRestore: number;
+}
+
+const ITEM_DATA = new Map<string, ItemData>((itemsJson as ItemData[]).map((d) => [d.id, d]));
+
+/** Số Sức món này hồi khi ăn (0 = không phải đồ ăn: hạt giống, rau cải sống, mã lạ…). */
+export function staminaRestoreOf(id: string): number {
+  if (isSeedItem(id)) return 0;
+  return Math.max(0, ITEM_DATA.get(id)?.staminaRestore ?? 0);
 }
 
 const SEED_PREFIX = 'hat-';
@@ -31,10 +44,10 @@ export function isSeedItem(id: string): boolean {
 export function itemInfo(id: string): ItemInfo | null {
   if (isSeedItem(id)) {
     const crop = cropById(id.slice(SEED_PREFIX.length))!;
-    return { id, kind: 'seed', cropId: crop.id, name: `Hạt ${crop.name.toLowerCase()}` };
+    return { id, kind: 'seed', cropId: crop.id, name: `Hạt ${crop.name.toLowerCase()}`, staminaRestore: 0 };
   }
   const crop = cropById(id);
-  if (crop) return { id, kind: 'crop', cropId: crop.id, name: crop.name };
+  if (crop) return { id, kind: 'crop', cropId: crop.id, name: crop.name, staminaRestore: staminaRestoreOf(id) };
   return null;
 }
 

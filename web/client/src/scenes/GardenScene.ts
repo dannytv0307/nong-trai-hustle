@@ -6,6 +6,8 @@
 // T-003: click ô ruộng → nhân vật tự chọn việc (cuốc / gieo hạt đang chọn / tưới / hái / dọn cây héo). Gieo, tưới,
 // hái, dọn là việc NHANH (actionDuration, hàng chờ actionQueueMax, vừa giữ chuột vừa đi được). Gùi + hotbar
 // (systems/inventory.ts) do scene này giữ; GardenHudScene vẽ hotbar/cửa sổ gùi. Phím thử G (dev) = qua một đêm.
+// T-004: thanh Sức (systems/stamina.ts) — mỗi việc tốn Sức (cuốc trừ 4 một lần ở nhát cuối, D-022), thiếu Sức thì
+// "đuối rồi…", hết Sức thì đuối (đi chậm, viền màn tối, chửi thề 1 lần). Chuột phải = ăn món đang chọn. F8 (dev) −20 Sức.
 // Nhà, cây, ao, rào là hình khối màu theo palette (chưa có asset thật).
 import Phaser from 'phaser';
 import { heroTextureKey, heroTurnKey, heroWalkKey } from '../config/assets';
@@ -48,7 +50,23 @@ import {
 import { CROPS, growDaysOf } from '../systems/crops';
 import { createPitchLadder, nextLadderStep, tickPitchLadder } from '../systems/pitchLadder';
 import { addItem, canAdd, removeFromSlot, scrollSelect, selectSlot, setSlot, type Inventory } from '../systems/inventory';
-import { cropItemId, cropOfSeed, createStartInventory, itemInfo, pickSeedSlot } from '../systems/items';
+import { cropItemId, cropOfSeed, createStartInventory, itemInfo, pickSeedSlot, staminaRestoreOf } from '../systems/items';
+import {
+  canAfford,
+  consume,
+  createStamina,
+  isFull,
+  jobStaminaCost,
+  restore,
+  setStamina,
+  staminaBand,
+  staminaRatio,
+  walkSpeedMultiplier,
+  type JobStaminaCosts,
+  type StaminaBand,
+  type StaminaChange,
+} from '../systems/stamina';
+import { bubbleCanShow, createBarkState, pickBarkLine, recordBark, shouldBark, type BubbleKind } from '../systems/bubbles';
 import { bagPanelRect, bagSlotAt, bagSlotRect, bagButtonRect, hotbarSlotAt, hotbarSlotRect, isOverHud, type Rect } from '../ui/hudLayout';
 import { cropColor, drawCrop, mixColor } from '../ui/itemArt';
 import type { GardenHudScene, HudDebugState } from './GardenHudScene';
@@ -114,6 +132,19 @@ const PLANT_SFX = ['sfx-gieo-hat-1', 'sfx-gieo-hat-2'] as const;
 const HARVEST_SFX = ['sfx-hai-cay-1', 'sfx-hai-cay-2'] as const;
 /** Giữ bao nhiêu lần hái gần nhất trong debugState (để test kiểm thang cao độ). */
 const HARVEST_SFX_LOG = 12;
+/** Tiếng càu nhàu khi chửi thề (GDD §3.12: "hừ / ú ớ", không đọc câu chửi) — chọn ngẫu nhiên một trong hai. */
+const CURSE_SFX = ['sfx-voice-cau-nhau-1', 'sfx-voice-cau-nhau-2'] as const;
+/** Sức tốn của từng việc trên ô (GDD §3.2). */
+const JOB_COSTS: JobStaminaCosts = {
+  till: gameConfig.staminaCostTill,
+  plant: gameConfig.staminaCostPlant,
+  water: gameConfig.staminaCostWater,
+  harvest: gameConfig.staminaCostHarvest,
+};
+/** Pool chữ "+8 Sức" / "−4 Sức" bay lên. */
+const FLOAT_POOL = 6;
+/** Giữ bao nhiêu chữ bay gần nhất trong debugState. */
+const FLOAT_LOG = 8;
 
 /**
  * Viền xám (ngoài tầm): palette chưa có xám → trộn nửa-nửa trắng điệp + mực = xám ấm, vẫn hợp tông.
@@ -281,8 +312,39 @@ export interface GardenDebugState {
   /** Cửa sổ gùi (E) đang mở; ô gùi dưới con trỏ (-1 = không). */
   bagOpen: boolean;
   bagHoverSlot: number;
-  /** Bong bóng chữ trên đầu nhân vật: đang hiện, chữ, số lần hiện (mỗi lần câu mới / hiện lại). */
-  bubble: { visible: boolean; text: string; shows: number };
+  /**
+   * Bong bóng chữ trên đầu nhân vật: đang hiện, chữ, số lần hiện (mỗi lần câu mới / hiện lại), loại (chửi thề /
+   * báo / lầm bầm — null khi tắt), lệch ngang hiện tại (chửi thề lắc).
+   */
+  bubble: { visible: boolean; text: string; shows: number; kind: BubbleKind | null; shakeX: number };
+  /** Thanh Sức (T-004). */
+  stamina: {
+    current: number;
+    max: number;
+    exhausted: boolean;
+    band: StaminaBand;
+    /** Hệ số tốc độ đi đang áp (1 hoặc staminaExhaustedSpeedMultiplier). */
+    speedMultiplier: number;
+    /** Vận tốc hộp chân lúc này (px/giây) — để kiểm đi chậm khi đuối. */
+    speedPx: number;
+    /** Số lần chửi thề lúc chuyển sang đuối; tiếng càu nhàu vừa phát. */
+    curses: number;
+    lastCurseSfx: string | null;
+    /** Số lần hiện "đuối rồi…" (thiếu Sức cho việc). */
+    tooTired: number;
+    /** Số lần ăn; Sức trừ khi xong ô cuốc gần nhất. */
+    eats: number;
+    /** Lầm bầm khi xong ô cuốc: số lần, câu gần nhất, xác suất / nghỉ đang dùng (QA chỉnh được). */
+    barks: number;
+    lastBark: string | null;
+    barkChance: number;
+    barkCooldownSeconds: number;
+    /** Chữ bay đang hiện + vài chữ bay gần nhất (cũ → mới). */
+    floatsActive: string[];
+    /** Chữ bay đang hiện kèm toạ độ Y (px thế giới) — QA kiểm không chồng nhau (BUG-012). */
+    floatsActiveY: { text: string; y: number }[];
+    floatLog: string[];
+  };
   /** Đếm việc nhanh + juice (T-003). `lastOvernight` = kết quả lần "qua đêm" gần nhất (phím G). */
   farmJuice: {
     plants: number;
@@ -475,6 +537,30 @@ export class GardenScene extends Phaser.Scene {
   /** Các lần phát tiếng hái gần nhất (key + detune), cũ → mới. */
   private readonly harvestSfxLog: { key: string; detune: number }[] = [];
   private lastOvernight: OvernightReport | null = null;
+  /** Loại bong bóng đang hiện (null = tắt) — để bong bóng kém quan trọng không đè bong bóng quan trọng hơn. */
+  private bubbleKind: BubbleKind | null = null;
+  private bubbleShakeX = 0;
+
+  // ---- Sức, đuối, ăn, chửi thề (T-004) ----
+  /** Thanh Sức. Công khai để HUD đọc và vẽ; chỉ scene này sửa. */
+  readonly stamina = createStamina(gameConfig.staminaMax);
+  /** Đồng hồ của scene (giây, chỉ chạy khi scene chạy) — cho thời gian nghỉ giữa các lần lầm bầm. */
+  private clock = 0;
+  private readonly barks = createBarkState();
+  /** Xác suất / thời gian nghỉ lầm bầm đang dùng (QA chỉnh qua debugSetBarkTuning để test không phụ thuộc may rủi). */
+  private barkChance: number = gameConfig.tillDoneBarkChance;
+  private barkCooldown: number = gameConfig.tillDoneBarkCooldownSeconds;
+  private curseCount = 0;
+  private lastCurseSfx: string | null = null;
+  private tooTiredCount = 0;
+  private eatCount = 0;
+  /** Pool chữ bay "+8 Sức" / "−4 Sức". */
+  private readonly floats: Phaser.GameObjects.Text[] = [];
+  private readonly floatLife: number[] = [];
+  private readonly floatBaseY: number[] = [];
+  /** Số Sức chữ bay đang hiện (cộng dồn khi gộp — BUG-012). */
+  private readonly floatAmount: number[] = [];
+  private readonly floatLog: string[] = [];
   // Pool bụi đất (nâu) khi cuốc — cùng cách với bụi chân: tạo sẵn, tái dùng.
   private readonly tillDust: Phaser.GameObjects.Arc[] = [];
   private readonly tillDustLife: number[] = [];
@@ -506,6 +592,7 @@ export class GardenScene extends Phaser.Scene {
     this.buildDustPool();
     this.buildTileHighlight();
     this.buildFarmJuice();
+    this.buildFloatPool();
 
     this.physics.world.setBounds(0, 0, mapW, mapH);
     this.physics.add.collider(this.feet, solids);
@@ -854,7 +941,11 @@ export class GardenScene extends Phaser.Scene {
    */
   override update(_time: number, delta: number): void {
     const dt = delta / 1000;
+    this.clock += dt;
+    // Tốc độ chuẩn (đủ Sức) — dùng để đo nhịp bước. Đuối thì đi chậm (moveSpeed) → tỷ lệ tốc độ thật ~0.5 → anim
+    // bước tự chậm theo (walkTimeScale), chân không "trượt".
     const speed = gameConfig.walkSpeed * T;
+    const moveSpeed = speed * walkSpeedMultiplier(this.stamina, gameConfig.staminaExhaustedSpeedMultiplier);
     // T-003: phím bấm-một-lần (1–9, cuộn, E/Esc, G) trước, để mở gùi có tác dụng ngay frame này.
     this.handleUiKeys();
     // Cửa sổ gùi mở = "modal": không đi, việc trên ô đứng yên (không mất nhát), click không xuống ruộng.
@@ -880,14 +971,14 @@ export class GardenScene extends Phaser.Scene {
     // Đang CUỐC thì đứng yên (GDD §3.3a) — phím đi đã xử lý ở trên (bỏ dở). Việc nhanh vẫn đi được (D-022).
     const busy = isBusy(this.action);
     const dir = this.isTilling() ? NO_DIR : wantDir;
-    const v = moveVelocity(dir, speed); // đi chéo đã chuẩn hoá, không nhanh hơn đi thẳng
+    const v = moveVelocity(dir, moveSpeed); // đi chéo đã chuẩn hoá, không nhanh hơn đi thẳng
     // Nắn vào cửa: đi thẳng vào tường mà chỉ lệch mép khe ≤ cornerNudgePx → tự trượt ngang vào khe.
     const b = this.feetBody;
     const blockedAhead = (dir.y < 0 && b.blocked.up) || (dir.y > 0 && b.blocked.down) || (dir.x < 0 && b.blocked.left) || (dir.x > 0 && b.blocked.right);
     if (blockedAhead) {
       const nudge = cornerNudge(this.solidGrid, b, dir, T, gameConfig.cornerNudgePx);
-      if (nudge.x !== 0) v.x = nudge.x * speed;
-      if (nudge.y !== 0) v.y = nudge.y * speed;
+      if (nudge.x !== 0) v.x = nudge.x * moveSpeed;
+      if (nudge.y !== 0) v.y = nudge.y * moveSpeed;
     }
     this.feetBody.setVelocity(v.x, v.y);
 
@@ -936,6 +1027,7 @@ export class GardenScene extends Phaser.Scene {
     tickPitchLadder(this.harvestLadder, workDt);
     this.updateCropVisuals();
     this.updateBubble(dt);
+    this.updateFloats(dt);
     // Bỏ các lần nhấn phím / cuộn chưa ai dùng tới, để không lọt sang frame sau.
     this.controls.endFrame();
   }
@@ -1073,7 +1165,11 @@ export class GardenScene extends Phaser.Scene {
     if (!(pressed || held) || this.dragKind === null || this.dragBlocked || !h.inReach || h.job !== this.dragKind) return;
     if (this.dragKind === 'till') {
       // Click ô đang cuốc / đã trong hàng chờ, hoặc hàng chờ đầy → requestTile tự bỏ qua.
-      if (!wantsToMove) requestTile(this.action, h, this.tillParams, 'till');
+      // T-004 (D-022): đang rảnh mà thiếu Sức (< staminaCostTill) → không cuốc, "đuối rồi…". Đang cuốc thì vẫn cho
+      // xếp hàng — tới lượt ô nào mà thiếu Sức thì dừng, xóa hàng chờ (updateTileAction).
+      if (wantsToMove) return;
+      if (!isBusy(this.action) && !this.hasStaminaFor('till', true)) return;
+      requestTile(this.action, h, this.tillParams, 'till');
       return;
     }
     this.requestFastJob(h, this.dragKind);
@@ -1093,6 +1189,8 @@ export class GardenScene extends Phaser.Scene {
   private requestFastJob(t: TileXY, kind: TileJob): void {
     if (isPending(this.action, t)) return;
     if (!this.canDoJob(t, kind, true)) return;
+    // T-004: việc nhanh cũng cần đủ Sức (gieo/tưới/hái/dọn 1 Sức). Rảnh thì kiểm ngay; đang làm thì kiểm lúc tới lượt.
+    if (!isBusy(this.action) && !this.hasStaminaFor(kind, true)) return;
     requestTile(this.action, t, this.fastParams, kind);
   }
 
@@ -1142,6 +1240,178 @@ export class GardenScene extends Phaser.Scene {
     if (c.consumePressed('devNextDay') && gameConfig.devCheatsEnabled && !this.bagOpen) {
       this.runOvernight();
       this.showBubble(bubbles.devNextDay);
+    }
+    // T-004: chuột phải = ăn món ở ô hotbar đang chọn. Không đụng tới việc đang làm (đang cuốc vẫn cuốc tiếp).
+    // Luôn "tiêu thụ" lần bấm mỗi frame để lần bấm lúc mở gùi không lọt sang sau.
+    const rightClick = c.consumeSecondaryPress();
+    if (rightClick && !this.bagOpen) this.tryEatSelected();
+    if (c.consumePressed('devDrainStamina') && gameConfig.devCheatsEnabled && !this.bagOpen) this.devDrainStamina();
+  }
+
+  // ---------------------------------------------------------------- Sức, ăn, chửi thề (T-004)
+
+  /**
+   * Ăn 1 món ở ô hotbar đang chọn (GDD §3.2): món có `staminaRestore` > 0 (items.json) → bớt 1 món, +Sức (không vượt
+   * staminaMax), chữ "+8 Sức" xanh bay lên, ô hotbar nảy. Hạt / món không ăn được / ô trống → không làm gì.
+   * Sức đã đầy → không ăn (khỏi phí đồ), bong bóng "Còn no lắm!".
+   */
+  private tryEatSelected(): void {
+    const slot = this.inventory.selected;
+    const stack = this.inventory.slots[slot];
+    if (!stack) return;
+    const amount = staminaRestoreOf(stack.id);
+    if (amount <= 0) return;
+    if (isFull(this.stamina)) {
+      this.showBubble(bubbles.notHungry);
+      return;
+    }
+    removeFromSlot(this.inventory, slot, 1);
+    this.inventoryRevision++;
+    const change = restore(this.stamina, amount);
+    this.eatCount++;
+    this.spawnFloat(change.delta);
+    this.events.emit('item-eaten', { slot });
+  }
+
+  /** Phím thử F8 (chỉ bản dev): −devStaminaDrain Sức, hết thì đuối (chửi như thật). */
+  private devDrainStamina(): void {
+    this.spendStamina(gameConfig.devStaminaDrain, true);
+  }
+
+  /** Trừ `cost` Sức (chặn ở 0); `float` = hiện chữ "−N Sức" bay lên. Vừa chuyển sang đuối → chửi thề. */
+  private spendStamina(cost: number, float: boolean): StaminaChange {
+    const change = consume(this.stamina, cost);
+    if (float && change.delta < 0) this.spawnFloat(change.delta);
+    if (change.becameExhausted) this.curseExhausted();
+    return change;
+  }
+
+  /** Đủ Sức cho việc `kind` không; thiếu và `speak` → bong bóng "đuối rồi…". */
+  private hasStaminaFor(kind: TileJob, speak: boolean): boolean {
+    if (canAfford(this.stamina, jobStaminaCost(kind, JOB_COSTS))) return true;
+    if (speak) this.sayTooTired();
+    return false;
+  }
+
+  private sayTooTired(): void {
+    if (this.showBubble(bubbles.tooTired)) this.tooTiredCount++;
+  }
+
+  /**
+   * Vừa chuyển sang đuối: luôn chửi 1 câu (GDD §3.12 trigger "Đuối" — bỏ qua xác suất / thời gian nghỉ), bong bóng
+   * răng cưa đỏ + tiếng càu nhàu. Chỉ gọi lúc CHUYỂN (becameExhausted) nên mỗi lần đuối chửi đúng 1 lần.
+   */
+  private curseExhausted(): void {
+    const lines = bubbles.grumbleExhausted;
+    const line = lines[Math.floor(Math.random() * lines.length)];
+    this.showBubble(line, 'grumble');
+    this.curseCount++;
+    const key = CURSE_SFX[Math.floor(Math.random() * CURSE_SFX.length)];
+    if (this.cache.audio.exists(key)) {
+      this.sound.play(key, { volume: gameConfig.sfxVolume });
+      this.lastCurseSfx = key;
+      this.lastSfx = key;
+    }
+  }
+
+  /**
+   * Xong một ô cuốc: thỉnh thoảng lầm bầm (GDD §3.3a) — xác suất `tillDoneBarkChance`, cách nhau ≥
+   * `tillDoneBarkCooldownSeconds`, bong bóng thường. Đang có bong bóng quan trọng hơn (chửi thề, "đuối rồi…") thì
+   * thôi, không tính lượt.
+   */
+  private tryTillDoneBark(): void {
+    if (!bubbleCanShow(this.activeBubbleKind(), 'bark')) return;
+    if (!shouldBark(this.barks, this.clock, this.barkChance, this.barkCooldown, Math.random())) return;
+    const line = pickBarkLine(bubbles.tillDoneBarks, this.barks.lastLine, Math.random());
+    if (!line) return;
+    if (this.showBubble(line, 'bark')) recordBark(this.barks, this.clock, line);
+  }
+
+  /** Loại bong bóng đang hiện (null = không có). */
+  private activeBubbleKind(): BubbleKind | null {
+    return this.bubbleT > 0 ? this.bubbleKind : null;
+  }
+
+  /** Tạo sẵn pool chữ bay. */
+  private buildFloatPool(): void {
+    for (let i = 0; i < FLOAT_POOL; i++) {
+      this.floats.push(
+        this.add
+          .text(0, 0, '', { fontFamily: uiFontFamily, fontSize: '26px', fontStyle: 'bold', color: cssColor('sprout'), stroke: cssColor('ink'), strokeThickness: 7 })
+          .setOrigin(0.5, 1)
+          .setResolution(2)
+          .setDepth(DEPTH_BUBBLE - 1)
+          .setVisible(false),
+      );
+      this.floatLife.push(0);
+      this.floatBaseY.push(0);
+      this.floatAmount.push(0);
+    }
+  }
+
+  /** Chữ "+8 Sức" (xanh mạ) / "−4 Sức" (đỏ son) bay lên cạnh đầu {ten} rồi mờ dần (GDD §8). */
+  private spawnFloat(amount: number): void {
+    const gain = amount > 0;
+    const dur = gameConfig.staminaFloatSeconds;
+    // BUG-012: ăn / trừ liền tay thì các chữ cùng loại chồng khít nhau → GỘP vào chữ cùng dấu còn mới
+    // (< staminaFloatMergeSeconds) thành một số cộng dồn ("+16 Sức"), chữ đó nảy lại và bay tiếp từ chỗ đang đứng.
+    const merge = this.floats.findIndex(
+      (_, k) => this.floatLife[k] > 0 && dur - this.floatLife[k] < gameConfig.staminaFloatMergeSeconds && Math.sign(this.floatAmount[k]) === Math.sign(amount),
+    );
+    if (merge >= 0) {
+      this.floatAmount[merge] += amount;
+      const f = this.floats[merge].setText(floatLabel(this.floatAmount[merge]));
+      this.floatBaseY[merge] = f.y;
+      this.floatLife[merge] = dur;
+      this.logFloat(f.text);
+      return;
+    }
+    let i = this.floatLife.findIndex((l) => l <= 0);
+    if (i < 0) i = this.floatLife.indexOf(Math.min(...this.floatLife)); // hết pool → dùng lại chữ sắp tắt nhất
+    // Bắt đầu ngang ngực, lệch sang phải, bay lên tới ngang đầu — không chui vào bong bóng (bong bóng nằm trên đầu).
+    const x = this.hero.x + T * 0.75;
+    let y = this.hero.y - this.hero.displayHeight * 0.4;
+    // Chữ khác loại đang bay gần chỗ xuất phát → đặt chữ mới lệch lên trên chữ đó, không đè.
+    const gap = gameConfig.staminaFloatStackOffset * T;
+    for (let k = 0; k < this.floats.length; k++) {
+      if (k === i || this.floatLife[k] <= 0) continue;
+      if (Math.abs(this.floats[k].y - y) < gap) y = this.floats[k].y - gap;
+    }
+    this.floatAmount[i] = amount;
+    const text = floatLabel(amount);
+    this.logFloat(text);
+    this.floats[i]
+      .setText(text)
+      .setColor(cssColor(gain ? 'sprout' : 'vermilion'))
+      .setStroke(cssColor(gain ? 'ink' : 'paper'), gain ? 7 : 5)
+      .setPosition(x, y)
+      .setAlpha(1)
+      .setScale(1.25)
+      .setVisible(true);
+    this.floatLife[i] = dur;
+    this.floatBaseY[i] = y;
+  }
+
+  private logFloat(text: string): void {
+    this.floatLog.push(text);
+    if (this.floatLog.length > FLOAT_LOG) this.floatLog.shift();
+  }
+
+  private updateFloats(dt: number): void {
+    const dur = gameConfig.staminaFloatSeconds;
+    for (let i = 0; i < this.floats.length; i++) {
+      if (this.floatLife[i] <= 0) continue;
+      this.floatLife[i] = Math.max(0, this.floatLife[i] - dt);
+      const f = this.floats[i];
+      if (this.floatLife[i] <= 0) {
+        f.setVisible(false);
+        continue;
+      }
+      const p = 1 - this.floatLife[i] / dur; // 0 → 1
+      const rise = 1 - (1 - p) * (1 - p); // bay nhanh rồi chậm lại
+      f.setY(this.floatBaseY[i] - rise * gameConfig.staminaFloatRise * T)
+        .setScale(1 + 0.25 * Math.max(0, 1 - p * 5)) // nảy to lúc hiện
+        .setAlpha(p < 0.6 ? 1 : 1 - (p - 0.6) / 0.4);
     }
   }
 
@@ -1219,14 +1489,21 @@ export class GardenScene extends Phaser.Scene {
     // Cả hàng chờ chung một loại việc → đọc trước khi bước (bước xong mà hết việc thì kind về null).
     const kind = this.action.kind as TileJob | null;
     // Tới lượt mà ô đã ra ngoài tầm, đã đổi việc (vd đã gieo rồi), hết hạt, gùi đầy… → bỏ, xét ô kế.
-    const stillValid = (t: TileXY) =>
-      kind !== null &&
-      inReach(c.x, c.y, t.x, t.y, T, gameConfig.interactRange) &&
-      jobFor(this.farm, t.x, t.y, growDaysOf) === kind &&
-      this.canDoJob(t, kind, true);
+    // T-004: tới lượt mà thiếu Sức → không làm, "đuối rồi…", XÓA cả hàng chờ (D-022) — vòng lặp trong stepTileAction
+    // thấy hàng chờ rỗng thì dừng.
+    const stillValid = (t: TileXY) => {
+      if (kind === null || !inReach(c.x, c.y, t.x, t.y, T, gameConfig.interactRange)) return false;
+      if (jobFor(this.farm, t.x, t.y, growDaysOf) !== kind || !this.canDoJob(t, kind, true)) return false;
+      if (this.hasStaminaFor(kind, true)) return true;
+      this.action.queue.length = 0;
+      return false;
+    };
     // Ô cuốc dở thì chỉ làm số nhát còn lại (vd 4/6 → 2 nhát). Việc nhanh: 1 "nhát".
     const strikesFor = (t: TileXY) => (kind === 'till' ? strikesRemaining(this.farm, t.x, t.y, n) : 1);
     const ev = stepTileAction(this.action, dt, this.paramsFor(kind), stillValid, this.actionEvents, strikesFor);
+    // Frame dài: nhát cuối ô trước CHẠM, xong ô và bắt đầu ô kế trong CÙNG một bước — lúc hỏi stillValid thì Sức của
+    // ô trước chưa bị trừ (trừ ở impactTill bên dưới). Ghi nhớ để kiểm lại sau khi trừ.
+    const startedInSameStep = ev.started !== null && ev.impact !== null && ev.impact !== ev.started;
 
     if (ev.started) {
       // Quay mặt về ô — dùng chung đường xoay khung chéo như khi đi (turnAnim) cho mượt. Đang đi (việc nhanh)
@@ -1261,6 +1538,11 @@ export class GardenScene extends Phaser.Scene {
       default:
         break;
     }
+    if (startedInSameStep && kind !== null && !canAfford(this.stamina, jobStaminaCost(kind, JOB_COSTS))) {
+      // Ô kế vừa bắt đầu (chưa chạm nhát nào) mà sau khi trừ Sức ô trước thì không còn đủ → dừng như tới lượt thiếu Sức.
+      cancelTileAction(this.action);
+      this.sayTooTired();
+    }
   }
 
   /** Một nhát cuốc chạm ô (D-022): +1 nhát, đủ nhát thì ô thành đất cuốc + juice "chốt". */
@@ -1275,6 +1557,11 @@ export class GardenScene extends Phaser.Scene {
       if (isBusy(this.action) && this.action.strikesLeft > 1) this.action.strikesLeft = 1;
     }
     this.tillJuice(t.x, t.y, plot.tillStrikes, done);
+    if (done) {
+      // D-022: trừ staminaCostTill MỘT LẦN ở nhát cuối (bỏ dở không mất Sức), chữ "−4 Sức" bay lên; thỉnh thoảng lầm bầm.
+      this.spendStamina(gameConfig.staminaCostTill, true);
+      this.tryTillDoneBark();
+    }
   }
 
   /** Gieo hạt (GDD §3.3): hạt ô hotbar đang chọn, không phải hạt thì hạt gieo lần trước; hết hạt → bong bóng. */
@@ -1291,6 +1578,7 @@ export class GardenScene extends Phaser.Scene {
     this.inventory.lastSeedId = seedId;
     this.inventoryRevision++;
     this.farmCounts.plants++;
+    this.spendStamina(gameConfig.staminaCostPlant, false);
     const plantKey = PLANT_SFX[Math.floor(Math.random() * PLANT_SFX.length)];
     if (this.cache.audio.exists(plantKey)) {
       const detune = (Math.random() * 2 - 1) * gameConfig.plantSfxDetuneCents;
@@ -1311,6 +1599,7 @@ export class GardenScene extends Phaser.Scene {
   private doWater(t: TileXY): void {
     if (!waterPlot(this.farm, t.x, t.y)) return;
     this.farmCounts.waters++;
+    this.spendStamina(gameConfig.staminaCostWater, false);
     const cx = t.x * T + T / 2;
     const cy = t.y * T + T / 2;
     const speed = 2.2 * T;
@@ -1354,6 +1643,7 @@ export class GardenScene extends Phaser.Scene {
     const added = addItem(this.inventory, itemId, 1);
     this.inventoryRevision++;
     this.farmCounts.harvests++;
+    this.spendStamina(gameConfig.staminaCostHarvest, false);
     // Tiếng "pop": không random cao độ — hái liên tiếp thì lên dần theo thang ngũ cung, ngừng lâu thì về nấc đầu.
     const detune = nextLadderStep(this.harvestLadder, gameConfig.harvestPitchLadderCents, gameConfig.harvestPitchResetSeconds);
     const harvestKey = HARVEST_SFX[Math.floor(Math.random() * HARVEST_SFX.length)];
@@ -1375,6 +1665,8 @@ export class GardenScene extends Phaser.Scene {
     const plot = plotAt(this.farm, t.x, t.y);
     if (!plot || !clearWithered(this.farm, t.x, t.y)) return;
     this.farmCounts.clears++;
+    // Dọn cây héo tốn như hái (GDD §3.2).
+    this.spendStamina(gameConfig.staminaCostHarvest, false);
     this.showUntilled(plot);
     this.spawnTillDust(t.x * T + T / 2, t.y * T + T / 2, Math.ceil(gameConfig.tillDustCount / 2), gameConfig.tillDustSpeed * T * 0.8);
   }
@@ -1430,7 +1722,8 @@ export class GardenScene extends Phaser.Scene {
     }
     this.bubbleBg = this.add.graphics();
     this.bubbleText = this.add
-      .text(0, 0, '', { fontFamily: uiFontFamily, fontSize: '17px', fontStyle: 'bold', color: cssColor('ink') })
+      // Câu chửi thề dài tới 60 ký tự → tự xuống dòng cho bong bóng khỏi quá rộng.
+      .text(0, 0, '', { fontFamily: uiFontFamily, fontSize: '17px', fontStyle: 'bold', color: cssColor('ink'), align: 'center', wordWrap: { width: 300, useAdvancedWrap: true } })
       .setOrigin(0.5)
       .setResolution(2);
     this.bubble = this.add.container(0, 0, [this.bubbleBg, this.bubbleText]).setDepth(DEPTH_BUBBLE).setVisible(false);
@@ -1531,27 +1824,45 @@ export class GardenScene extends Phaser.Scene {
    * Bong bóng chữ trên đầu {ten} ("hết hạt rồi", "gùi đầy"). Cùng câu đang hiện thì chỉ kéo dài thời gian
    * (giữ chuột rê không làm bong bóng nháy liên tục).
    */
-  showBubble(text: string): void {
-    if (this.bubbleT > 0 && this.bubbleText.text === text) {
-      this.bubbleT = gameConfig.bubbleSeconds;
-      return;
+  showBubble(text: string, kind: BubbleKind = 'warn'): boolean {
+    // T-004: chỉ một bong bóng một lúc; bong bóng kém quan trọng không đè bong bóng quan trọng hơn
+    // (chửi thề > "đuối rồi…"/báo > lầm bầm — systems/bubbles.ts).
+    const active = this.activeBubbleKind();
+    if (!bubbleCanShow(active, kind)) return false;
+    const seconds = kind === 'grumble' ? gameConfig.grumbleBubbleSeconds : gameConfig.bubbleSeconds;
+    if (active === kind && this.bubbleText.text === text) {
+      this.bubbleT = seconds;
+      return false;
     }
-    this.bubbleText.setText(text);
-    const tail = 9;
-    const w = Math.ceil(this.bubbleText.width) + 26;
-    const h = Math.ceil(this.bubbleText.height) + 14;
+    const grumble = kind === 'grumble';
+    this.bubbleText.setText(text).setColor(cssColor(grumble ? 'paper' : 'ink'));
+    const tail = grumble ? 12 : 9;
+    const w = Math.ceil(this.bubbleText.width) + (grumble ? 40 : 26);
+    const h = Math.ceil(this.bubbleText.height) + (grumble ? 26 : 14);
     const g = this.bubbleBg;
     g.clear();
-    // Khung giấy trắng điệp viền mực + đuôi nhọn chỉ xuống đầu nhân vật. Gốc container = mũi đuôi.
-    g.fillStyle(palette.ink, 1).fillRoundedRect(-w / 2 - 3, -h - tail - 3, w + 6, h + 6, 12);
-    g.fillTriangle(-10, -tail - 3, 10, -tail - 3, 0, 3);
-    g.fillStyle(palette.paper, 1).fillRoundedRect(-w / 2, -h - tail, w, h, 10);
-    g.fillTriangle(-7, -tail - 1, 7, -tail - 1, 0, -1);
+    if (grumble) {
+      // Bong bóng chửi thề (GDD §8): khung RĂNG CƯA đỏ son viền mực, chữ trắng điệp. Gốc container = mũi đuôi.
+      const outer = jaggedBubblePoints(w + 8, h + 8, -tail - h / 2, 7);
+      const inner = jaggedBubblePoints(w, h, -tail - h / 2, 5);
+      g.fillStyle(palette.ink, 1).fillPoints(outer, true);
+      g.fillTriangle(-12, -tail - 6, 10, -tail - 6, 2, 4);
+      g.fillStyle(palette.vermilion, 1).fillPoints(inner, true);
+      g.fillTriangle(-8, -tail - 4, 7, -tail - 4, 2, 0);
+    } else {
+      // Khung giấy trắng điệp viền mực + đuôi nhọn chỉ xuống đầu nhân vật. Gốc container = mũi đuôi.
+      g.fillStyle(palette.ink, 1).fillRoundedRect(-w / 2 - 3, -h - tail - 3, w + 6, h + 6, 12);
+      g.fillTriangle(-10, -tail - 3, 10, -tail - 3, 0, 3);
+      g.fillStyle(palette.paper, 1).fillRoundedRect(-w / 2, -h - tail, w, h, 10);
+      g.fillTriangle(-7, -tail - 1, 7, -tail - 1, 0, -1);
+    }
     this.bubbleText.setPosition(0, -tail - h / 2);
-    this.bubbleT = gameConfig.bubbleSeconds;
+    this.bubbleKind = kind;
+    this.bubbleT = seconds;
     this.bubblePopT = BUBBLE_POP_SECONDS;
     this.bubbleShows++;
     this.bubble.setVisible(true);
+    return true;
   }
 
   private updateBubble(dt: number): void {
@@ -1559,13 +1870,18 @@ export class GardenScene extends Phaser.Scene {
     this.bubbleT = Math.max(0, this.bubbleT - dt);
     if (this.bubbleT <= 0) {
       this.bubble.setVisible(false);
+      this.bubbleKind = null;
+      this.bubbleShakeX = 0;
       return;
     }
     this.bubblePopT = Math.max(0, this.bubblePopT - dt);
+    // Chửi thề: bong bóng lắc ngang nhẹ suốt lúc hiện.
+    this.bubbleShakeX =
+      this.bubbleKind === 'grumble' ? Math.sin(this.clock * Math.PI * 2 * gameConfig.grumbleShakeRate) * gameConfig.grumbleShakePx : 0;
     // Hiện ra thì nảy nhẹ (to lên rồi về), sắp tắt thì mờ dần.
     const pop = 1 + 0.25 * (this.bubblePopT / BUBBLE_POP_SECONDS);
     this.bubble
-      .setPosition(this.hero.x, this.hero.y - this.hero.height - 6)
+      .setPosition(this.hero.x + this.bubbleShakeX, this.hero.y - this.hero.height - 6)
       .setScale(pop)
       .setAlpha(Math.min(1, this.bubbleT / 0.25));
   }
@@ -1986,7 +2302,32 @@ export class GardenScene extends Phaser.Scene {
       },
       bagOpen: this.bagOpen,
       bagHoverSlot: this.bagHoverSlot,
-      bubble: { visible: this.bubbleT > 0, text: this.bubbleText?.text ?? '', shows: this.bubbleShows },
+      bubble: {
+        visible: this.bubbleT > 0,
+        text: this.bubbleText?.text ?? '',
+        shows: this.bubbleShows,
+        kind: this.activeBubbleKind(),
+        shakeX: this.bubbleShakeX,
+      },
+      stamina: {
+        current: this.stamina.current,
+        max: this.stamina.max,
+        exhausted: this.stamina.exhausted,
+        band: staminaBand(staminaRatio(this.stamina), gameConfig.staminaBarYellowBelow, gameConfig.staminaBarRedBelow),
+        speedMultiplier: walkSpeedMultiplier(this.stamina, gameConfig.staminaExhaustedSpeedMultiplier),
+        speedPx: body ? Math.hypot(body.velocity.x, body.velocity.y) : 0,
+        curses: this.curseCount,
+        lastCurseSfx: this.lastCurseSfx,
+        tooTired: this.tooTiredCount,
+        eats: this.eatCount,
+        barks: this.barks.count,
+        lastBark: this.barks.lastLine,
+        barkChance: this.barkChance,
+        barkCooldownSeconds: this.barkCooldown,
+        floatsActive: this.floats.filter((_, i) => this.floatLife[i] > 0).map((f) => f.text),
+        floatsActiveY: this.floats.flatMap((f, i) => (this.floatLife[i] > 0 ? [{ text: f.text, y: f.y }] : [])),
+        floatLog: [...this.floatLog],
+      },
       farmJuice: {
         ...this.farmCounts,
         dropsActive: this.dropLife.filter((l) => l > 0).length,
@@ -2066,6 +2407,23 @@ export class GardenScene extends Phaser.Scene {
     this.inventoryRevision++;
   }
 
+  /**
+   * Đặt Sức (QA/test). Đi qua cùng luật như khi chơi: về 0 thì đuối + chửi thề (1 lần), lên > 0 thì hết đuối.
+   * Trả về Sức sau khi chặn trong [0, staminaMax].
+   */
+  debugSetStamina(value: number): number {
+    const change = setStamina(this.stamina, value);
+    if (change.becameExhausted) this.curseExhausted();
+    return this.stamina.current;
+  }
+
+  /** Chỉnh xác suất / thời gian nghỉ lầm bầm (QA/test: chance 1, cooldown 0 để luôn lầm bầm; chance 0 để tắt). */
+  debugSetBarkTuning(t: { chance?: number; cooldownSeconds?: number }): { chance: number; cooldownSeconds: number } {
+    if (t.chance !== undefined) this.barkChance = t.chance;
+    if (t.cooldownSeconds !== undefined) this.barkCooldown = t.cooldownSeconds;
+    return { chance: this.barkChance, cooldownSeconds: this.barkCooldown };
+  }
+
   /** Qua một đêm như phím G (QA/test) — trả về tóm tắt đêm. */
   debugAdvanceDay(): OvernightReport {
     return this.runOvernight();
@@ -2089,6 +2447,31 @@ const NO_DIR = Object.freeze({ x: 0, y: 0 });
 const CROP_STAGE_CODE: Record<CropStage, number> = { seed: 0, growing: 1, ripe: 2, withered: 3 };
 /** Bong bóng nảy lúc hiện bao lâu (giây). */
 const BUBBLE_POP_SECONDS = 0.15;
+
+/**
+ * Khung răng cưa cho bong bóng chửi thề: một "siêu elip" gần chữ nhật (w × h, tâm (0, cy)), mép xen kẽ nhọn ra / lõm
+ * vào `spike` px. Trả về danh sách điểm cho Graphics.fillPoints.
+ */
+function jaggedBubblePoints(w: number, h: number, cy: number, spike: number): { x: number; y: number }[] {
+  const a = w / 2 + spike;
+  const b = h / 2 + spike;
+  const n = Math.max(16, Math.round((w + h) / 18)) * 2; // số đỉnh chẵn: nhọn, lõm, nhọn…
+  const pts: { x: number; y: number }[] = [];
+  for (let i = 0; i < n; i++) {
+    const t = (i / n) * Math.PI * 2;
+    const c = Math.cos(t);
+    const s = Math.sin(t);
+    const k = i % 2 === 0 ? 0 : spike * 1.6; // đỉnh lõm thụt vào
+    // Mũ 1/3 → hình gần chữ nhật bo góc (chữ trong bong bóng không bị cắt góc).
+    pts.push({ x: Math.sign(c) * Math.abs(c) ** (1 / 3) * (a - k), y: cy + Math.sign(s) * Math.abs(s) ** (1 / 3) * (b - k) });
+  }
+  return pts;
+}
+
+/** Chữ bay: "+8 Sức" / "−4 Sức" (dấu trừ thật, không phải gạch nối). */
+function floatLabel(amount: number): string {
+  return amount > 0 ? `+${amount} Sức` : `−${-amount} Sức`;
+}
 
 function rectContains(r: Rect, px: number, py: number): boolean {
   return px >= r.x && px < r.x + r.w && py >= r.y && py < r.y + r.h;
