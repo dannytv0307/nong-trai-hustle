@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   actionPose,
   cancelTileAction,
+  capStrikesIfCurrent,
   createTileActionEvents,
   createTileActionState,
   isBusy,
@@ -290,5 +291,38 @@ describe('tileAction — loại việc (T-003: một lần rê một loại vi�
     const log = run(s, 200, 0.02);
     expect(log.impact.map((t) => t.x)).toEqual([0, 1, 2, 3]);
     expect(log.finished).toBe(4);
+  });
+});
+
+describe('BUG-013: frame dài — nhát cuối ô trước và bắt đầu ô kế trong cùng một bước', () => {
+  it('ép "chỉ còn 1 nhát" chỉ áp cho ô vừa bổ, ô mới giữ đủ số nhát', () => {
+    const tp = { duration: 0.1, impactAt: 0.5, queueMax: 3 };
+    const s = createTileActionState();
+    const ev = createTileActionEvents();
+    const strikes = () => 6;
+    requestTile(s, { x: 13, y: 13 }, tp, 'till');
+    stepTileAction(s, 0, tp, always, ev, strikes); // bắt đầu ô 13,13
+    requestTile(s, { x: 13, y: 14 }, tp, 'till');
+    // Bổ tới nhát cuối của 13,13 (nhát 6), frame dài 0.2 s (> 1 nhát 0.1 s).
+    let sameStep = false;
+    for (let i = 0; i < 20 && !sameStep; i++) {
+      stepTileAction(s, 0.2, tp, always, ev, strikes);
+      if (ev.impact && ev.started && ev.impact.y === 13 && ev.started.y === 14) {
+        sameStep = true;
+        // GardenScene.impactTill: ô 13,13 vừa xong → gọi cap cho ô ĐÃ BỔ.
+        expect(capStrikesIfCurrent(s, ev.impact)).toBe(false);
+      }
+    }
+    expect(sameStep).toBe(true);
+    expect(s.current).toEqual({ x: 13, y: 14 });
+    expect(s.strikesLeft).toBe(6);
+  });
+
+  it('ô đang làm xong sớm (chỉnh nhỏ số nhát) thì còn đúng 1 nhát', () => {
+    const s = createTileActionState();
+    requestTile(s, { x: 1, y: 1 }, P, 'till');
+    stepTileAction(s, 0, P, always, createTileActionEvents(), () => 6);
+    expect(capStrikesIfCurrent(s, { x: 1, y: 1 })).toBe(true);
+    expect(s.strikesLeft).toBe(1);
   });
 });

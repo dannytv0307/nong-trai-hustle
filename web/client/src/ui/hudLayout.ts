@@ -100,3 +100,50 @@ export function staminaFillRect(): Rect {
   const p = staminaPanelRect();
   return { x: p.x + STAMINA_BAR.label, y: p.y + STAMINA_BAR.pad, w: p.w - STAMINA_BAR.label - STAMINA_BAR.pad, h: p.h - STAMINA_BAR.pad * 2 };
 }
+
+/** Đồng hồ góc trên phải (GDD §11, T-005): lề, rộng/cao khung, cỡ icon mặt trời/trăng. */
+export const CLOCK_PANEL = { margin: 32, w: 330, h: 124, icon: 48 } as const;
+
+/** Khung đồng hồ + dòng "Ngày 1 · Mùa nắng" (bám góc trên phải). */
+export function clockPanelRect(): Rect {
+  return { x: W - CLOCK_PANEL.margin - CLOCK_PANEL.w, y: CLOCK_PANEL.margin, w: CLOCK_PANEL.w, h: CLOCK_PANEL.h };
+}
+
+/** Cửa sổ Tạm dừng (Esc, T-005): rộng/cao khung, nút "Tiếp tục". */
+export const PAUSE_WINDOW = { w: 620, h: 330, buttonW: 300, buttonH: 84 } as const;
+
+/** Khung cửa sổ Tạm dừng (giữa màn). */
+export function pausePanelRect(): Rect {
+  return { x: Math.round((W - PAUSE_WINDOW.w) / 2), y: Math.round((H - PAUSE_WINDOW.h) / 2), w: PAUSE_WINDOW.w, h: PAUSE_WINDOW.h };
+}
+
+/** Nút "Tiếp tục" trong cửa sổ Tạm dừng. */
+export function pauseResumeButtonRect(): Rect {
+  const p = pausePanelRect();
+  return {
+    x: Math.round(p.x + (p.w - PAUSE_WINDOW.buttonW) / 2),
+    y: p.y + 170,
+    w: PAUSE_WINDOW.buttonW,
+    h: PAUSE_WINDOW.buttonH,
+  };
+}
+
+/** Điểm (px, py) có nằm trong hình chữ nhật r không. */
+export const rectContains = inside;
+
+/** Gợi ý phím góc dưới phải: lề, khoảng cách dòng chính (dài) nằm TRÊN nút gùi. */
+export const KEY_HINT = { margin: 32, bottom: 28, aboveBagGap: 14 } as const;
+
+/**
+ * Đáy dòng gợi ý chính ("WASD đi · Click làm · …" — dài, không vừa khe giữa nút gùi và mép phải) = ngay trên nút gùi.
+ * Các dòng ngắn (chuột phải ăn, phím thử) nằm dưới, ở khe bên phải nút gùi.
+ */
+export function keyHintMainBottom(): number {
+  return bagButtonRect().y - KEY_HINT.aboveBagGap;
+}
+
+/** Bề rộng tối đa cho các dòng gợi ý ngắn bên phải nút gùi (không đè nút). */
+export function keyHintSideMaxWidth(): number {
+  const b = bagButtonRect();
+  return W - KEY_HINT.margin - (b.x + b.w) - 16;
+}

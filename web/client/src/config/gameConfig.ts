@@ -1,6 +1,7 @@
 // MỌI con số tinh chỉnh gameplay nằm ở đây (GDD §3). Tên trường camelCase khớp bảng GDD,
 // để người thiết kế đọc GDD là tìm được ngay. Giá trị = "giá trị khởi điểm", chỉnh ở playtest.
 // Không rải số ma thuật trong code gameplay — cần số mới thì thêm vào đây (kèm mục GDD).
+import { palette } from './palette';
 
 export const gameConfig = {
   // ---- Màn hình & bản đồ (GDD §4, §12) ----
@@ -35,6 +36,39 @@ export const gameConfig = {
   autoSaveIntervalSeconds: 30,
   /** Chuyển tab / mất focus thì tự tạm dừng. */
   pauseOnFocusLost: true,
+
+  // ---- Đồng hồ HUD, màu trời, Tạm dừng (T-005, GDD §3.1, §11) ----
+  /** Độ tối lớn nhất của lớp màu trời (lúc nửa đêm 24h). 0 = không tối, 1 = đen kịt. */
+  skyTintMaxAlpha: 0.45,
+  /** Giờ bắt đầu từng khung trời (GDD §3.1): sáng 6–11h, trưa/chiều 11–17h, hoàng hôn 17–19h, tối 19–24h. */
+  skyPhaseStarts: { midday: 11, dusk: 17, night: 19 },
+  /**
+   * Các mốc màu trời (giờ tăng dần), giữa hai mốc thì trộn dần → trời đổi màu mượt. `strength` 0–1 nhân với
+   * skyTintMaxAlpha. Màu lấy từ palette Art Bible: sớm hơi xanh sương, trưa trong, chiều ngả vàng, hoàng hôn đỏ son,
+   * tối chàm đậm dần tới nửa đêm.
+   */
+  skyTintKeyframes: [
+    { hour: 6, color: palette.water, strength: 0.4 },
+    { hour: 8, color: palette.gold, strength: 0.12 },
+    { hour: 11, color: palette.gold, strength: 0 },
+    { hour: 15, color: palette.gold, strength: 0 },
+    { hour: 17, color: palette.gold, strength: 0.35 },
+    { hour: 18, color: palette.vermilion, strength: 0.5 },
+    { hour: 19, color: palette.indigo, strength: 0.62 },
+    { hour: 21, color: palette.indigo, strength: 0.82 },
+    { hour: 24, color: palette.indigo, strength: 1 },
+  ] as readonly { hour: number; color: number; strength: number }[],
+  /**
+   * Đồng hồ ngày đi theo giây THẬT giữa hai frame, nhưng một frame tính tối đa bấy nhiêu giây (máy đơ / tab vừa quay lại
+   * không làm nhảy giờ).
+   */
+  dayClockMaxStepSeconds: 0.25,
+  /** Đồng hồ nhấp nháy đỏ từ passOutWarnHour: số lần nháy mỗi giây. */
+  clockBlinkRate: 2,
+  /** Phím thử F9 (chỉ bản dev): cộng bấy nhiêu giờ game. */
+  devAddHours: 1,
+  /** Đang mở cửa sổ Tạm dừng thì nhạc nền nhỏ lại còn tỷ lệ này (0 = tắt hẳn, 1 = không đổi). */
+  pauseMusicVolumeMultiplier: 0.35,
 
   // ---- 3.2 Sức và ăn uống ----
   staminaMax: 100,

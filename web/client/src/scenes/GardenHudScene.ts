@@ -4,7 +4,9 @@
 // khi rê chuột, icon đồ hái bay vào ô + ô nảy. Scene này CHỈ VẼ: gùi, ô chọn, cửa sổ mở/đóng, ô dưới con trỏ
 // đều do GardenScene giữ (qua InputController) — HUD đọc mỗi frame, chỉ vẽ lại khi `inventoryRevision` đổi.
 // T-004: thanh Sức góc trên trái (xanh lá → vàng < 50% → đỏ < 20%), viền màn tối khi đuối, ô hotbar nảy khi ăn.
-// Các task sau (đồng hồ T-005, tiền T-006) sẽ thêm vào đây.
+// T-005: đồng hồ góc trên phải ("Ngày 1 · Mùa nắng", "14:30", icon mặt trời/trăng, nhấp nháy đỏ từ 23h), cửa sổ
+// Tạm dừng (Esc / mất focus — trạng thái do GardenScene giữ), gợi ý phím góc dưới phải theo GDD §11.
+// Các task sau (tiền T-006) sẽ thêm vào đây.
 import Phaser from 'phaser';
 import { gameConfig } from '../config/gameConfig';
 import { cssColor, palette } from '../config/palette';
@@ -12,7 +14,24 @@ import { textStyles, uiFontFamily } from '../config/theme';
 import type { ItemStack } from '../systems/inventory';
 import { itemInfo } from '../systems/items';
 import { staminaBand, staminaLabel, staminaRatio, type StaminaBand } from '../systems/stamina';
-import { BAG_WINDOW, bagButtonRect, bagPanelRect, bagSlotRect, hotbarSlotRect, staminaFillRect, staminaPanelRect, type Rect } from '../ui/hudLayout';
+import {
+  BAG_WINDOW,
+  bagButtonRect,
+  bagPanelRect,
+  bagSlotRect,
+  CLOCK_PANEL,
+  clockPanelRect,
+  hotbarRect,
+  hotbarSlotRect,
+  KEY_HINT,
+  keyHintMainBottom,
+  pausePanelRect,
+  pauseResumeButtonRect,
+  staminaFillRect,
+  staminaPanelRect,
+  type Rect,
+} from '../ui/hudLayout';
+import { blinkOn, dayLabel, formatClock, isPassOutWarning, skyPhase } from '../systems/time';
 import { drawItemIcon } from '../ui/itemArt';
 import type { GardenScene } from './GardenScene';
 
@@ -44,6 +63,22 @@ export interface HudDebugState {
   /** Số lần ô hotbar nảy vì ăn (chuột phải) + ô nảy lần gần nhất. */
   eatBounces: number;
   lastEatSlot: number;
+  /** Đồng hồ (T-005): chữ giờ, dòng ngày, màu chữ giờ đang hiện (CSS), có đang cảnh báo 23h, icon đang vẽ. */
+  clockText: string;
+  dayText: string;
+  clockColor: string;
+  clockWarn: boolean;
+  clockIcon: 'sun' | 'moon';
+  /** Khung đồng hồ (toạ độ màn 1920×1080) — QA kiểm không đè thanh Sức / hotbar. */
+  clockBounds: Rect;
+  /** Cửa sổ Tạm dừng đang hiện; nút "Tiếp tục" đang sáng (con trỏ trên nút). */
+  pauseVisible: boolean;
+  pauseButtonHover: boolean;
+  /** Gợi ý phím: các dòng đang hiện (dòng chính trước) + khung bao từng khối chữ. */
+  hintLines: string[];
+  hintBounds: Rect[];
+  /** Khung các thành phần HUD cố định (QA kiểm không đè nhau). */
+  hudRects: { stamina: Rect; hotbar: Rect; bagButton: Rect; clock: Rect };
 }
 
 /** Màu ruột thanh Sức theo dải (palette Art Bible). */
@@ -78,6 +113,11 @@ export interface ItemGainedEvent {
   screenX: number;
   screenY: number;
 }
+
+/** Gợi ý phím (GDD §11). Dòng chính dài nằm trên nút gùi; dòng ngắn ở khe bên phải nút gùi. */
+const HINT_MAIN = 'WASD đi · Click làm · 1–9 chọn · E Gùi · Esc Menu';
+const HINT_SIDE = ['Chuột phải: ăn món đang chọn'];
+const HINT_DEV = ['Phím thử: G qua đêm', 'F8 −20 Sức · F9 +1 giờ'];
 
 const FLY_POOL = gameConfig.actionQueueMax + 2;
 /** Icon bay vồng lên bao nhiêu px trước khi rơi vào ô. */
@@ -114,6 +154,20 @@ export class GardenHudScene extends Phaser.Scene {
   private vignetteLevel = 0;
   private eatBounces = 0;
   private lastEatSlot = -1;
+  // ---- Đồng hồ + Tạm dừng (T-005) ----
+  private clockText!: Phaser.GameObjects.Text;
+  private dayText!: Phaser.GameObjects.Text;
+  private clockIcon!: Phaser.GameObjects.Graphics;
+  private clockIconDrawn: 'sun' | 'moon' | null = null;
+  private clockColor = cssColor('paper');
+  private clockWarn = false;
+  /** Đồng hồ riêng của HUD cho nhịp nhấp nháy (giây). */
+  private blinkT = 0;
+  private pauseWindow!: Phaser.GameObjects.Container;
+  private pauseButton!: Phaser.GameObjects.Graphics;
+  private pauseButtonHover: boolean | null = null;
+  private hintMain!: Phaser.GameObjects.Text;
+  private hintSide!: Phaser.GameObjects.Text;
 
   constructor() {
     super('GardenHud');
@@ -129,17 +183,22 @@ export class GardenHudScene extends Phaser.Scene {
     this.bagSlots.length = 0;
     this.staminaDrawn = -1;
     this.vignetteLevel = 0;
+    this.clockIconDrawn = null;
+    this.pauseButtonHover = null;
+    this.blinkT = 0;
 
     // Viền màn tối khi đuối: vẽ trước tiên để mọi thứ HUD khác nằm đè lên.
     this.buildVignette();
     this.buildStaminaBar();
+    this.buildClock();
 
-    // Góc dưới phải: gợi ý phím (T-005 thay bằng dòng đầy đủ). Nằm phải nút gùi, không đè hotbar.
-    const hint = ['WASD: đi · Click: làm việc', '1–9 / cuộn: chọn ô · E: gùi', 'Chuột phải: ăn món đang chọn'];
-    if (gameConfig.devCheatsEnabled) hint.push('Phím thử: G qua đêm · F8 −20 Sức');
-    this.add
-      .text(w - 32, h - 28, hint.join('\n'), { ...textStyles.body, fontSize: '20px', strokeThickness: 5, align: 'right' })
-      .setOrigin(1, 1);
+    // Góc dưới phải: gợi ý phím (GDD §11). Dòng chính dài → đặt ngay TRÊN nút gùi (khe bên phải nút gùi chỉ ~340px);
+    // dòng ngắn (chuột phải ăn, phím thử ở bản dev) nằm ở khe đó. Không đè hotbar / nút gùi.
+    // BUG-015: chữ thân ≥ 24px ở 1080p (GDD §11).
+    const hintStyle = { ...textStyles.body, fontSize: '24px', strokeThickness: 5, align: 'right' } as const;
+    this.hintMain = this.add.text(w - KEY_HINT.margin, keyHintMainBottom(), HINT_MAIN, hintStyle).setOrigin(1, 1);
+    const side = gameConfig.devCheatsEnabled ? [...HINT_SIDE, ...HINT_DEV] : HINT_SIDE;
+    this.hintSide = this.add.text(w - KEY_HINT.margin, h - KEY_HINT.bottom, side.join('\n'), hintStyle).setOrigin(1, 1);
 
     // Hotbar 9 ô giữa dưới màn.
     for (let i = 0; i < gameConfig.hotbarSlots; i++) {
@@ -163,6 +222,7 @@ export class GardenHudScene extends Phaser.Scene {
     this.bagButton = this.add.container(br.x + br.w / 2, br.y + br.h / 2, [btnBg, btnText]);
 
     this.buildBagWindow();
+    this.buildPauseWindow();
 
     for (let i = 0; i < FLY_POOL; i++) {
       this.flyers.push({ g: this.add.graphics().setVisible(false).setDepth(100), t: 0, fromX: 0, fromY: 0, target: -1 });
@@ -182,6 +242,124 @@ export class GardenHudScene extends Phaser.Scene {
       this.garden.events.off('item-gained', onGained);
       this.garden.events.off('item-eaten', onEaten);
     });
+  }
+
+  /** Đồng hồ góc trên phải: khung mực + nền nâu đất, dòng "Ngày 1 · Mùa nắng", icon mặt trời/trăng, chữ giờ to. */
+  private buildClock(): void {
+    const p = clockPanelRect();
+    const bg = this.add.graphics();
+    bg.fillStyle(palette.ink, 0.92).fillRoundedRect(p.x - 3, p.y - 3, p.w + 6, p.h + 6, 14);
+    bg.fillStyle(palette.earth, 1).fillRoundedRect(p.x, p.y, p.w, p.h, 12);
+    // Vạch ngăn mảnh giữa dòng ngày và dòng giờ.
+    bg.lineStyle(2, palette.wood, 0.8).lineBetween(p.x + 18, p.y + 50, p.x + p.w - 18, p.y + 50);
+    this.dayText = this.add
+      .text(p.x + p.w / 2, p.y + 26, '', { ...textStyles.nameTag, fontSize: '24px', strokeThickness: 5 })
+      .setOrigin(0.5);
+    const rowY = p.y + 50 + (p.h - 50) / 2;
+    this.clockIcon = this.add.graphics().setPosition(p.x + 26 + CLOCK_PANEL.icon / 2, rowY);
+    this.clockText = this.add
+      .text(p.x + 40 + CLOCK_PANEL.icon, rowY, '', {
+        fontFamily: uiFontFamily,
+        fontSize: '50px',
+        fontStyle: 'bold',
+        color: cssColor('paper'),
+        stroke: cssColor('ink'),
+        strokeThickness: 8,
+      })
+      .setOrigin(0, 0.5);
+  }
+
+  /** Icon mặt trời (vàng hoa hòe, tia nắng) hoặc trăng khuyết (trắng điệp) — chỉ vẽ lại khi đổi. */
+  private drawClockIcon(kind: 'sun' | 'moon'): void {
+    if (kind === this.clockIconDrawn) return;
+    this.clockIconDrawn = kind;
+    const g = this.clockIcon;
+    const r = CLOCK_PANEL.icon / 2;
+    g.clear();
+    if (kind === 'sun') {
+      const core = r * 0.55;
+      g.lineStyle(6, palette.ink, 1);
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        g.lineBetween(Math.cos(a) * (core + 4), Math.sin(a) * (core + 4), Math.cos(a) * r, Math.sin(a) * r);
+      }
+      g.lineStyle(3, palette.gold, 1);
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        g.lineBetween(Math.cos(a) * (core + 5), Math.sin(a) * (core + 5), Math.cos(a) * (r - 1), Math.sin(a) * (r - 1));
+      }
+      g.fillStyle(palette.ink, 1).fillCircle(0, 0, core + 3);
+      g.fillStyle(palette.gold, 1).fillCircle(0, 0, core);
+    } else {
+      // Trăng khuyết: đĩa trắng điệp rồi "khoét" bằng một đĩa màu nền lệch sang phải-trên.
+      const mr = r * 0.78;
+      g.fillStyle(palette.ink, 1).fillCircle(0, 0, mr + 3);
+      g.fillStyle(palette.paper, 1).fillCircle(0, 0, mr);
+      g.fillStyle(palette.earth, 1).fillCircle(mr * 0.55, -mr * 0.35, mr * 0.85);
+    }
+  }
+
+  /** Cập nhật đồng hồ mỗi frame: chữ giờ / dòng ngày chỉ đặt lại khi đổi; từ 23h chữ giờ nháy đỏ son ↔ trắng điệp. */
+  private updateClock(dt: number): void {
+    const hour = this.garden.clockHour;
+    const text = formatClock(hour);
+    if (this.clockText.text !== text) this.clockText.setText(text);
+    const day = dayLabel(this.garden.dayClock.day, gameConfig.daysPerSeason);
+    if (this.dayText.text !== day) this.dayText.setText(day);
+    this.drawClockIcon(skyPhase(hour, gameConfig.skyPhaseStarts) === 'night' ? 'moon' : 'sun');
+    this.clockWarn = isPassOutWarning(hour, gameConfig);
+    this.blinkT = this.clockWarn ? this.blinkT + dt : 0;
+    const color = this.clockWarn && blinkOn(this.blinkT, gameConfig.clockBlinkRate) ? cssColor('vermilion') : cssColor('paper');
+    if (color !== this.clockColor) {
+      this.clockColor = color;
+      this.clockText.setColor(color);
+    }
+  }
+
+  /** Cửa sổ Tạm dừng: nền tối mờ phủ cả màn (kể cả HUD), khung giữa màn, "Đã tạm dừng", nút "Tiếp tục", "Esc: chơi tiếp". */
+  private buildPauseWindow(): void {
+    const { gameWidth: w, gameHeight: h } = gameConfig;
+    const p = pausePanelRect();
+    const b = pauseResumeButtonRect();
+    const g = this.add.graphics();
+    g.fillStyle(palette.ink, 1).fillRoundedRect(p.x - 5, p.y - 5, p.w + 10, p.h + 10, 22);
+    g.fillStyle(palette.earth, 1).fillRoundedRect(p.x, p.y, p.w, p.h, 18);
+    this.pauseButton = this.add.graphics();
+    this.pauseWindow = this.add
+      .container(0, 0, [
+        this.add.rectangle(0, 0, w, h, palette.ink, 0.6).setOrigin(0),
+        g,
+        this.add.text(p.x + p.w / 2, p.y + 78, 'Đã tạm dừng', { ...textStyles.subtitle, fontSize: '52px' }).setOrigin(0.5),
+        this.add
+          .text(p.x + p.w / 2, p.y + 134, 'Đồng hồ ngày đang đứng yên', { ...textStyles.body, fontSize: '24px', strokeThickness: 5 })
+          .setOrigin(0.5),
+        this.pauseButton,
+        this.add.text(b.x + b.w / 2, b.y + b.h / 2, 'Tiếp tục', { ...textStyles.nameTag, fontSize: '34px', color: cssColor('ink'), strokeThickness: 0 }).setOrigin(0.5),
+        this.add
+          .text(p.x + p.w / 2, p.y + p.h - 30, 'Esc: chơi tiếp', { ...textStyles.body, fontSize: '24px', strokeThickness: 5 })
+          .setOrigin(0.5),
+      ])
+      .setDepth(90)
+      .setVisible(false);
+  }
+
+  /** Nút "Tiếp tục": nền gỗ, rê chuột vào thì sáng vàng (GDD §11: mọi nút có trạng thái hover). Chỉ vẽ lại khi đổi. */
+  private updatePauseWindow(): void {
+    const open = this.garden.pauseMenuOpen;
+    this.pauseWindow.setVisible(open);
+    if (!open) {
+      this.pauseButtonHover = null; // mở lại thì vẽ nút từ đầu
+      return;
+    }
+    const hover = this.garden.pauseHoverResume;
+    if (hover === this.pauseButtonHover) return;
+    this.pauseButtonHover = hover;
+    const b = pauseResumeButtonRect();
+    const g = this.pauseButton;
+    g.clear();
+    g.fillStyle(palette.ink, 1).fillRoundedRect(b.x - 4, b.y - 4, b.w + 8, b.h + 8, 16);
+    g.fillStyle(hover ? palette.gold : palette.wood, 1).fillRoundedRect(b.x, b.y, b.w, b.h, 13);
+    g.fillStyle(palette.paper, hover ? 0.35 : 0.2).fillRoundedRect(b.x + 6, b.y + 6, b.w - 12, 10, 5);
   }
 
   /** Thanh Sức góc trên trái: nhãn "Sức", khung mực, ruột tô màu theo tỷ lệ, chữ "64/100" giữa thanh. */
@@ -345,6 +523,8 @@ export class GardenHudScene extends Phaser.Scene {
 
     this.bagWindow.setVisible(this.garden.bagOpen);
     this.updateStaminaBar();
+    this.updateClock(dt);
+    this.updatePauseWindow();
     this.updateVignette(dt);
     this.updateTooltip();
     this.updateFlyers(dt);
@@ -458,6 +638,21 @@ export class GardenHudScene extends Phaser.Scene {
       vignetteAlpha: this.vignette?.visible ? this.vignette.alpha : 0,
       eatBounces: this.eatBounces,
       lastEatSlot: this.lastEatSlot,
+      clockText: this.clockText?.text ?? '',
+      dayText: this.dayText?.text ?? '',
+      clockColor: this.clockColor,
+      clockWarn: this.clockWarn,
+      clockIcon: this.clockIconDrawn ?? 'sun',
+      clockBounds: clockPanelRect(),
+      pauseVisible: this.pauseWindow?.visible ?? false,
+      pauseButtonHover: this.pauseButtonHover === true,
+      hintLines: [this.hintMain, this.hintSide].flatMap((t) => (t ? t.text.split('\n') : [])),
+      hintBounds: [this.hintMain, this.hintSide].flatMap((t) => {
+        if (!t) return [];
+        const r = t.getBounds();
+        return [{ x: r.x, y: r.y, w: r.width, h: r.height }];
+      }),
+      hudRects: { stamina: staminaPanelRect(), hotbar: hotbarRect(), bagButton: bagButtonRect(), clock: clockPanelRect() },
     };
   }
 }

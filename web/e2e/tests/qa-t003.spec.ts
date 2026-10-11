@@ -828,13 +828,16 @@ test('Q10b mở gùi giữa lúc GIEO (trước điểm chạm): việc đứng 
     [13, 13],
     [13, 14],
   ]);
-  // Kéo dài việc nhanh lên 4 s (chỉ để kịp mở gùi trước điểm chạm trên máy test chậm).
+  // BUG-014: kéo dài việc nhanh lên 30 s (điểm chạm ở 15 s) để chắc chắn mở gùi trước điểm chạm trên máy test chậm
+  // (4 s cũ vẫn bị hụt khi nhịp hỏi trạng thái giãn dần).
   const setDur = (d: number) =>
     page.evaluate((dur) => {
-      const sc = (window as unknown as { __game: GameHook }).__game.scene.getScene('Garden') as unknown as { fastParams: { duration: number } };
-      sc.fastParams.duration = dur;
+      const sc = (window as unknown as { __game: GameHook }).__game.scene.getScene('Garden') as unknown as {
+        debugSetTestTuning(t: { fastActionSeconds: number }): unknown;
+      };
+      sc.debugSetTestTuning({ fastActionSeconds: dur });
     }, d);
-  await setDur(4);
+  await setDur(30);
   await moveMouseToTile(page, 13, 13);
   await page.mouse.down();
   await moveMouseToTile(page, 13, 14);

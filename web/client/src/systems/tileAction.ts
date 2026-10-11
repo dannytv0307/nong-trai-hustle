@@ -206,3 +206,14 @@ export function actionPose(progress: number, impactAt: number, squash: number, s
   out.scaleX = 1 + (1 - sy) * 0.8;
   return out;
 }
+
+/**
+ * Ô `t` vừa xong sớm (vd số nhát/ô bị chỉnh nhỏ giữa chừng) → nếu `t` CHÍNH LÀ ô đang làm thì chỉ còn nhát này, không
+ * bổ tiếp vào đất đã cuốc. BUG-013: phải so toạ độ — frame dài có thể vừa chạm nhát cuối ô trước vừa bắt đầu ô kế trong
+ * cùng một bước; lúc đó `s.current` đã là ô MỚI và không được đụng tới số nhát của nó.
+ */
+export function capStrikesIfCurrent(s: TileActionState, t: TileXY): boolean {
+  if (!s.current || s.current.x !== t.x || s.current.y !== t.y || s.strikesLeft <= 1) return false;
+  s.strikesLeft = 1;
+  return true;
+}

@@ -281,6 +281,10 @@ test('A5 mất focus khi đang giữ chuột (mouseup rơi ở cửa sổ khác)
     document.dispatchEvent(new Event('visibilitychange'));
     window.dispatchEvent(new Event('focus'));
   });
+  // T-005: mất focus / ẩn tab → game tự Tạm dừng (pauseOnFocusLost); quay lại vẫn dừng → Esc để chơi tiếp.
+  await expect.poll(() => page.evaluate(() => (window as any).__game.scene.getScene('Garden').debugState.pause.menuOpen)).toBe(true);
+  await page.keyboard.press('Escape');
+  await expect.poll(() => page.evaluate(() => (window as any).__game.scene.getScene('Garden').debugState.pause.menuOpen)).toBe(false);
   // Ô đang cuốc dở lúc mất focus thì cuốc nốt (mất focus không phải bỏ dở) — chờ xong rồi mới đo.
   await expect.poll(async () => (await st(page)).action.busy, { timeout: 15_000 }).toBe(false);
   const before = await st(page);

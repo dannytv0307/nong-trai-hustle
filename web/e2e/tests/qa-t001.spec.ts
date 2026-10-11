@@ -470,7 +470,11 @@ test('Q9 mất focus khi đang giữ phím: nhân vật không đi mãi (phím k
   console.log('sau khi quay lại tab: moving', b.moving, 'dx', b.footX - a.footX);
   await page.keyboard.up('KeyD');
   expect(b.footX - a.footX).toBeLessThan(5);
-  // game vẫn chạy sau khi quay lại
+  // T-005: mất focus / ẩn tab → game tự Tạm dừng (pauseOnFocusLost); quay lại vẫn dừng, Esc để chơi tiếp.
+  expect(await page.evaluate(() => (window as any).__game.scene.getScene('Garden').debugState.pause.menuOpen)).toBe(true);
+  await page.keyboard.press('Escape');
+  await expect.poll(() => page.evaluate(() => (window as any).__game.scene.getScene('Garden').debugState.pause.menuOpen)).toBe(false);
+  // game vẫn chạy sau khi chơi tiếp
   const s1 = await st(page);
   await holdUntil(page, ['KeyS'], () => false, 600);
   const s2 = await st(page);
@@ -484,6 +488,11 @@ test('Q10 tab thật: mở tab khác rồi quay lại, game vẫn chạy', async
   await page.waitForTimeout(2000);
   await page.bringToFront();
   await page.waitForTimeout(500);
+  // T-005: nếu trình duyệt báo tab bị ẩn / mất focus thì game đang Tạm dừng → Esc để chơi tiếp.
+  if (await page.evaluate(() => (window as any).__game.scene.getScene('Garden').debugState.pause.menuOpen)) {
+    await page.keyboard.press('Escape');
+    await expect.poll(() => page.evaluate(() => (window as any).__game.scene.getScene('Garden').debugState.pause.menuOpen)).toBe(false);
+  }
   const s1 = await st(page);
   await holdUntil(page, ['KeyA'], () => false, 700);
   const s2 = await st(page);

@@ -318,7 +318,8 @@ test('Q2 đúng 4 Sức cuốc được → 0, đuối + chửi; 3 Sức thì "�
   // Tạo ô dở ≥4 nhát ở (13,13)
   await call(page, 'debugSetTillTuning', { strikeSeconds: 0.5 });
   await clickTile(page, 13, 13);
-  await expect.poll(async () => plotOf(await st(page), 13, 13).tillStrikes, { timeout: 20_000 }).toBeGreaterThanOrEqual(4);
+  // Hỏi dày (50 ms): nhịp hỏi mặc định giãn dần tới 1 s → bắt được "≥ 4 nhát" quá muộn, ô đã xong 6/6 (máy test chậm).
+  await expect.poll(async () => plotOf(await st(page), 13, 13).tillStrikes, { timeout: 20_000, intervals: [50] }).toBeGreaterThanOrEqual(4);
   await press(page, 'w');
   await teleportAndSettle(page, 12, 14);
   const partial = plotOf(await st(page), 13, 13).tillStrikes;
@@ -345,6 +346,8 @@ test('Q2 đúng 4 Sức cuốc được → 0, đuối + chửi; 3 Sức thì "�
   await bubbleGone(page);
 
   // Đúng 4: cuốc được, về 0 → đuối, chửi đúng 1 lần, bong bóng đỏ
+  // BUG-014: kéo dài bong bóng chửi (2.5 s → 30 s) để lúc click ô 14,14 bên dưới câu chửi chắc chắn còn hiện (máy chậm).
+  await call(page, 'debugSetTestTuning', { grumbleSeconds: 30 });
   await call(page, 'debugSetStamina', 4);
   await call(page, 'debugSetTillTuning', { strikeSeconds: 0.08 });
   await tillOne(page, 13, 14);
@@ -360,7 +363,7 @@ test('Q2 đúng 4 Sức cuốc được → 0, đuối + chửi; 3 Sức thì "�
   s = await st(page);
   expect(s.action.busy).toBe(false);
   expect(plotOf(s, 14, 14).tillStrikes).toBe(0);
-  if (s.bubble.visible) expect(s.bubble.kind).toBe('grumble');
+  expect(s.bubble).toMatchObject({ visible: true, kind: 'grumble' });
   console.log('tooTired trước/sau click khi đang chửi', tiredBefore, s.stamina.tooTired, s.bubble.kind);
   expect(s.stamina.curses).toBe(1);
 });

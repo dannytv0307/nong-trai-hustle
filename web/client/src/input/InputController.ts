@@ -4,6 +4,7 @@
 import Phaser from 'phaser';
 import { gameConfig } from '../config/gameConfig';
 import type { Vec2 } from '../systems/movement';
+import { PressBuffer } from './pressBuffer';
 import { accumulateWheel, createWheelAccumulator, wheelDeltaPx } from './wheel';
 
 export type Action =
@@ -17,7 +18,8 @@ export type Action =
   | 'menu' // Esc
   | 'confirm' // Space
   | 'devNextDay' // G — phím thử "qua đêm" (chỉ bản dev, gameConfig.devCheatsEnabled)
-  | 'devDrainStamina'; // F8 — phím thử −20 Sức (chỉ bản dev)
+  | 'devDrainStamina' // F8 — phím thử −20 Sức (chỉ bản dev)
+  | 'devAddHour'; // F9 — phím thử +1 giờ game (chỉ bản dev, T-005)
 
 const KC = Phaser.Input.Keyboard.KeyCodes;
 
@@ -34,13 +36,13 @@ const DEFAULT_BINDINGS: Record<Action, number[]> = {
   confirm: [KC.SPACE],
   devNextDay: [KC.G],
   devDrainStamina: [KC.F8],
+  devAddHour: [KC.F9],
 };
 
 const HOTBAR_KEYS = [KC.ONE, KC.TWO, KC.THREE, KC.FOUR, KC.FIVE, KC.SIX, KC.SEVEN, KC.EIGHT, KC.NINE];
 
 export class InputController {
   private readonly keys = new Map<Action, Phaser.Input.Keyboard.Key[]>();
-  private readonly hotbarKeys: Phaser.Input.Keyboard.Key[];
   private readonly input: Phaser.Input.InputPlugin;
   /**
    * Con trỏ đang nằm trên khung game (ra ngoài canvas thì ẩn viền ô). Bắt đầu là false: con trỏ
@@ -48,31 +50,12 @@ export class InputController {
    */
   private pointerInside = false;
   /**
-   * Đã bấm chuột trái từ lần hỏi trước chưa. Ghi theo SỰ KIỆN chứ không đọc trạng thái nút mỗi frame:
-   * click nhanh (nhấn + nhả lọt giữa hai frame) vẫn không bị mất.
+   * Mọi lần nhấn (phím, phím đi, chuột trái/phải, cuộn) GHI THEO SỰ KIỆN rồi gameplay "tiêu thụ" mỗi frame — gõ nhanh
+   * (nhấn + nhả lọt giữa hai frame) không bị mất (BUG-007, BUG-010). Xem input/pressBuffer.ts.
    */
-  private primaryPressed = false;
-  /** Đã bấm chuột PHẢI từ lần hỏi trước chưa (ăn món đang chọn — GDD §3.2). Cũng ghi theo sự kiện. */
-  private secondaryPressed = false;
-  /**
-   * Đã nhấn một phím đi (WASD/mũi tên) từ lần hỏi trước chưa — cũng ghi theo SỰ KIỆN keydown: chạm phím cực nhanh
-   * (nhấn + nhả lọt giữa hai frame, dễ gặp khi FPS thấp) vẫn được tính, để "bấm phím đi = bỏ dở cuốc" không trượt (BUG-007).
-   */
-  private movePressed = false;
-  /**
-   * Phím vừa nhấn (theo SỰ KIỆN keydown, bỏ lặp do giữ phím) chờ gameplay hỏi: phím 1–9, E/Tab, Esc, G…
-   * Không dùng JustDown vì nhấn + nhả lọt giữa hai frame thì Phaser xóa cờ "vừa nhấn" (gõ phím nhanh bị mất).
-   */
-  private readonly pressedCodes = new Set<number>();
-  /** Số nấc cuộn chuột dồn lại từ lần hỏi trước (dương = cuộn xuống). */
-  private wheelSteps = 0;
+  private readonly buf = new PressBuffer();
   /** Phần cuộn chưa đủ một nấc (BUG-009: touchpad bắn nhiều sự kiện deltaY nhỏ → cộng dồn đủ wheelStepDelta). */
   private readonly wheelAcc = createWheelAccumulator();
-  /**
-   * Ô hotbar của phím số bấm SAU CÙNG (theo thứ tự sự kiện keydown) từ lần hỏi trước, null = chưa bấm (BUG-010:
-   * bấm "9" rồi "4" trong cùng một frame thì chọn ô 4, không phải ô có số lớn hơn).
-   */
-  private lastHotbarIndex: number | null = null;
 
   constructor(scene: Phaser.Scene) {
     const kb = scene.input.keyboard;
@@ -81,7 +64,8 @@ export class InputController {
       // enableCapture = true: chặn hành vi mặc định của trình duyệt (Space cuộn trang, Tab đổi ô).
       this.keys.set(action, codes.map((c) => kb.addKey(c, true)));
     }
-    this.hotbarKeys = HOTBAR_KEYS.map((c) => kb.addKey(c, true));
+    // Phím 1–9: chỉ đăng ký để chặn hành vi mặc định; lần nhấn đọc từ keydown (pressBuffer).
+    for (const c of HOTBAR_KEYS) kb.addKey(c, true);
     const moveCodes = new Set<number>(
       (['moveUp', 'moveDown', 'moveLeft', 'moveRight'] as const).flatMap((a) => DEFAULT_BINDINGS[a]),
     );
@@ -89,11 +73,7 @@ export class InputController {
     // lần trong một frame nên có thể phát lại một keydown CŨ sau keydown mới → sai thứ tự "phím bấm sau cùng"
     // (BUG-010) và có thể đếm trùng. Sự kiện DOM thì đúng thứ tự, mỗi lần nhấn một lần.
     const onKeyDown = (e: KeyboardEvent) => {
-      if (moveCodes.has(e.keyCode)) this.movePressed = true;
-      if (e.repeat) return;
-      this.pressedCodes.add(e.keyCode);
-      const hotbar = HOTBAR_KEYS.indexOf(e.keyCode);
-      if (hotbar >= 0) this.lastHotbarIndex = hotbar;
+      this.buf.keyDown(e.keyCode, e.repeat, moveCodes.has(e.keyCode), HOTBAR_KEYS.indexOf(e.keyCode));
     };
     window.addEventListener('keydown', onKeyDown);
     const detach = () => window.removeEventListener('keydown', onKeyDown);
@@ -104,14 +84,13 @@ export class InputController {
 
     this.input = scene.input;
     scene.input.on(Phaser.Input.Events.POINTER_DOWN, (p: Phaser.Input.Pointer) => {
-      if (p.leftButtonDown()) this.primaryPressed = true;
-      if (p.rightButtonDown()) this.secondaryPressed = true;
+      this.buf.pointerDown(p.leftButtonDown(), p.rightButtonDown());
     });
     scene.input.on(
       Phaser.Input.Events.POINTER_WHEEL,
       (p: Phaser.Input.Pointer, _over: unknown, _dx: number, dy: number) => {
         const mode = (p.event as WheelEvent | undefined)?.deltaMode ?? 0;
-        this.wheelSteps += accumulateWheel(this.wheelAcc, wheelDeltaPx(dy, mode), gameConfig.wheelStepDelta);
+        this.buf.addWheelSteps(accumulateWheel(this.wheelAcc, wheelDeltaPx(dy, mode), gameConfig.wheelStepDelta));
       },
     );
     scene.input.on(Phaser.Input.Events.GAME_OUT, () => (this.pointerInside = false));
@@ -133,16 +112,12 @@ export class InputController {
 
   /** Chuột trái vừa được bấm kể từ lần hỏi trước (true một lần mỗi lần bấm). Gọi một lần mỗi frame. */
   consumePrimaryPress(): boolean {
-    const pressed = this.primaryPressed;
-    this.primaryPressed = false;
-    return pressed;
+    return this.buf.consumePrimary();
   }
 
   /** Chuột phải vừa được bấm kể từ lần hỏi trước (true một lần mỗi lần bấm). Gọi một lần mỗi frame. */
   consumeSecondaryPress(): boolean {
-    const pressed = this.secondaryPressed;
-    this.secondaryPressed = false;
-    return pressed;
+    return this.buf.consumeSecondary();
   }
 
   /**
@@ -163,9 +138,7 @@ export class InputController {
 
   /** Số nấc cuộn chuột từ lần hỏi trước (dương = cuộn xuống), rồi xóa. Gọi một lần mỗi frame. */
   consumeWheelSteps(): number {
-    const n = this.wheelSteps;
-    this.wheelSteps = 0;
-    return n;
+    return this.buf.consumeWheel();
   }
 
   /**
@@ -173,18 +146,12 @@ export class InputController {
    * Dùng cho phím bấm-một-lần (E mở gùi, Esc, G). Gọi một lần cho mỗi action mỗi frame.
    */
   consumePressed(action: Action): boolean {
-    let pressed = false;
-    for (const code of DEFAULT_BINDINGS[action]) {
-      if (this.pressedCodes.delete(code)) pressed = true;
-    }
-    return pressed;
+    return this.buf.consumeCodes(DEFAULT_BINDINGS[action]);
   }
 
   /** Vừa nhấn phím đi kể từ lần hỏi trước (true một lần mỗi lần nhấn, kể cả chạm rất nhanh). Gọi một lần mỗi frame. */
   consumeMovePress(): boolean {
-    const pressed = this.movePressed;
-    this.movePressed = false;
-    return pressed;
+    return this.buf.consumeMove();
   }
 
   /** Hành động đang được giữ. */
@@ -218,10 +185,7 @@ export class InputController {
    * nhấn nhiều phím trong một frame thì lấy phím BẤM SAU CÙNG (BUG-010). Gọi một lần mỗi frame.
    */
   hotbarPressed(): number | null {
-    const index = this.lastHotbarIndex;
-    this.lastHotbarIndex = null;
-    for (const k of this.hotbarKeys) this.pressedCodes.delete(k.keyCode);
-    return index;
+    return this.buf.consumeHotbar(HOTBAR_KEYS);
   }
 
   /**
@@ -229,8 +193,16 @@ export class InputController {
    * để một lần nhấn cũ không bất ngờ "lọt" sang frame sau hay sang tính năng thêm về sau.
    */
   endFrame(): void {
-    this.pressedCodes.clear();
-    this.wheelSteps = 0;
-    this.lastHotbarIndex = null;
+    this.buf.endFrame();
+  }
+
+  /**
+   * T-005: xóa SẠCH mọi lần nhấn tồn đọng (phím, chạm phím đi, chuột trái/phải, cuộn dở). Gọi mỗi frame lúc đang Tạm
+   * dừng và lúc vừa chơi tiếp — trình duyệt vẫn ghi phím khi game dừng, không xóa thì E/G/F9/chạm D bấm lúc dừng sẽ
+   * "lọt" sang lúc chơi tiếp.
+   */
+  clearPending(): void {
+    this.buf.clearAll();
+    this.wheelAcc.rest = 0;
   }
 }

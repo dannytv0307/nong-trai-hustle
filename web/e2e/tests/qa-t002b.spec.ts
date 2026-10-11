@@ -345,6 +345,10 @@ test('B6 tab ẩn giữa nhát (mô phỏng: trình duyệt ngừng rAF = loop.s
   await page.waitForTimeout(2500);
   const after = await st(page);
   await setHidden(false);
+  // T-005: mất focus / ẩn tab → game tự Tạm dừng (pauseOnFocusLost); quay lại vẫn dừng → Esc để chơi tiếp.
+  await expect.poll(() => page.evaluate(() => (window as any).__game.scene.getScene('Garden').debugState.pause.menuOpen)).toBe(true);
+  await page.keyboard.press('Escape');
+  await expect.poll(() => page.evaluate(() => (window as any).__game.scene.getScene('Garden').debugState.pause.menuOpen)).toBe(false);
   await waitFrames(page, 2);
   const resumed = await st(page);
   console.log('B6', { p0: before.action.progress, p1: after.action.progress, p2: resumed.action.progress, k0: before.juice.tills, k1: after.juice.tills, k2: resumed.juice.tills });
@@ -370,6 +374,12 @@ test('B6b mất focus cửa sổ (blur, tab vẫn hiện) giữa nhát → (quan
   const k1 = (await st(page)).juice.tills;
   await page.evaluate(() => window.dispatchEvent(new Event('focus')));
   console.log('B6b blur', { k0, k1, paused: k1 === k0 });
+  // T-005: blur (Alt+Tab) → tự Tạm dừng → cuốc phải đứng yên.
+  expect(k1).toBe(k0);
+  // T-005: mất focus / ẩn tab → game tự Tạm dừng (pauseOnFocusLost); quay lại vẫn dừng → Esc để chơi tiếp.
+  await expect.poll(() => page.evaluate(() => (window as any).__game.scene.getScene('Garden').debugState.pause.menuOpen)).toBe(true);
+  await page.keyboard.press('Escape');
+  await expect.poll(() => page.evaluate(() => (window as any).__game.scene.getScene('Garden').debugState.pause.menuOpen)).toBe(false);
   await waitIdle(page);
 });
 

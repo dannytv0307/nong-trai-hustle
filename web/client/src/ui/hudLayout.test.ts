@@ -1,6 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import { gameConfig } from '../config/gameConfig';
-import { bagButtonRect, bagPanelRect, bagSlotAt, bagSlotRect, hotbarRect, hotbarSlotAt, hotbarSlotRect, isOverHud } from './hudLayout';
+import {
+  bagButtonRect,
+  bagPanelRect,
+  bagSlotAt,
+  bagSlotRect,
+  CLOCK_PANEL,
+  clockPanelRect,
+  hotbarRect,
+  hotbarSlotAt,
+  hotbarSlotRect,
+  isOverHud,
+  keyHintMainBottom,
+  keyHintSideMaxWidth,
+  pausePanelRect,
+  pauseResumeButtonRect,
+  rectContains,
+  staminaPanelRect,
+} from './hudLayout';
 
 const W = gameConfig.gameWidth;
 const H = gameConfig.gameHeight;
@@ -48,5 +65,36 @@ describe('hudLayout — cửa sổ gùi 2 × 9', () => {
     // Hàng 2 nằm dưới hàng 1, cùng cột.
     expect(bagSlotRect(9, 18).x).toBe(bagSlotRect(0, 18).x);
     expect(bagSlotRect(9, 18).y).toBeGreaterThan(bagSlotRect(0, 18).y + bagSlotRect(0, 18).h);
+  });
+});
+
+describe('hudLayout — đồng hồ + Tạm dừng (T-005)', () => {
+  const overlap = (a: { x: number; y: number; w: number; h: number }, b: typeof a) =>
+    a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+
+  it('đồng hồ bám góc trên phải, trong màn, không đè thanh Sức / hotbar / nút gùi', () => {
+    const c = clockPanelRect();
+    expect(c.x + c.w).toBe(W - CLOCK_PANEL.margin);
+    expect(c.y).toBe(CLOCK_PANEL.margin);
+    expect(c.x).toBeGreaterThan(W / 2);
+    expect(overlap(c, staminaPanelRect())).toBe(false);
+    expect(overlap(c, hotbarRect())).toBe(false);
+    expect(overlap(c, bagButtonRect())).toBe(false);
+  });
+
+  it('nút "Tiếp tục" nằm trong cửa sổ Tạm dừng, cửa sổ giữa màn', () => {
+    const p = pausePanelRect();
+    const b = pauseResumeButtonRect();
+    expect(Math.abs(p.x + p.w / 2 - W / 2)).toBeLessThanOrEqual(1);
+    expect(b.x).toBeGreaterThan(p.x);
+    expect(b.x + b.w).toBeLessThan(p.x + p.w);
+    expect(b.y + b.h).toBeLessThan(p.y + p.h);
+    expect(rectContains(b, b.x + 1, b.y + 1)).toBe(true);
+    expect(rectContains(b, b.x - 1, b.y)).toBe(false);
+  });
+
+  it('gợi ý phím: dòng chính nằm trên nút gùi; khe cho dòng ngắn đủ rộng', () => {
+    expect(keyHintMainBottom()).toBeLessThan(bagButtonRect().y);
+    expect(keyHintSideMaxWidth()).toBeGreaterThan(250);
   });
 });

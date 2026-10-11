@@ -8,6 +8,9 @@
 // (systems/inventory.ts) do scene này giữ; GardenHudScene vẽ hotbar/cửa sổ gùi. Phím thử G (dev) = qua một đêm.
 // T-004: thanh Sức (systems/stamina.ts) — mỗi việc tốn Sức (cuốc trừ 4 một lần ở nhát cuối, D-022), thiếu Sức thì
 // "đuối rồi…", hết Sức thì đuối (đi chậm, viền màn tối, chửi thề 1 lần). Chuột phải = ăn món đang chọn. F8 (dev) −20 Sức.
+// T-005: đồng hồ ngày (systems/time.ts) chạy 6h → 24h trong dayLengthSeconds, dừng khi có "lý do dừng" (systems/pause.ts:
+// gùi, Tạm dừng…). Lớp màu trời phủ thế giới (HUD nằm scene khác nên không bị phủ). Esc / mất focus / ẩn tab → cửa sổ
+// Tạm dừng: cả thế giới đứng yên (việc, bụi, bong bóng, vật lý, anim), phím bấm lúc dừng bị bỏ. F9 (dev) +1 giờ.
 // Nhà, cây, ao, rào là hình khối màu theo palette (chưa có asset thật).
 import Phaser from 'phaser';
 import { heroTextureKey, heroTurnKey, heroWalkKey } from '../config/assets';
@@ -67,7 +70,22 @@ import {
   type StaminaChange,
 } from '../systems/stamina';
 import { bubbleCanShow, createBarkState, pickBarkLine, recordBark, shouldBark, type BubbleKind } from '../systems/bubbles';
-import { bagPanelRect, bagSlotAt, bagSlotRect, bagButtonRect, hotbarSlotAt, hotbarSlotRect, isOverHud, type Rect } from '../ui/hudLayout';
+import { bagPanelRect, bagSlotAt, bagSlotRect, bagButtonRect, hotbarSlotAt, hotbarSlotRect, isOverHud, pauseResumeButtonRect, type Rect } from '../ui/hudLayout';
+import {
+  addGameHours,
+  advanceDayClock,
+  clockHour,
+  createDayClock,
+  dayLabel,
+  formatClock,
+  isDayOver,
+  isPassOutWarning,
+  setGameHour,
+  skyPhase,
+  skyTint,
+  type SkyPhase,
+} from '../systems/time';
+import { PauseReasons, resolveEsc, shouldAutoPause, type PauseCause, type PauseReason } from '../systems/pause';
 import { cropColor, drawCrop, mixColor } from '../ui/itemArt';
 import type { GardenHudScene, HudDebugState } from './GardenHudScene';
 import { facingFromDirection, moveVelocity, type Facing } from '../systems/movement';
@@ -75,6 +93,7 @@ import { pulseAlpha } from '../systems/pulse';
 import {
   actionPose,
   cancelTileAction,
+  capStrikesIfCurrent,
   createTileActionEvents,
   createTileActionState,
   isBusy,
@@ -119,6 +138,11 @@ const DEPTH_TILL_MARKS = DEPTH_GROUND + 2;
 const DEPTH_SOIL_WET = DEPTH_GROUND + 1.5;
 /** Bong bóng chữ trên đầu nhân vật: nổi trên mọi thứ trong cảnh. */
 const DEPTH_BUBBLE = 7000;
+/**
+ * Lớp màu trời (T-005): phủ lên mặt đất, cây, nhân vật, bụi — nhưng DƯỚI thanh tiến độ cuốc, chữ bay và bong bóng
+ * (thông tin cần đọc rõ cả lúc tối). HUD nằm ở scene GardenHud vẽ sau nên không bao giờ bị phủ.
+ */
+const DEPTH_SKY = 5500;
 /** Gốc cây nằm ở bao nhiêu phần chiều cao ô (tính từ mép trên) — cây "đứng" trên luống, depth theo gốc. */
 const CROP_BASE = 0.78;
 /** Pool giọt nước / hạt rơi (tưới, gieo). */
@@ -363,6 +387,28 @@ export interface GardenDebugState {
   };
   /** HUD (hotbar / gùi): icon đang bay, ô đang nảy, tooltip, cửa sổ gùi hiện. */
   hud: HudDebugState | null;
+  /**
+   * Đồng hồ ngày (T-005): ngày, giờ (số thực), chữ "14:30", dòng ngày, khung trời, giây thật đã chạy trong ngày,
+   * đã chạm 24h chưa (tạm thời đứng ở 24:00 tới T-007), cảnh báo 23h, đồng hồ có đang dừng + lý do.
+   */
+  time: {
+    day: number;
+    hour: number;
+    clockText: string;
+    dayText: string;
+    phase: SkyPhase;
+    elapsedSeconds: number;
+    dayOver: boolean;
+    dayEndHits: number;
+    warn: boolean;
+    stopped: boolean;
+    reasons: PauseReason[];
+    devHourPresses: number;
+  };
+  /** Lớp màu trời đang vẽ: màu 0xRRGGBB, độ đục, có hiện không. */
+  sky: { color: number; alpha: number; visible: boolean };
+  /** Cửa sổ Tạm dừng: đang mở, vì sao mở, con trỏ trên nút "Tiếp tục", số lần mở, âm lượng nhạc nền hiện tại. */
+  pause: { menuOpen: boolean; cause: PauseCause | null; hoverResume: boolean; opens: number; musicVolume: number | null };
   /** Cuốc nhiều nhát (D-022): thông số đang dùng + đếm sự kiện + thứ đang hiện trên màn. */
   till: {
     tuning: TillTuning;
@@ -550,6 +596,8 @@ export class GardenScene extends Phaser.Scene {
   /** Xác suất / thời gian nghỉ lầm bầm đang dùng (QA chỉnh qua debugSetBarkTuning để test không phụ thuộc may rủi). */
   private barkChance: number = gameConfig.tillDoneBarkChance;
   private barkCooldown: number = gameConfig.tillDoneBarkCooldownSeconds;
+  /** Bong bóng chửi thề hiện bao lâu — chép từ gameConfig; QA kéo dài qua debugSetTestTuning cho test không đua giờ (BUG-014). */
+  private grumbleSeconds: number = gameConfig.grumbleBubbleSeconds;
   private curseCount = 0;
   private lastCurseSfx: string | null = null;
   private tooTiredCount = 0;
@@ -569,6 +617,23 @@ export class GardenScene extends Phaser.Scene {
   private tillCount = 0;
   private shakeCount = 0;
   private lastSfx: string | null = null;
+
+  // ---- Đồng hồ ngày, màu trời, Tạm dừng (T-005) ----
+  /** Ngày + giây thật đã chạy trong ngày. Công khai để HUD đọc; chỉ scene này sửa. */
+  readonly dayClock = createDayClock();
+  /** Lý do dừng đồng hồ (gùi, Tạm dừng; T-006/T-007 thêm thùng bán, tổng kết…). */
+  readonly pauseReasons = new PauseReasons();
+  /** Cửa sổ Tạm dừng đang mở: cả thế giới đứng yên. HUD đọc để vẽ cửa sổ. */
+  pauseMenuOpen = false;
+  /** Con trỏ đang trên nút "Tiếp tục" (HUD tô sáng nút). */
+  pauseHoverResume = false;
+  private pauseCause: PauseCause | null = null;
+  private pauseOpens = 0;
+  /** Số lần đồng hồ chạm 24h (tạm: chỉ đứng ở 24:00 — ngủ gục làm ở T-007). */
+  private dayEndHits = 0;
+  private devHourPresses = 0;
+  /** Lớp màu trời phủ thế giới (một hình chữ nhật dùng lại, chỉ đổi màu + độ đục). */
+  private skyOverlay!: Phaser.GameObjects.Rectangle;
 
   gardenReady = false;
 
@@ -609,6 +674,10 @@ export class GardenScene extends Phaser.Scene {
     cam.setBackgroundColor(palette.jade);
     cam.centerOn(this.feet.x, this.feet.y);
     cam.startFollow(this.feet, true, gameConfig.cameraLerp, gameConfig.cameraLerp);
+
+    this.buildSkyOverlay();
+    this.updateSky();
+    this.listenFocusLoss();
 
     this.scene.launch('GardenHud');
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scene.stop('GardenHud'));
@@ -941,6 +1010,12 @@ export class GardenScene extends Phaser.Scene {
    */
   override update(_time: number, delta: number): void {
     const dt = delta / 1000;
+    // T-005: đang Tạm dừng → chỉ nghe Esc / nút "Tiếp tục", bỏ mọi phím khác; thế giới không tiến (return sớm, không
+    // gọi bất cứ hàm update nào bên dưới → việc, bụi, bong bóng, chữ bay, đồng hồ đều đứng yên đúng chỗ).
+    if (this.pauseMenuOpen) {
+      this.updatePauseMenu();
+      return;
+    }
     this.clock += dt;
     // Tốc độ chuẩn (đủ Sức) — dùng để đo nhịp bước. Đuối thì đi chậm (moveSpeed) → tỷ lệ tốc độ thật ~0.5 → anim
     // bước tự chậm theo (walkTimeScale), chân không "trượt".
@@ -948,6 +1023,14 @@ export class GardenScene extends Phaser.Scene {
     const moveSpeed = speed * walkSpeedMultiplier(this.stamina, gameConfig.staminaExhaustedSpeedMultiplier);
     // T-003: phím bấm-một-lần (1–9, cuộn, E/Esc, G) trước, để mở gùi có tác dụng ngay frame này.
     this.handleUiKeys();
+    if (this.pauseMenuOpen) return; // Esc vừa mở Tạm dừng ở frame này
+    // Đồng hồ ngày chạy khi không có lý do dừng (gùi, Tạm dừng…) — kể cả lúc đang cuốc (D-022: cuốc là làm việc).
+    // Dùng thời gian THẬT giữa hai frame (rawDelta), không dùng `delta` đã làm mượt: Phaser chặn `delta` ≤ 1/60 s trong
+    // ~120 frame đầu và sau khi quay lại tab → máy chậm thì ngày dài hơn 600 giây thật. Chặn trên dayClockMaxStepSeconds
+    // để một frame bị treo lâu (máy đơ) không làm nhảy giờ.
+    const clockDt = Math.min(this.game.loop.rawDelta / 1000, gameConfig.dayClockMaxStepSeconds);
+    if (advanceDayClock(this.dayClock, clockDt, this.pauseReasons.stopped, gameConfig)) this.onDayEndReached();
+    this.updateSky();
     // Cửa sổ gùi mở = "modal": không đi, việc trên ô đứng yên (không mất nhát), click không xuống ruộng.
     const modal = this.bagOpen;
     const wantDir = modal ? NO_DIR : this.controls.moveDirection();
@@ -1225,11 +1308,21 @@ export class GardenScene extends Phaser.Scene {
 
   // ---------------------------------------------------------------- phím giao diện, hotbar, gùi (T-003)
 
-  /** Phím bấm-một-lần: 1–9 / cuộn chuột chọn ô hotbar, E (Tab) mở/đóng gùi, Esc đóng gùi, G (dev) qua đêm. */
+  /**
+   * Phím bấm-một-lần: 1–9 / cuộn chuột chọn ô hotbar, E (Tab) mở/đóng gùi, Esc (gùi mở → đóng gùi; không thì mở Tạm
+   * dừng), G (dev) qua đêm, F9 (dev) +1 giờ.
+   */
   private handleUiKeys(): void {
     const c = this.controls;
+    if (c.consumePressed('menu')) {
+      if (resolveEsc(this) === 'closeBag') this.setBagOpen(false);
+      else {
+        this.openPauseMenu('esc');
+        return; // Tạm dừng: phím khác cùng frame bị bỏ (openPauseMenu đã xóa)
+      }
+    }
     if (c.consumePressed('openBag')) this.setBagOpen(!this.bagOpen);
-    if (c.consumePressed('menu') && this.bagOpen) this.setBagOpen(false);
+    if (c.consumePressed('devAddHour') && gameConfig.devCheatsEnabled && !this.bagOpen) this.devAddHour();
     const slot = c.hotbarPressed();
     if (slot !== null) this.selectHotbar(slot);
     const wheel = c.consumeWheelSteps();
@@ -1423,6 +1516,7 @@ export class GardenScene extends Phaser.Scene {
   private setBagOpen(open: boolean): void {
     if (this.bagOpen === open) return;
     this.bagOpen = open;
+    this.pauseReasons.set('bag', open); // mở gùi thì đồng hồ dừng (GDD §3.1)
     this.bagHoverSlot = -1;
     this.dragKind = null;
     this.dragBlocked = true;
@@ -1553,8 +1647,9 @@ export class GardenScene extends Phaser.Scene {
     const done = result === 'done';
     if (done) {
       this.showTilled(plot);
-      // Số nhát bị chỉnh nhỏ đi giữa chừng (QA) → ô xong sớm: không bổ tiếp vào đất đã cuốc.
-      if (isBusy(this.action) && this.action.strikesLeft > 1) this.action.strikesLeft = 1;
+      // Số nhát bị chỉnh nhỏ đi giữa chừng (QA) → ô xong sớm: không bổ tiếp vào đất đã cuốc. Chỉ áp cho đúng ô vừa bổ
+      // (BUG-013: frame dài có thể đã bắt đầu ô kế trong cùng bước — ô mới giữ nguyên số nhát).
+      capStrikesIfCurrent(this.action, t);
     }
     this.tillJuice(t.x, t.y, plot.tillStrikes, done);
     if (done) {
@@ -1829,7 +1924,7 @@ export class GardenScene extends Phaser.Scene {
     // (chửi thề > "đuối rồi…"/báo > lầm bầm — systems/bubbles.ts).
     const active = this.activeBubbleKind();
     if (!bubbleCanShow(active, kind)) return false;
-    const seconds = kind === 'grumble' ? gameConfig.grumbleBubbleSeconds : gameConfig.bubbleSeconds;
+    const seconds = kind === 'grumble' ? this.grumbleSeconds : gameConfig.bubbleSeconds;
     if (active === kind && this.bubbleText.text === text) {
       this.bubbleT = seconds;
       return false;
@@ -2200,7 +2295,7 @@ export class GardenScene extends Phaser.Scene {
   private startMusic(): void {
     const play = (): void => {
       if (this.sound.get('music-vuon')?.isPlaying) return;
-      this.sound.play('music-vuon', { loop: true, volume: gameConfig.musicVolume });
+      this.sound.play('music-vuon', { loop: true, volume: this.musicTargetVolume() });
     };
     if (this.sound.locked) this.sound.once(Phaser.Sound.Events.UNLOCKED, play);
     else play();
@@ -2217,6 +2312,125 @@ export class GardenScene extends Phaser.Scene {
         footBottom < tree.y && footBottom > tree.y - TREE_TEX.baseY + 24 && Math.abs(fx - tree.x) < halfW;
       tree.setAlpha(behind ? gameConfig.treeFadeAlpha : 1);
     }
+  }
+
+  // ---------------------------------------------------------------- đồng hồ ngày, màu trời, Tạm dừng (T-005)
+
+  /** Giờ game hiện tại (số thực, 14.5 = 14:30). HUD đọc để vẽ đồng hồ. */
+  get clockHour(): number {
+    return clockHour(this.dayClock, gameConfig);
+  }
+
+  /** Lớp màu trời: hình chữ nhật cỡ màn, không cuộn theo camera (scrollFactor 0) — luôn phủ đúng khung nhìn. */
+  private buildSkyOverlay(): void {
+    // Camera phóng to (cameraZoom) quanh tâm màn → hình cỡ màn đặt ở (0,0) vẫn phủ kín (còn dư ra ngoài).
+    this.skyOverlay = this.add
+      .rectangle(0, 0, gameConfig.gameWidth, gameConfig.gameHeight, palette.indigo, 0)
+      .setOrigin(0)
+      .setScrollFactor(0)
+      .setDepth(DEPTH_SKY)
+      .setVisible(false);
+  }
+
+  /** Tô lớp màu trời theo giờ hiện tại (GDD §3.1) — chỉ đổi màu/độ đục của hình có sẵn, không tạo object mới. */
+  private updateSky(): void {
+    const tint = skyTint(this.clockHour, gameConfig.skyTintKeyframes, gameConfig.skyTintMaxAlpha);
+    this.skyOverlay.setFillStyle(tint.color, tint.alpha).setVisible(tint.alpha > 0.001);
+  }
+
+  /**
+   * Đồng hồ vừa chạm dayEndHour (24h). TẠM (tới T-007): đồng hồ đứng ở 24:00, vẫn nhấp nháy đỏ, vẫn chơi tiếp được,
+   * không ngủ gục. T-007 thay chỗ này bằng "ngủ gục → sáng hôm sau".
+   */
+  private onDayEndReached(): void {
+    this.dayEndHits++;
+  }
+
+  /** Phím thử F9 (chỉ bản dev): +devAddHours giờ game, không vượt 24h. */
+  private devAddHour(): void {
+    this.devHourPresses++;
+    if (addGameHours(this.dayClock, gameConfig.devAddHours, gameConfig)) this.onDayEndReached();
+    this.updateSky();
+  }
+
+  /**
+   * Chuyển tab / thu nhỏ trình duyệt (visibilitychange → hidden) hoặc Alt+Tab sang cửa sổ khác (window blur, tab vẫn hiện)
+   * → tự mở Tạm dừng (pauseOnFocusLost). Quay lại thì game vẫn dừng, giờ không nhảy — người chơi bấm Esc / "Tiếp tục".
+   */
+  private listenFocusLoss(): void {
+    const onVisibility = (): void => {
+      if (document.visibilityState === 'hidden') this.openPauseMenu('hidden');
+    };
+    const onBlur = (): void => this.openPauseMenu('blur');
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('blur', onBlur);
+    const detach = (): void => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('blur', onBlur);
+    };
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, detach);
+    this.events.once(Phaser.Scenes.Events.DESTROY, detach);
+  }
+
+  /**
+   * Mở cửa sổ Tạm dừng: đồng hồ dừng, vật lý + anim nhân vật dừng, mọi update thế giới bị bỏ qua (xem update()).
+   * Có thể gọi từ sự kiện trình duyệt (ngoài vòng lặp game) — chỉ đặt cờ, không phụ thuộc thứ tự frame.
+   */
+  private openPauseMenu(cause: PauseCause): void {
+    if (this.pauseMenuOpen) return;
+    if (!shouldAutoPause(cause, { pauseOnFocusLost: gameConfig.pauseOnFocusLost, ready: this.gardenReady })) return;
+    this.pauseMenuOpen = true;
+    this.pauseCause = cause;
+    this.pauseOpens++;
+    this.pauseReasons.set('pauseMenu', true);
+    this.feetBody.setVelocity(0, 0);
+    this.physics.world.pause();
+    this.hero.anims.pause();
+    this.hideHighlight();
+    this.controls.clearPending();
+    this.applyMusicVolume();
+  }
+
+  /** Đóng Tạm dừng, chơi tiếp đúng chỗ cũ. Bỏ mọi phím/chuột bấm trong lúc dừng; lần giữ chuột đang dở không xuống ruộng. */
+  private closePauseMenu(): void {
+    if (!this.pauseMenuOpen) return;
+    this.pauseMenuOpen = false;
+    this.pauseCause = null;
+    this.pauseHoverResume = false;
+    this.pauseReasons.set('pauseMenu', false);
+    this.physics.world.resume();
+    this.hero.anims.resume();
+    this.dragKind = null;
+    this.dragBlocked = true; // vừa bấm nút "Tiếp tục" mà chuột còn giữ → không tính là click xuống ruộng
+    this.controls.clearPending();
+    this.applyMusicVolume();
+  }
+
+  /** Mỗi frame lúc Tạm dừng: Esc hoặc click nút "Tiếp tục" để chơi tiếp; mọi lần nhấn khác bị bỏ. */
+  private updatePauseMenu(): void {
+    const c = this.controls;
+    const sp = c.pointerScreen(this.pointerScreenPt);
+    this.pauseHoverResume = c.isPointerInside() && rectContains(pauseResumeButtonRect(), sp.x, sp.y);
+    const esc = c.consumePressed('menu') && resolveEsc(this) === 'closePause';
+    const clicked = c.consumePrimaryPress() && this.pauseHoverResume;
+    c.clearPending();
+    if (esc || clicked) this.closePauseMenu();
+  }
+
+  /** Âm lượng nhạc nền nên có lúc này: nhỏ lại khi Tạm dừng (pauseMusicVolumeMultiplier). */
+  private musicTargetVolume(): number {
+    return gameConfig.musicVolume * (this.pauseMenuOpen ? gameConfig.pauseMusicVolumeMultiplier : 1);
+  }
+
+  private applyMusicVolume(): void {
+    const m = this.sound.get('music-vuon') as (Phaser.Sound.BaseSound & { setVolume?: (v: number) => unknown }) | null;
+    m?.setVolume?.(this.musicTargetVolume());
+  }
+
+  /** Âm lượng nhạc nền đang đặt (null = chưa phát). */
+  private musicVolumeNow(): number | null {
+    const m = this.sound.get('music-vuon') as (Phaser.Sound.BaseSound & { volume?: number }) | null;
+    return m && typeof m.volume === 'number' ? m.volume : null;
   }
 
   // ---------------------------------------------------------------- QA
@@ -2338,6 +2552,32 @@ export class GardenScene extends Phaser.Scene {
         lastOvernight: this.lastOvernight ? { ...this.lastOvernight } : null,
       },
       hud: (this.scene.get('GardenHud') as GardenHudScene | null)?.debugState ?? null,
+      time: {
+        day: this.dayClock.day,
+        hour: this.clockHour,
+        clockText: formatClock(this.clockHour),
+        dayText: dayLabel(this.dayClock.day, gameConfig.daysPerSeason),
+        phase: skyPhase(this.clockHour, gameConfig.skyPhaseStarts),
+        elapsedSeconds: this.dayClock.elapsedSeconds,
+        dayOver: isDayOver(this.dayClock, gameConfig),
+        dayEndHits: this.dayEndHits,
+        warn: isPassOutWarning(this.clockHour, gameConfig),
+        stopped: this.pauseReasons.stopped,
+        reasons: this.pauseReasons.list(),
+        devHourPresses: this.devHourPresses,
+      },
+      sky: {
+        color: this.skyOverlay ? this.skyOverlay.fillColor : 0,
+        alpha: this.skyOverlay?.visible ? this.skyOverlay.fillAlpha : 0,
+        visible: this.skyOverlay?.visible ?? false,
+      },
+      pause: {
+        menuOpen: this.pauseMenuOpen,
+        cause: this.pauseCause,
+        hoverResume: this.pauseHoverResume,
+        opens: this.pauseOpens,
+        musicVolume: this.musicVolumeNow(),
+      },
       till: {
         tuning: { ...this.tillTuning },
         finishes: this.finishCount,
@@ -2424,9 +2664,33 @@ export class GardenScene extends Phaser.Scene {
     return { chance: this.barkChance, cooldownSeconds: this.barkCooldown };
   }
 
+  /**
+   * QA/test (BUG-014): kéo dài thời lượng việc NHANH (gieo/tưới/hái/dọn, giây) và bong bóng chửi thề (giây) để test trên
+   * máy chậm không phải "đua" với điểm chạm / lúc bong bóng tắt. Không gọi trong game.
+   */
+  debugSetTestTuning(t: { fastActionSeconds?: number; grumbleSeconds?: number }): { fastActionSeconds: number; grumbleSeconds: number } {
+    if (t.fastActionSeconds !== undefined) this.fastParams.duration = t.fastActionSeconds;
+    if (t.grumbleSeconds !== undefined) this.grumbleSeconds = t.grumbleSeconds;
+    return { fastActionSeconds: this.fastParams.duration, grumbleSeconds: this.grumbleSeconds };
+  }
+
   /** Qua một đêm như phím G (QA/test) — trả về tóm tắt đêm. */
   debugAdvanceDay(): OvernightReport {
     return this.runOvernight();
+  }
+
+  /** Đặt giờ game (QA/test, vd 17.5 để chụp hoàng hôn). Trả về giờ sau khi kẹp trong [6, 24]. */
+  debugSetHour(hour: number): number {
+    setGameHour(this.dayClock, hour, gameConfig);
+    this.updateSky();
+    return this.clockHour;
+  }
+
+  /** Mở / đóng cửa sổ Tạm dừng như bấm Esc (QA/test). */
+  debugSetPauseMenu(open: boolean): boolean {
+    if (open) this.openPauseMenu('esc');
+    else this.closePauseMenu();
+    return this.pauseMenuOpen;
   }
 
   /** Dịch nhân vật tới giữa ô (tx, ty) — chỉ dùng cho QA/test. */
