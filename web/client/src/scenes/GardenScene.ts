@@ -17,6 +17,9 @@
 // T-007: giường (click/F từ 18h → hỏi "Đi ngủ?"), ngủ gục lúc 24h (nằm ra đất, Zzz, màn tối), qua đêm bằng MỘT hàm thuần
 // (systems/overnight.ts — ruộng + bán thùng + ngày mới + Sức; phím G cũng gọi nó), màn tổng kết ngày (HUD vẽ, scene giữ
 // trạng thái + phím), sáng ra đứng cạnh giường. Chuỗi "đêm" là một máy trạng thái nhỏ `nightPhase` (xem updateNight).
+// T-008: tự lưu vào localStorage (systems/save.ts + net/saveLocal.ts, cấu trúc save ở @bph/shared): mỗi autoSaveIntervalSeconds,
+// khi Tạm dừng / mất focus / ẩn tab / đóng tab (pagehide), trước khi ngủ, ngay lúc qua đêm và sau "Ngày mới". Mở game có save
+// thì nạp lại (create). Cửa sổ Tạm dừng có "Đã lưu lúc…" + nút "Chơi lại từ đầu" (hỏi Có/Không → xóa save, dựng lại scene mới).
 // Nhà, cây, ao, rào, thùng bán, sạp hạt là hình khối màu theo palette (chưa có asset thật).
 import Phaser from 'phaser';
 import { heroTextureKey, heroTurnKey, heroWalkKey } from '../config/assets';
@@ -55,7 +58,7 @@ import {
   type OvernightReport,
   type TileJob,
 } from '../systems/farm';
-import { CROPS, growDaysOf } from '../systems/crops';
+import { CROPS, cropById, growDaysOf } from '../systems/crops';
 import { createPitchLadder, nextLadderStep, tickPitchLadder } from '../systems/pitchLadder';
 import { addItem, canAdd, countOf, createInventory, moveFromSlot, removeFromSlot, scrollSelect, selectSlot, setSlot, type Inventory } from '../systems/inventory';
 import { cropItemId, cropOfSeed, createStartInventory, isSeedItem, itemInfo, pickSeedSlot, seedItemId, staminaRestoreOf } from '../systems/items';
@@ -111,7 +114,10 @@ import {
   hotbarSlotAt,
   hotbarSlotRect,
   isOverHud,
+  pauseRestartButtonRect,
   pauseResumeButtonRect,
+  restartConfirmButtonAt,
+  restartConfirmButtonRect,
   sellPanelRect,
   sellSlotAt,
   sellSlotRect,
@@ -168,6 +174,9 @@ import {
   type WalkAnimParams,
 } from '../systems/walkAnim';
 import { physicsDebugFromSearch } from '../utils/sceneSelect';
+import { applySave, captureSave, type SaveRules, type SaveWorld } from '../systems/save';
+import { clearLocalSave, loadLocalSave, SAVE_KEY, writeLocalSave } from '../net/saveLocal';
+import type { GameSave } from '@bph/shared';
 
 const T = gameConfig.tileSize;
 /** Mỗi ảnh tile thử 256×256 = 4×4 ô 64px (Art Bible §9.1). */
@@ -279,6 +288,18 @@ const OBJECT_HIGHLIGHT_KEY = 1_000_000;
 
 /** Hàng ở sạp hạt tạm (data/seedStall.json) — bỏ dòng có cây không còn trong crops.json. */
 const SEED_STALL: readonly SeedStallItem[] = (seedStallJson.items as SeedStallItem[]).filter((it) => seedPriceOf(it.cropId) !== null);
+
+/** Tên khu trong save (prototype chỉ có Vườn). */
+const SAVE_AREA = 'garden';
+/** Luật game khi nạp save (systems/save.ts): số nhát cuốc, độ dài ngày, cỡ khu, món / cây có thật. */
+const SAVE_RULES: SaveRules = {
+  strikesPerPlot: gameConfig.tillStrikesPerPlot,
+  dayLengthSeconds: gameConfig.dayLengthSeconds,
+  areaWidth: L.cols * T,
+  areaHeight: L.rows * T,
+  isKnownItem: (id) => itemInfo(id) !== null,
+  isKnownCrop: (cropId) => cropById(cropId) !== undefined,
+};
 
 /** Cửa sổ "cửa hàng" đang mở: thùng bán hoặc sạp hạt (trùng tên lý do dừng trong systems/pause.ts). Giường không phải cửa hàng. */
 export type ShopWindow = Exclude<InteractTarget, 'bed'>;
@@ -492,7 +513,38 @@ export interface GardenDebugState {
   /** Lớp màu trời đang vẽ: màu 0xRRGGBB, độ đục, có hiện không. */
   sky: { color: number; alpha: number; visible: boolean };
   /** Cửa sổ Tạm dừng: đang mở, vì sao mở, con trỏ trên nút "Tiếp tục", số lần mở, âm lượng nhạc nền hiện tại. */
-  pause: { menuOpen: boolean; cause: PauseCause | null; hoverResume: boolean; opens: number; musicVolume: number | null };
+  pause: {
+    menuOpen: boolean;
+    cause: PauseCause | null;
+    hoverResume: boolean;
+    opens: number;
+    musicVolume: number | null;
+    /** T-008: con trỏ trên nút "Chơi lại từ đầu"; hộp xác nhận đang mở; nút đang sáng trong hộp; dòng "Đã lưu lúc…". */
+    hoverRestart: boolean;
+    restartConfirmOpen: boolean;
+    restartConfirmHover: 'yes' | 'no' | null;
+    savedText: string;
+  };
+  /**
+   * Tự lưu (T-008). `lastSaveAt` = lần lưu gần nhất (giờ game + giờ thật + lý do; null = chưa lưu lần nào trong phiên này),
+   * `saveCount` = số lần đã ghi trong phiên, `loadedFromSave` = lúc mở game có nạp save, `loadStatus` = kết quả đọc save lúc
+   * mở ('none' | 'ok' | 'corrupt'), `suppressed` = đã ngừng ghi (vừa bấm Chơi lại / hook test), `autoSaveIn` = giây còn lại tới
+   * lần tự lưu theo nhịp, `skipped` = số lần xin lưu bị bỏ (đang trong chuỗi đêm…).
+   */
+  save: {
+    saveKey: string;
+    lastSaveAt: { day: number; hour: number; clockText: string; savedAt: string; reason: string } | null;
+    saveCount: number;
+    loadedFromSave: boolean;
+    loadStatus: 'none' | 'ok' | 'corrupt';
+    loadReason: string | null;
+    /** Giây đồng hồ trong ngày ngay lúc nạp save (null = không nạp) — QA đo giờ lệch sau F5. */
+    loadedElapsedSeconds: number | null;
+    suppressed: boolean;
+    autoSaveIntervalSeconds: number;
+    autoSaveIn: number;
+    skipped: number;
+  };
   /** Tiền (T-006): số quan, các lần mua hạt (cũ → mới), tiếng xu vừa phát. */
   money: {
     current: number;
@@ -841,6 +893,30 @@ export class GardenScene extends Phaser.Scene {
   private summaryMoneyPrev = 0;
   private summaryTickAt = Number.NEGATIVE_INFINITY;
 
+  // ---- Tự lưu, nạp save, Chơi lại từ đầu (T-008) ----
+  /** Tên nhân vật ({ten}) — chưa có màn đặt tên nên là tên mặc định, hoặc tên trong save. */
+  playerName: string = gameConfig.defaultPlayerName;
+  /** Kết quả đọc save lúc mở game. */
+  private loadStatus: 'none' | 'ok' | 'corrupt' = 'none';
+  private loadReason: string | null = null;
+  /** Toạ độ px chân lấy từ save (null = đứng ở chỗ xuất phát L.spawn). */
+  private loadedFoot: { x: number; y: number } | null = null;
+  private loadedElapsed: number | null = null;
+  /** Lần lưu gần nhất (HUD hiện "Đã lưu lúc HH:MM · Ngày N"); lúc mới nạp save = thông tin của bản đã nạp. */
+  private lastSave: { day: number; hour: number; savedAt: string; reason: string } | null = null;
+  private saveCount = 0;
+  private saveSkipped = 0;
+  /** Ngừng ghi save (vừa bấm "Chơi lại từ đầu" — scene sắp dựng lại; hoặc hook test). */
+  private saveSuppressed = false;
+  /** Giây thật đã chơi kể từ lần lưu trước (chỉ đếm lúc chơi bình thường) + nhịp tự lưu (QA rút ngắn được). */
+  private autoSaveT = 0;
+  private autoSaveInterval: number = gameConfig.autoSaveIntervalSeconds;
+  /** Con trỏ trên nút "Chơi lại từ đầu" trong cửa sổ Tạm dừng (HUD tô sáng). */
+  pauseHoverRestart = false;
+  /** Hộp xác nhận "Chơi lại từ đầu?" đang mở (nằm trên cửa sổ Tạm dừng) + nút đang sáng. */
+  restartConfirmOpen = false;
+  restartConfirmHover: 'yes' | 'no' | null = null;
+
   gardenReady = false;
 
   constructor() {
@@ -855,6 +931,9 @@ export class GardenScene extends Phaser.Scene {
     const mapW = L.cols * T;
     const mapH = L.rows * T;
     this.controls = new InputController(this);
+    // T-008: nạp save TRƯỚC khi dựng ruộng / nhân vật — buildGround vẽ ô đã cuốc theo trạng thái ruộng, buildPlayer đặt
+    // nhân vật ở toạ độ trong save. Không có save (hoặc save hỏng) → giữ trạng thái Ngày 1 như cũ.
+    this.loadFromStorage();
 
     this.bakeTextures();
     this.buildGround();
@@ -886,7 +965,11 @@ export class GardenScene extends Phaser.Scene {
     this.listenFocusLoss();
 
     this.scene.launch('GardenHud');
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scene.stop('GardenHud'));
+    // Chỉ dừng HUD nếu nó còn chạy: "Chơi lại từ đầu" tự dừng HUD trước rồi mới dừng Vườn — không để lệnh dừng xếp hàng
+    // (queueOp) rơi trúng HUD MỚI vừa dựng lại.
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      if (this.scene.isActive('GardenHud')) this.scene.stop('GardenHud');
+    });
     this.startMusic();
 
     this.gardenReady = true;
@@ -1165,8 +1248,13 @@ export class GardenScene extends Phaser.Scene {
 
   private buildPlayer(): void {
     const [fw, fh] = gameConfig.playerFootHitbox;
-    const x = L.spawn.x * T;
-    const y = L.spawn.y * T;
+    // T-008: đứng ở toạ độ trong save, trừ khi ô đó là vật cản (bản đồ đổi sau khi lưu) → về chỗ xuất phát.
+    const saved = this.loadedFoot;
+    const savedTile = saved ? tileOf(saved.x, saved.y, T) : null;
+    // (Lưới ô chặn tính thẳng ở đây — this.solidGrid chỉ có sau buildCollisionLayer, chạy sau buildPlayer.)
+    const savedOk = saved !== null && savedTile !== null && tileSolidGrid(L)[savedTile.y]?.[savedTile.x] === false;
+    const x = savedOk ? saved.x : L.spawn.x * T;
+    const y = savedOk ? saved.y : L.spawn.y * T;
     this.feet = this.add.zone(x, y, fw, fh);
     this.physics.add.existing(this.feet);
     this.feetBody = this.feet.body as Phaser.Physics.Arcade.Body;
@@ -1289,6 +1377,8 @@ export class GardenScene extends Phaser.Scene {
       this.controls.endFrame(); // vừa chạm 24h → ngủ gục bắt đầu từ frame sau
       return;
     }
+    // T-008: tự lưu theo giờ thật (chỉ lúc chơi bình thường — Tạm dừng / chuỗi đêm đã return ở trên).
+    this.tickAutoSave(clockDt);
     // Cửa sổ gùi / thùng bán / sạp hạt mở = "modal": không đi, việc trên ô đứng yên (không mất nhát), click không xuống ruộng.
     const modal = this.windowOpen;
     if (this.shopNoticeT > 0) this.shopNoticeT = Math.max(0, this.shopNoticeT - dt);
@@ -1626,6 +1716,7 @@ export class GardenScene extends Phaser.Scene {
       // T-007: G gọi CHUNG hàm qua đêm với lúc ngủ (ruộng + bán thùng + ngày mới + Sức đầy) nhưng "im lặng": không màn
       // tối, không tổng kết, không dời nhân vật về giường — để thử nhanh.
       this.applyOvernight('devG');
+      this.saveNow('devNextDay'); // T-008: sang ngày bằng G cũng lưu luôn (như sau "Ngày mới")
       this.showBubble(bubbles.devNextDay);
     }
     // T-004: chuột phải = ăn món ở ô hotbar đang chọn. Không đụng tới việc đang làm (đang cuốc vẫn cuốc tiếp).
@@ -2072,6 +2163,8 @@ export class GardenScene extends Phaser.Scene {
   private startFallingAsleep(): void {
     this.stopWorkForNight();
     this.sleepPromptHover = null;
+    // T-008: lưu bản "trước khi ngủ" (đang ở hộp hỏi nên được phép) — F5 lúc màn đang tối dần thì vào lại đứng cạnh giường.
+    this.saveNow('beforeSleep');
     this.enterNight('fallingAsleep');
   }
 
@@ -2176,6 +2269,7 @@ export class GardenScene extends Phaser.Scene {
     this.nightFade = 0;
     this.wakeCount++;
     this.enterNight('none');
+    this.saveNow('newDay'); // T-008: sau màn tổng kết ("Ngày mới") — chơi tiếp từ 6:00
     if (this.lastSummary?.passedOut) this.curse(bubbles.grumblePassOut);
   }
 
@@ -2200,7 +2294,7 @@ export class GardenScene extends Phaser.Scene {
         break;
       case 'fallingAsleep':
         this.nightFade = Math.min(1, this.nightT / gameConfig.sleepFadeSeconds);
-        if (this.nightT >= gameConfig.sleepFadeSeconds) this.openSummary(this.applyOvernight('sleep'));
+        if (this.nightT >= gameConfig.sleepFadeSeconds) this.openSummary(this.overnightAndSave('sleep'));
         break;
       case 'passingOut': {
         // Nghiêng dần ra đất (xoay quanh bàn chân — gốc sprite ở chân), về phía đang quay mặt; màn tối nhanh dần về cuối.
@@ -2209,7 +2303,7 @@ export class GardenScene extends Phaser.Scene {
         this.hero.setAngle(side * gameConfig.passOutTipDegrees * (1 - (1 - tip) * (1 - tip)));
         const p = Math.min(1, this.nightT / gameConfig.passOutSeconds);
         this.nightFade = p * p;
-        if (this.nightT >= gameConfig.passOutSeconds) this.openSummary(this.applyOvernight('passout'));
+        if (this.nightT >= gameConfig.passOutSeconds) this.openSummary(this.overnightAndSave('passout'));
         break;
       }
       case 'summary':
@@ -3077,15 +3171,28 @@ export class GardenScene extends Phaser.Scene {
    * → tự mở Tạm dừng (pauseOnFocusLost). Quay lại thì game vẫn dừng, giờ không nhảy — người chơi bấm Esc / "Tiếp tục".
    */
   private listenFocusLoss(): void {
+    // T-008: ẩn tab / mất focus / đóng tab hoặc F5 (pagehide, beforeunload) → lưu ngay (kể cả khi Tạm dừng đã mở sẵn).
     const onVisibility = (): void => {
-      if (document.visibilityState === 'hidden') this.openPauseMenu('hidden');
+      if (document.visibilityState !== 'hidden') return;
+      this.saveNow('hidden');
+      this.openPauseMenu('hidden');
     };
-    const onBlur = (): void => this.openPauseMenu('blur');
+    const onBlur = (): void => {
+      this.saveNow('blur');
+      this.openPauseMenu('blur');
+    };
+    const onPageHide = (): void => {
+      this.saveNow('pagehide');
+    };
     document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('blur', onBlur);
+    window.addEventListener('pagehide', onPageHide);
+    window.addEventListener('beforeunload', onPageHide);
     const detach = (): void => {
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('blur', onBlur);
+      window.removeEventListener('pagehide', onPageHide);
+      window.removeEventListener('beforeunload', onPageHide);
     };
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, detach);
     this.events.once(Phaser.Scenes.Events.DESTROY, detach);
@@ -3101,6 +3208,10 @@ export class GardenScene extends Phaser.Scene {
     this.pauseMenuOpen = true;
     this.pauseCause = cause;
     this.pauseOpens++;
+    // T-008: mở Tạm dừng bằng Esc → lưu (mất focus / ẩn tab đã lưu ở listener). Lưu TRƯỚC khi đặt lý do dừng — không ảnh hưởng gì,
+    // chỉ để dòng "Đã lưu lúc…" hiện đúng giờ vừa dừng.
+    if (cause === 'esc') this.saveNow('pause');
+    this.closeRestartConfirm();
     this.pauseReasons.set('pauseMenu', true);
     this.feetBody.setVelocity(0, 0);
     this.physics.world.pause();
@@ -3116,6 +3227,8 @@ export class GardenScene extends Phaser.Scene {
     this.pauseMenuOpen = false;
     this.pauseCause = null;
     this.pauseHoverResume = false;
+    this.pauseHoverRestart = false;
+    this.closeRestartConfirm();
     this.pauseReasons.set('pauseMenu', false);
     this.physics.world.resume();
     this.hero.anims.resume();
@@ -3125,15 +3238,30 @@ export class GardenScene extends Phaser.Scene {
     this.applyMusicVolume();
   }
 
-  /** Mỗi frame lúc Tạm dừng: Esc hoặc click nút "Tiếp tục" để chơi tiếp; mọi lần nhấn khác bị bỏ. */
+  /**
+   * Mỗi frame lúc Tạm dừng: Esc hoặc click nút "Tiếp tục" để chơi tiếp; click "Chơi lại từ đầu" → hộp xác nhận (T-008).
+   * Hộp xác nhận mở: Esc / "Không" đóng hộp (Tạm dừng vẫn mở), "Có" xóa save và bắt đầu lại Ngày 1. Mọi lần nhấn khác bị bỏ
+   * (Enter KHÔNG chọn "Có" — tránh lỡ tay xóa save).
+   */
   private updatePauseMenu(): void {
     const c = this.controls;
     const sp = c.pointerScreen(this.pointerScreenPt);
-    this.pauseHoverResume = c.isPointerInside() && rectContains(pauseResumeButtonRect(), sp.x, sp.y);
-    const esc = c.consumePressed('menu') && resolveEsc(this) === 'closePause';
-    const clicked = c.consumePrimaryPress() && this.pauseHoverResume;
+    const inside = c.isPointerInside();
+    const escPressed = c.consumePressed('menu');
+    const clicked = c.consumePrimaryPress();
     c.clearPending();
-    if (esc || clicked) this.closePauseMenu();
+    if (this.restartConfirmOpen) {
+      this.restartConfirmHover = inside ? restartConfirmButtonAt(sp.x, sp.y) : null;
+      const esc = escPressed && resolveEsc(this) === 'closeRestartConfirm';
+      if (clicked && this.restartConfirmHover === 'yes') this.restartFresh();
+      else if (esc || (clicked && this.restartConfirmHover === 'no')) this.closeRestartConfirm();
+      return;
+    }
+    this.pauseHoverResume = inside && rectContains(pauseResumeButtonRect(), sp.x, sp.y);
+    this.pauseHoverRestart = inside && rectContains(pauseRestartButtonRect(), sp.x, sp.y);
+    const esc = escPressed && resolveEsc(this) === 'closePause';
+    if (clicked && this.pauseHoverRestart) this.openRestartConfirm();
+    else if (esc || (clicked && this.pauseHoverResume)) this.closePauseMenu();
   }
 
   /** Âm lượng nhạc nền nên có lúc này: nhỏ lại khi Tạm dừng (pauseMusicVolumeMultiplier). */
@@ -3150,6 +3278,137 @@ export class GardenScene extends Phaser.Scene {
   private musicVolumeNow(): number | null {
     const m = this.sound.get('music-vuon') as (Phaser.Sound.BaseSound & { volume?: number }) | null;
     return m && typeof m.volume === 'number' ? m.volume : null;
+  }
+
+  // ---------------------------------------------------------------- tự lưu, nạp save, chơi lại (T-008)
+
+  /** Gom các object trạng thái của scene thành "thế giới" cho systems/save.ts (cùng object — nạp save là sửa thẳng chúng). */
+  private saveWorld(): SaveWorld {
+    const c = this.feetBody?.center;
+    return {
+      playerName: this.playerName,
+      area: SAVE_AREA,
+      x: c?.x ?? 0,
+      y: c?.y ?? 0,
+      facing: this.facing,
+      clock: this.dayClock,
+      stamina: this.stamina,
+      wallet: this.wallet,
+      farm: this.farm,
+      inventory: this.inventory,
+      sellBox: this.sellBox,
+    };
+  }
+
+  /** Mở game: đọc save trong localStorage; hợp lệ thì nạp vào ruộng / gùi / thùng / ví / Sức / đồng hồ + nhớ vị trí, hướng. */
+  private loadFromStorage(): void {
+    const r = loadLocalSave();
+    this.loadStatus = r.status;
+    this.loadReason = r.status === 'corrupt' ? r.reason : null;
+    if (r.status !== 'ok') return;
+    const applied = applySave(r.save, this.saveWorld(), SAVE_RULES);
+    this.playerName = applied.playerName;
+    this.loadedFoot = applied.position;
+    this.facing = applied.facing;
+    this.loadedElapsed = this.dayClock.elapsedSeconds;
+    this.lastSave = { day: this.dayClock.day, hour: this.clockHour, savedAt: r.save.savedAt, reason: 'loaded' };
+    this.inventoryRevision++;
+    this.moneyRevision++;
+  }
+
+  /**
+   * Lúc này ghi save được không: chưa bị ngừng (Chơi lại), scene đã dựng xong, và KHÔNG ở giữa chuỗi đêm — từ lúc thiếp đi /
+   * ngủ gục tới lúc thức dậy hẳn chỉ có MỘT lần ghi: ngay khi qua đêm xong (`afterOvernight`). Hộp hỏi "Đi ngủ?" thì vẫn lưu
+   * được (thế giới chưa đổi gì; hộp không nằm trong save).
+   */
+  private canSave(afterOvernight: boolean): boolean {
+    if (this.saveSuppressed || !this.gardenReady || !this.feetBody) return false;
+    return afterOvernight || this.nightPhase === 'none' || this.nightPhase === 'sleepPrompt';
+  }
+
+  /**
+   * Ghi save ngay (lý do để debug). `afterOvernight`: bản chụp ngay sau khi qua đêm — nhân vật ghi ở chỗ sẽ thức dậy (ô cạnh
+   * giường, mặt hướng xuống) chứ không ở chỗ đang nằm. Trả về save đã ghi, null nếu không ghi (không được phép / lỗi kho).
+   */
+  saveNow(reason: string, afterOvernight = false): GameSave | null {
+    this.autoSaveT = 0;
+    if (!this.canSave(afterOvernight)) {
+      this.saveSkipped++;
+      return null;
+    }
+    const w = this.saveWorld();
+    if (afterOvernight) {
+      w.x = L.wakeSpot.x * T + T / 2;
+      w.y = L.wakeSpot.y * T + T / 2;
+      w.facing = 'down';
+    }
+    const save = captureSave(w, new Date());
+    if (!writeLocalSave(save)) return null;
+    this.saveCount++;
+    this.lastSave = { day: save.clock.day, hour: clockHour(save.clock, gameConfig), savedAt: save.savedAt, reason };
+    return save;
+  }
+
+  /**
+   * Qua đêm (ngủ / ngủ gục) rồi GHI NGAY: F5 lúc đang xem tổng kết / đang sáng dần → vào lại là sáng hôm sau ở cạnh giường,
+   * tiền thùng đã cộng đúng một lần (thùng trong save đã trống). F5 trước lúc này → vào lại bản lưu trước khi ngủ (thùng còn
+   * nguyên, chưa cộng tiền). Không có bản nào "nửa nọ nửa kia" → không mất, không nhân đôi tiền.
+   */
+  private overnightAndSave(cause: OvernightCause): OvernightSummary {
+    const summary = this.applyOvernight(cause);
+    this.saveNow(`overnight-${cause}`, true);
+    return summary;
+  }
+
+  /** Tự lưu theo nhịp: cộng giây thật lúc chơi bình thường, đủ autoSaveIntervalSeconds thì ghi. */
+  private tickAutoSave(realDt: number): void {
+    this.autoSaveT += realDt;
+    if (this.autoSaveT >= this.autoSaveInterval) this.saveNow('auto');
+  }
+
+  /** Dòng trong cửa sổ Tạm dừng: giờ GAME + ngày của lần lưu gần nhất (giống đồng hồ HUD — người chơi so được). */
+  get savedText(): string {
+    const s = this.lastSave;
+    if (!s) return 'Chưa lưu lần nào';
+    return `Đã lưu lúc ${formatClock(s.hour)} · Ngày ${s.day}`;
+  }
+
+  private openRestartConfirm(): void {
+    this.restartConfirmOpen = true;
+    this.restartConfirmHover = null;
+    this.pauseHoverResume = false;
+    this.pauseHoverRestart = false;
+  }
+
+  private closeRestartConfirm(): void {
+    this.restartConfirmOpen = false;
+    this.restartConfirmHover = null;
+  }
+
+  /**
+   * "Chơi lại từ đầu" → Có: xóa save, ngừng ghi (pagehide / tự lưu của scene cũ không ghi lại), rồi dựng lại Vườn + HUD bằng
+   * INSTANCE MỚI (scene.restart dùng lại object cũ nên các trường như ruộng / gùi / ví không về Ngày 1). Làm ngoài vòng lặp
+   * Phaser (setTimeout) để SceneManager thực hiện ngay, đúng thứ tự: dừng HUD → dừng Vườn (gỡ mọi listener qua SHUTDOWN) →
+   * bỏ cả hai → thêm lại (Vườn trước để HUD vẽ đè lên) → chạy Vườn (Vườn tự bật HUD như lần đầu).
+   */
+  private restartFresh(): void {
+    clearLocalSave();
+    this.saveSuppressed = true;
+    this.closeRestartConfirm();
+    this.registry.set('gardenReady', false);
+    const game = this.game;
+    const GardenCls = this.constructor as new () => Phaser.Scene;
+    const HudCls = game.scene.getScene('GardenHud').constructor as new () => Phaser.Scene;
+    window.setTimeout(() => {
+      const mgr = game.scene;
+      mgr.stop('GardenHud');
+      mgr.stop('Garden');
+      mgr.remove('GardenHud');
+      mgr.remove('Garden');
+      mgr.add('Garden', GardenCls, false);
+      mgr.add('GardenHud', HudCls, false);
+      mgr.start('Garden');
+    }, 0);
   }
 
   // ---------------------------------------------------------------- QA
@@ -3297,6 +3556,23 @@ export class GardenScene extends Phaser.Scene {
         hoverResume: this.pauseHoverResume,
         opens: this.pauseOpens,
         musicVolume: this.musicVolumeNow(),
+        hoverRestart: this.pauseHoverRestart,
+        restartConfirmOpen: this.restartConfirmOpen,
+        restartConfirmHover: this.restartConfirmHover,
+        savedText: this.savedText,
+      },
+      save: {
+        saveKey: SAVE_KEY,
+        lastSaveAt: this.lastSave ? { ...this.lastSave, clockText: formatClock(this.lastSave.hour) } : null,
+        saveCount: this.saveCount,
+        loadedFromSave: this.loadStatus === 'ok',
+        loadStatus: this.loadStatus,
+        loadReason: this.loadReason,
+        loadedElapsedSeconds: this.loadedElapsed,
+        suppressed: this.saveSuppressed,
+        autoSaveIntervalSeconds: this.autoSaveInterval,
+        autoSaveIn: Math.max(0, this.autoSaveInterval - this.autoSaveT),
+        skipped: this.saveSkipped,
       },
       money: {
         current: this.wallet.money,
@@ -3529,6 +3805,66 @@ export class GardenScene extends Phaser.Scene {
     if (open) this.openPauseMenu('esc');
     else this.closePauseMenu();
     return this.pauseMenuOpen;
+  }
+
+  /** T-008 (QA/test): lưu ngay như tự lưu (vẫn theo luật "không lưu giữa chuỗi đêm"). Trả về save đã ghi hoặc null. */
+  debugSaveNow(reason = 'debug'): GameSave | null {
+    return this.saveNow(reason);
+  }
+
+  /**
+   * T-008 (QA/test): ghi một save HỎNG vào localStorage và NGỪNG ghi (để tải lại trang đọc đúng bản hỏng đó, không bị
+   * pagehide ghi đè). `kind`: 'json' = JSON cụt, 'version' = version 99, 'missing' = thiếu trường farm.
+   */
+  debugCorruptSave(kind: 'json' | 'version' | 'missing' = 'json'): string {
+    this.saveSuppressed = true;
+    const good = captureSave(this.saveWorld(), new Date()) as unknown as Record<string, unknown>;
+    let text: string;
+    if (kind === 'json') text = JSON.stringify(good).slice(0, 80);
+    else if (kind === 'version') text = JSON.stringify({ ...good, version: 99 });
+    else {
+      delete good.farm;
+      text = JSON.stringify(good);
+    }
+    window.localStorage.setItem(SAVE_KEY, text);
+    return text;
+  }
+
+  /**
+   * T-008 (QA/test): xóa save. Mặc định NGỪNG ghi luôn tới khi tải lại trang (để `page.reload()` vào Ngày 1 sạch — không bị
+   * pagehide ghi lại); `keepSaving` = true thì vẫn tự lưu tiếp như thường.
+   */
+  debugClearSave(keepSaving = false): void {
+    clearLocalSave();
+    if (!keepSaving) this.saveSuppressed = true;
+  }
+
+  /** T-008 (QA/test): đổi nhịp tự lưu (giây thật) để test không phải chờ 30 giây; đặt lại bộ đếm. */
+  debugSetAutoSaveInterval(seconds: number): number {
+    this.autoSaveInterval = Math.max(0.1, seconds);
+    this.autoSaveT = 0;
+    return this.autoSaveInterval;
+  }
+
+  /** T-008 (QA/test): đọc thẳng localStorage — object save (JSON.parse) hoặc null nếu chưa có / không đọc được. */
+  debugReadSave(): unknown {
+    try {
+      const text = window.localStorage.getItem(SAVE_KEY);
+      return text === null ? null : (JSON.parse(text) as unknown);
+    } catch {
+      return null;
+    }
+  }
+
+  /** T-008: toạ độ màn (1920×1080) tâm nút trong cửa sổ Tạm dừng / hộp xác nhận chơi lại — cho e2e. */
+  debugPauseButtonCenter(which: 'resume' | 'restart' | 'confirmYes' | 'confirmNo'): { x: number; y: number } {
+    const r =
+      which === 'resume'
+        ? pauseResumeButtonRect()
+        : which === 'restart'
+          ? pauseRestartButtonRect()
+          : restartConfirmButtonRect(which === 'confirmYes' ? 'yes' : 'no');
+    return { x: r.x + r.w / 2, y: r.y + r.h / 2 };
   }
 
   /** Dịch nhân vật tới giữa ô (tx, ty) — chỉ dùng cho QA/test. */

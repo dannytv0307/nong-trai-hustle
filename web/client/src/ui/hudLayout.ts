@@ -109,8 +109,24 @@ export function clockPanelRect(): Rect {
   return { x: W - CLOCK_PANEL.margin - CLOCK_PANEL.w, y: CLOCK_PANEL.margin, w: CLOCK_PANEL.w, h: CLOCK_PANEL.h };
 }
 
-/** Cửa sổ Tạm dừng (Esc, T-005): rộng/cao khung, nút "Tiếp tục". */
-export const PAUSE_WINDOW = { w: 620, h: 330, buttonW: 300, buttonH: 84 } as const;
+/**
+ * Cửa sổ Tạm dừng (Esc, T-005): rộng/cao khung, nút "Tiếp tục". T-008 thêm dòng "Đã lưu lúc…" (`savedLineY`) và nút
+ * "Chơi lại từ đầu" (nhỏ hơn, dưới nút Tiếp tục). Các số y tính từ mép trên khung. Khung cao thêm nhưng nút "Tiếp tục" giữ
+ * đúng chỗ cũ trên màn (y 545–629 ở 1080p) để tay người chơi quen chỗ.
+ */
+export const PAUSE_WINDOW = {
+  w: 640,
+  h: 500,
+  buttonW: 300,
+  buttonH: 84,
+  titleY: 78,
+  subY: 136,
+  savedLineY: 188,
+  resumeY: 255,
+  restartY: 362,
+  restartW: 340,
+  restartH: 68,
+} as const;
 
 /** Khung cửa sổ Tạm dừng (giữa màn). */
 export function pausePanelRect(): Rect {
@@ -122,10 +138,48 @@ export function pauseResumeButtonRect(): Rect {
   const p = pausePanelRect();
   return {
     x: Math.round(p.x + (p.w - PAUSE_WINDOW.buttonW) / 2),
-    y: p.y + 170,
+    y: p.y + PAUSE_WINDOW.resumeY,
     w: PAUSE_WINDOW.buttonW,
     h: PAUSE_WINDOW.buttonH,
   };
+}
+
+/** Nút "Chơi lại từ đầu" trong cửa sổ Tạm dừng (T-008). */
+export function pauseRestartButtonRect(): Rect {
+  const p = pausePanelRect();
+  return {
+    x: Math.round(p.x + (p.w - PAUSE_WINDOW.restartW) / 2),
+    y: p.y + PAUSE_WINDOW.restartY,
+    w: PAUSE_WINDOW.restartW,
+    h: PAUSE_WINDOW.restartH,
+  };
+}
+
+/** Hộp xác nhận "Chơi lại từ đầu?" (T-008): nằm trên cửa sổ Tạm dừng, 2 nút Có / Không. */
+export const RESTART_CONFIRM = { w: 760, h: 360, buttonW: 240, buttonH: 84, gap: 40 } as const;
+
+export function restartConfirmRect(): Rect {
+  return { x: Math.round((W - RESTART_CONFIRM.w) / 2), y: Math.round((H - RESTART_CONFIRM.h) / 2), w: RESTART_CONFIRM.w, h: RESTART_CONFIRM.h };
+}
+
+/** Nút "Có" (trái) / "Không" (phải) trong hộp xác nhận chơi lại. */
+export function restartConfirmButtonRect(which: 'yes' | 'no'): Rect {
+  const p = restartConfirmRect();
+  const total = RESTART_CONFIRM.buttonW * 2 + RESTART_CONFIRM.gap;
+  const x0 = p.x + Math.round((p.w - total) / 2);
+  return {
+    x: which === 'yes' ? x0 : x0 + RESTART_CONFIRM.buttonW + RESTART_CONFIRM.gap,
+    y: p.y + p.h - RESTART_CONFIRM.buttonH - 40,
+    w: RESTART_CONFIRM.buttonW,
+    h: RESTART_CONFIRM.buttonH,
+  };
+}
+
+/** Nút trong hộp xác nhận chơi lại dưới điểm (px, py), null nếu không trúng. */
+export function restartConfirmButtonAt(px: number, py: number): 'yes' | 'no' | null {
+  if (inside(restartConfirmButtonRect('yes'), px, py)) return 'yes';
+  if (inside(restartConfirmButtonRect('no'), px, py)) return 'no';
+  return null;
 }
 
 /** Điểm (px, py) có nằm trong hình chữ nhật r không. */

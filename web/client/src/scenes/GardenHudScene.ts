@@ -39,8 +39,12 @@ import {
   stallButtonRect,
   stallPanelRect,
   STALL_WINDOW,
+  PAUSE_WINDOW,
   pausePanelRect,
+  pauseRestartButtonRect,
   pauseResumeButtonRect,
+  restartConfirmButtonRect,
+  restartConfirmRect,
   sleepButtonRect,
   sleepPromptRect,
   summaryButtonRect,
@@ -96,6 +100,10 @@ export interface HudDebugState {
   /** Cửa sổ Tạm dừng đang hiện; nút "Tiếp tục" đang sáng (con trỏ trên nút). */
   pauseVisible: boolean;
   pauseButtonHover: boolean;
+  /** T-008: dòng "Đã lưu lúc…" đang hiện, nút "Chơi lại từ đầu" đang sáng, hộp xác nhận đang hiện. */
+  pauseSavedText: string;
+  pauseRestartHover: boolean;
+  restartConfirmVisible: boolean;
   /** Gợi ý phím: các dòng đang hiện (dòng chính trước) + khung bao từng khối chữ. */
   hintLines: string[];
   hintBounds: Rect[];
@@ -221,6 +229,14 @@ export class GardenHudScene extends Phaser.Scene {
   private pauseWindow!: Phaser.GameObjects.Container;
   private pauseButton!: Phaser.GameObjects.Graphics;
   private pauseButtonHover: boolean | null = null;
+  // T-008: dòng "Đã lưu lúc…", nút "Chơi lại từ đầu", hộp xác nhận.
+  private pauseSavedText!: Phaser.GameObjects.Text;
+  private pauseRestartButton!: Phaser.GameObjects.Graphics;
+  private pauseRestartHover: boolean | null = null;
+  private restartConfirm!: Phaser.GameObjects.Container;
+  private restartYesBg!: Phaser.GameObjects.Graphics;
+  private restartNoBg!: Phaser.GameObjects.Graphics;
+  private restartHoverDrawn: string | null = null;
   private hintMain!: Phaser.GameObjects.Text;
   private hintSide!: Phaser.GameObjects.Text;
   // ---- Tiền, thùng bán, sạp hạt (T-006) ----
@@ -275,6 +291,8 @@ export class GardenHudScene extends Phaser.Scene {
     this.vignetteLevel = 0;
     this.clockIconDrawn = null;
     this.pauseButtonHover = null;
+    this.pauseRestartHover = null;
+    this.restartHoverDrawn = null;
     this.blinkT = 0;
     this.moneyDrawn = -1;
     this.moneyFloatT = 0;
@@ -422,50 +440,108 @@ export class GardenHudScene extends Phaser.Scene {
     }
   }
 
-  /** Cửa sổ Tạm dừng: nền tối mờ phủ cả màn (kể cả HUD), khung giữa màn, "Đã tạm dừng", nút "Tiếp tục", "Esc: chơi tiếp". */
+  /**
+   * Cửa sổ Tạm dừng: nền tối mờ phủ cả màn (kể cả HUD), khung giữa màn, "Đã tạm dừng", dòng "Đã lưu lúc 14:30 · Ngày 2"
+   * (T-008), nút "Tiếp tục", nút "Chơi lại từ đầu" (T-008, nền đất nhạt hơn — việc phụ), "Esc: chơi tiếp".
+   * Hộp xác nhận "Chơi lại từ đầu?" nằm TRÊN cửa sổ Tạm dừng (depth cao hơn), 2 nút Có / Không.
+   */
   private buildPauseWindow(): void {
     const { gameWidth: w, gameHeight: h } = gameConfig;
     const p = pausePanelRect();
     const b = pauseResumeButtonRect();
+    const rb = pauseRestartButtonRect();
     const g = this.add.graphics();
     g.fillStyle(palette.ink, 1).fillRoundedRect(p.x - 5, p.y - 5, p.w + 10, p.h + 10, 22);
     g.fillStyle(palette.earth, 1).fillRoundedRect(p.x, p.y, p.w, p.h, 18);
     this.pauseButton = this.add.graphics();
+    this.pauseRestartButton = this.add.graphics();
+    const bodyStyle = { ...textStyles.body, fontSize: '24px', strokeThickness: 5 };
+    this.pauseSavedText = this.add.text(p.x + p.w / 2, p.y + PAUSE_WINDOW.savedLineY, '', { ...bodyStyle, color: cssColor('gold') }).setOrigin(0.5);
     this.pauseWindow = this.add
       .container(0, 0, [
         this.add.rectangle(0, 0, w, h, palette.ink, 0.6).setOrigin(0),
         g,
-        this.add.text(p.x + p.w / 2, p.y + 78, 'Đã tạm dừng', { ...textStyles.subtitle, fontSize: '52px' }).setOrigin(0.5),
-        this.add
-          .text(p.x + p.w / 2, p.y + 134, 'Đồng hồ ngày đang đứng yên', { ...textStyles.body, fontSize: '24px', strokeThickness: 5 })
-          .setOrigin(0.5),
+        this.add.text(p.x + p.w / 2, p.y + PAUSE_WINDOW.titleY, 'Đã tạm dừng', { ...textStyles.subtitle, fontSize: '52px' }).setOrigin(0.5),
+        this.add.text(p.x + p.w / 2, p.y + PAUSE_WINDOW.subY, 'Đồng hồ ngày đang đứng yên', bodyStyle).setOrigin(0.5),
+        this.pauseSavedText,
         this.pauseButton,
         this.add.text(b.x + b.w / 2, b.y + b.h / 2, 'Tiếp tục', { ...textStyles.nameTag, fontSize: '34px', color: cssColor('ink'), strokeThickness: 0 }).setOrigin(0.5),
-        this.add
-          .text(p.x + p.w / 2, p.y + p.h - 30, 'Esc: chơi tiếp', { ...textStyles.body, fontSize: '24px', strokeThickness: 5 })
-          .setOrigin(0.5),
+        this.pauseRestartButton,
+        this.add.text(rb.x + rb.w / 2, rb.y + rb.h / 2, 'Chơi lại từ đầu', { ...textStyles.nameTag, fontSize: '28px', strokeThickness: 5 }).setOrigin(0.5),
+        this.add.text(p.x + p.w / 2, p.y + p.h - 34, 'Esc: chơi tiếp', bodyStyle).setOrigin(0.5),
       ])
       .setDepth(90)
       .setVisible(false);
+
+    // Hộp xác nhận chơi lại.
+    const c = restartConfirmRect();
+    const cg = this.add.graphics();
+    cg.fillStyle(palette.ink, 1).fillRoundedRect(c.x - 6, c.y - 6, c.w + 12, c.h + 12, 24);
+    cg.fillStyle(palette.earth, 1).fillRoundedRect(c.x, c.y, c.w, c.h, 20);
+    cg.lineStyle(4, palette.vermilion, 0.9).strokeRoundedRect(c.x + 8, c.y + 8, c.w - 16, c.h - 16, 14);
+    this.restartYesBg = this.add.graphics();
+    this.restartNoBg = this.add.graphics();
+    const yes = restartConfirmButtonRect('yes');
+    const no = restartConfirmButtonRect('no');
+    const btnStyle = { ...textStyles.nameTag, fontSize: '32px', color: cssColor('ink'), strokeThickness: 0 };
+    this.restartConfirm = this.add
+      .container(0, 0, [
+        this.add.rectangle(0, 0, w, h, palette.ink, 0.35).setOrigin(0),
+        cg,
+        this.add.text(c.x + c.w / 2, c.y + 70, 'Chơi lại từ đầu?', { ...textStyles.subtitle, fontSize: '48px' }).setOrigin(0.5),
+        this.add
+          .text(c.x + c.w / 2, c.y + 150, 'Xóa bản lưu, quay về Ngày 1.\nKhông lấy lại được.', { ...bodyStyle, align: 'center', lineSpacing: 6 })
+          .setOrigin(0.5),
+        this.restartYesBg,
+        this.restartNoBg,
+        this.add.text(yes.x + yes.w / 2, yes.y + yes.h / 2, 'Có, xóa', btnStyle).setOrigin(0.5),
+        this.add.text(no.x + no.w / 2, no.y + no.h / 2, 'Không (Esc)', btnStyle).setOrigin(0.5),
+      ])
+      .setDepth(95)
+      .setVisible(false);
   }
 
-  /** Nút "Tiếp tục": nền gỗ, rê chuột vào thì sáng vàng (GDD §11: mọi nút có trạng thái hover). Chỉ vẽ lại khi đổi. */
+  /** Nút "Tiếp tục" / "Chơi lại từ đầu": rê chuột vào thì sáng vàng (GDD §11: mọi nút có trạng thái hover). Chỉ vẽ lại khi đổi. */
   private updatePauseWindow(): void {
-    const open = this.garden.pauseMenuOpen;
+    const garden = this.garden;
+    const open = garden.pauseMenuOpen;
     this.pauseWindow.setVisible(open);
+    const confirm = open && garden.restartConfirmOpen;
+    this.restartConfirm.setVisible(confirm);
     if (!open) {
       this.pauseButtonHover = null; // mở lại thì vẽ nút từ đầu
+      this.pauseRestartHover = null;
+      this.restartHoverDrawn = null;
       return;
     }
-    const hover = this.garden.pauseHoverResume;
-    if (hover === this.pauseButtonHover) return;
-    this.pauseButtonHover = hover;
-    const b = pauseResumeButtonRect();
-    const g = this.pauseButton;
-    g.clear();
-    g.fillStyle(palette.ink, 1).fillRoundedRect(b.x - 4, b.y - 4, b.w + 8, b.h + 8, 16);
-    g.fillStyle(hover ? palette.gold : palette.wood, 1).fillRoundedRect(b.x, b.y, b.w, b.h, 13);
-    g.fillStyle(palette.paper, hover ? 0.35 : 0.2).fillRoundedRect(b.x + 6, b.y + 6, b.w - 12, 10, 5);
+    const saved = garden.savedText;
+    if (this.pauseSavedText.text !== saved) this.pauseSavedText.setText(saved);
+    const hover = garden.pauseHoverResume;
+    if (hover !== this.pauseButtonHover) {
+      this.pauseButtonHover = hover;
+      this.drawWoodButton(this.pauseButton, pauseResumeButtonRect(), hover);
+    }
+    const hoverRestart = garden.pauseHoverRestart;
+    if (hoverRestart !== this.pauseRestartHover) {
+      this.pauseRestartHover = hoverRestart;
+      // Nút phụ: nền mực nhạt viền gỗ (khác nút chính), rê chuột → viền + chữ nền đỏ son nhạt cho biết là việc "xóa".
+      const r = pauseRestartButtonRect();
+      const g = this.pauseRestartButton;
+      g.clear();
+      g.fillStyle(palette.ink, 1).fillRoundedRect(r.x - 4, r.y - 4, r.w + 8, r.h + 8, 14);
+      g.fillStyle(hoverRestart ? palette.vermilion : palette.earth, 1).fillRoundedRect(r.x, r.y, r.w, r.h, 11);
+      g.lineStyle(3, palette.wood, 1).strokeRoundedRect(r.x + 3, r.y + 3, r.w - 6, r.h - 6, 9);
+    }
+    if (!confirm) {
+      this.restartHoverDrawn = null;
+      return;
+    }
+    const ch = String(garden.restartConfirmHover);
+    if (ch !== this.restartHoverDrawn) {
+      this.restartHoverDrawn = ch;
+      this.drawWoodButton(this.restartYesBg, restartConfirmButtonRect('yes'), garden.restartConfirmHover === 'yes');
+      this.drawWoodButton(this.restartNoBg, restartConfirmButtonRect('no'), garden.restartConfirmHover === 'no');
+    }
   }
 
   // ---------------------------------------------------------------- ngủ, ngủ gục, tổng kết (T-007)
@@ -1193,6 +1269,9 @@ export class GardenHudScene extends Phaser.Scene {
       clockBounds: clockPanelRect(),
       pauseVisible: this.pauseWindow?.visible ?? false,
       pauseButtonHover: this.pauseButtonHover === true,
+      pauseSavedText: this.pauseSavedText?.text ?? '',
+      pauseRestartHover: this.pauseRestartHover === true,
+      restartConfirmVisible: this.restartConfirm?.visible ?? false,
       hintLines: [this.hintMain, this.hintSide].flatMap((t) => (t ? t.text.split('\n') : [])),
       hintBounds: [this.hintMain, this.hintSide].flatMap((t) => {
         if (!t) return [];

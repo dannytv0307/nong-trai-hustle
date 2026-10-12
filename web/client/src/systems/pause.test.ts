@@ -48,6 +48,9 @@ describe('Esc', () => {
     expect(resolveEsc({ pauseMenuOpen: true, bagOpen: false, sleepPromptOpen: true })).toBe('closePause');
     expect(resolveEsc({ pauseMenuOpen: false, bagOpen: false, nightBusy: true })).toBe('ignore');
     expect(resolveEsc({ pauseMenuOpen: true, bagOpen: false, nightBusy: true })).toBe('closePause');
+    // T-008: hộp xác nhận Chơi lại từ đầu nằm trên Tạm dừng → Esc đóng hộp trước (= Không), Tạm dừng vẫn mở.
+    expect(resolveEsc({ pauseMenuOpen: true, bagOpen: true, restartConfirmOpen: true })).toBe('closeRestartConfirm');
+    expect(resolveEsc({ pauseMenuOpen: true, bagOpen: false, restartConfirmOpen: false })).toBe('closePause');
   });
 });
 

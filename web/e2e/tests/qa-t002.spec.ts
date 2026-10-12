@@ -415,6 +415,8 @@ test('A8 cuốc cả 9 ô rồi tiếp tục giữ chuột rê lung tung; FPS kh
   console.log('fps lúc cuốc', fpsSamples.map((f) => f.toFixed(1)).join(' '));
 
   // chuột giữa và chuột phải lên ô (reset bằng trang mới khó → dùng ô cỏ & kiểm không động tác)
+  // T-008: game tự lưu — xóa save (và ngừng ghi tới lúc tải lại) để trang mới bắt đầu Ngày 1 sạch, ruộng chưa cuốc.
+  await page.evaluate(() => (window as any).__game.scene.getScene('Garden').debugClearSave());
   await page.reload();
   await page.waitForFunction(() => (window as any).__game?.scene?.getScene('Garden')?.debugState?.gardenReady === true);
   await fastTill(page);

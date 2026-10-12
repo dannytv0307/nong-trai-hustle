@@ -36,7 +36,7 @@ export class PauseReasons {
 }
 
 /** Việc phím Esc làm, theo cửa sổ đang mở (cửa sổ trên cùng được đóng trước). */
-export type EscAction = 'closePause' | 'declineSleep' | 'ignore' | 'closeShop' | 'closeBag' | 'openPause';
+export type EscAction = 'closeRestartConfirm' | 'closePause' | 'declineSleep' | 'ignore' | 'closeShop' | 'closeBag' | 'openPause';
 
 /**
  * Esc: cửa sổ Tạm dừng đang mở → đóng (chơi tiếp); thùng bán / sạp hạt đang mở → đóng nó (T-006); gùi đang mở → chỉ
@@ -47,11 +47,14 @@ export type EscAction = 'closePause' | 'declineSleep' | 'ignore' | 'closeShop' |
  */
 export function resolveEsc(state: {
   pauseMenuOpen: boolean;
+  /** T-008: hộp xác nhận "Chơi lại từ đầu?" (nằm trên cửa sổ Tạm dừng) — Esc = Không. */
+  restartConfirmOpen?: boolean;
   bagOpen: boolean;
   shopWindow?: string | null;
   sleepPromptOpen?: boolean;
   nightBusy?: boolean;
 }): EscAction {
+  if (state.pauseMenuOpen && state.restartConfirmOpen) return 'closeRestartConfirm';
   if (state.pauseMenuOpen) return 'closePause';
   if (state.sleepPromptOpen) return 'declineSleep';
   if (state.nightBusy) return 'ignore';

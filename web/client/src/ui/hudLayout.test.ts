@@ -24,6 +24,10 @@ import {
   stallPanelRect,
   pausePanelRect,
   pauseResumeButtonRect,
+  pauseRestartButtonRect,
+  restartConfirmButtonAt,
+  restartConfirmButtonRect,
+  restartConfirmRect,
   rectContains,
   staminaPanelRect,
 } from './hudLayout';
@@ -100,6 +104,25 @@ describe('hudLayout — đồng hồ + Tạm dừng (T-005)', () => {
     expect(b.y + b.h).toBeLessThan(p.y + p.h);
     expect(rectContains(b, b.x + 1, b.y + 1)).toBe(true);
     expect(rectContains(b, b.x - 1, b.y)).toBe(false);
+  });
+
+  it('T-008: nút Chơi lại từ đầu dưới nút Tiếp tục, trong khung; hộp xác nhận có 2 nút không chồng', () => {
+    const p = pausePanelRect();
+    const b = pauseResumeButtonRect();
+    const r = pauseRestartButtonRect();
+    expect(r.y).toBeGreaterThan(b.y + b.h);
+    expect(r.x).toBeGreaterThan(p.x);
+    expect(r.x + r.w).toBeLessThan(p.x + p.w);
+    expect(r.y + r.h).toBeLessThan(p.y + p.h - 40); // chừa chỗ dòng Esc ở chân
+    const c = restartConfirmRect();
+    const yes = restartConfirmButtonRect('yes');
+    const no = restartConfirmButtonRect('no');
+    expect(yes.x + yes.w).toBeLessThan(no.x);
+    expect(yes.x).toBeGreaterThan(c.x);
+    expect(no.x + no.w).toBeLessThan(c.x + c.w);
+    expect(restartConfirmButtonAt(yes.x + 2, yes.y + 2)).toBe('yes');
+    expect(restartConfirmButtonAt(no.x + 2, no.y + 2)).toBe('no');
+    expect(restartConfirmButtonAt(c.x + 2, c.y + 2)).toBeNull();
   });
 
   it('gợi ý phím: dòng chính nằm trên nút gùi; khe cho dòng ngắn đủ rộng', () => {
