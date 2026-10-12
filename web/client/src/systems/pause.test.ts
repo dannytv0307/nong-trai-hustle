@@ -42,6 +42,13 @@ describe('Esc', () => {
     expect(resolveEsc({ pauseMenuOpen: true, bagOpen: false, shopWindow: 'sellBox' })).toBe('closePause');
     expect(resolveEsc({ pauseMenuOpen: false, bagOpen: false, shopWindow: null })).toBe('openPause');
   });
+
+  it('T-007: hộp "Đi ngủ?" → Esc = Không; đang ngủ / tổng kết → Esc không làm gì; Tạm dừng nằm trên thì đóng trước', () => {
+    expect(resolveEsc({ pauseMenuOpen: false, bagOpen: false, sleepPromptOpen: true })).toBe('declineSleep');
+    expect(resolveEsc({ pauseMenuOpen: true, bagOpen: false, sleepPromptOpen: true })).toBe('closePause');
+    expect(resolveEsc({ pauseMenuOpen: false, bagOpen: false, nightBusy: true })).toBe('ignore');
+    expect(resolveEsc({ pauseMenuOpen: true, bagOpen: false, nightBusy: true })).toBe('closePause');
+  });
 });
 
 describe('tự tạm dừng khi mất focus', () => {

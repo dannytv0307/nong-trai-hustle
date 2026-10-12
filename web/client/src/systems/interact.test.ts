@@ -55,3 +55,24 @@ describe('vật tương tác (thùng bán, sạp hạt)', () => {
     expect(distanceToTarget(L, 'sellBox', (b.x + 0.5) * T, (b.y + b.h + 1) * T, T)).toBeCloseTo(1);
   });
 });
+
+describe('giường (T-007)', () => {
+  it('targetAt / phím F: đứng ô thức dậy (ngay dưới giường) thì F chọn giường; thùng bán ở xa', () => {
+    const b = L.bed;
+    expect(targetAt(L, b.x, b.y)).toBe('bed');
+    expect(targetAt(L, b.x + b.w - 1, b.y)).toBe('bed');
+    const p = center(L.wakeSpot.x, L.wakeSpot.y);
+    expect(nearestKeyTarget(L, p.x, p.y, T, gameConfig.interactKeyRange)).toBe('bed');
+    expect(targetInReach(L, 'bed', p.x, p.y, T, gameConfig.interactRange)).toBe(true);
+  });
+
+  it('ô thức dậy đi được (không bị chặn) và nằm trong nhà', () => {
+    const grid = blockedGrid(L);
+    expect(grid[L.wakeSpot.y][L.wakeSpot.x]).toBe(false);
+    const h = L.house;
+    expect(L.wakeSpot.x).toBeGreaterThan(h.x);
+    expect(L.wakeSpot.x).toBeLessThan(h.x + h.w - 1);
+    expect(L.wakeSpot.y).toBeGreaterThan(h.y);
+    expect(L.wakeSpot.y).toBeLessThan(h.y + h.h - 1);
+  });
+});

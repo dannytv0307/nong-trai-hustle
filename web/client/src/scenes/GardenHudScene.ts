@@ -8,6 +8,8 @@
 // Tạm dừng (Esc / mất focus — trạng thái do GardenScene giữ), gợi ý phím góc dưới phải theo GDD §11.
 // T-006: ô tiền dưới thanh Sức (icon xu + "60 quan", chữ bay "−4 quan" khi tiêu), cửa sổ thùng bán (gùi ↔ thùng, dòng
 // "Cuối ngày bán được: N quan") và cửa sổ sạp hạt (nút mua, xám khi thiếu tiền). Trạng thái do GardenScene giữ.
+// T-007: hộp hỏi "Đi ngủ?" (Có/Không), lớp tối khi ngủ / ngủ gục / thức dậy, chữ "Zzz" trên đầu nhân vật, màn tổng kết ngày
+// (các dòng trượt vào, số tiền đếm lên, nút "Ngày mới"). Trạng thái + nhịp do GardenScene giữ — HUD chỉ vẽ.
 import Phaser from 'phaser';
 import { gameConfig } from '../config/gameConfig';
 import { cssColor, palette } from '../config/palette';
@@ -39,11 +41,19 @@ import {
   STALL_WINDOW,
   pausePanelRect,
   pauseResumeButtonRect,
+  sleepButtonRect,
+  sleepPromptRect,
+  summaryButtonRect,
+  summaryDetailY,
+  summaryLineY,
+  summaryPanelRect,
+  SUMMARY_WINDOW,
   staminaFillRect,
   staminaPanelRect,
   type Rect,
 } from '../ui/hudLayout';
 import { blinkOn, dayLabel, formatClock, isPassOutWarning, skyPhase } from '../systems/time';
+import { lineProgress, moneyLineText, moneyShown, summarySubtitle, summaryTitle } from '../systems/daySummary';
 import { drawItemIcon, mixColor } from '../ui/itemArt';
 import type { GardenScene } from './GardenScene';
 
@@ -105,6 +115,23 @@ export interface HudDebugState {
   stallButtons: { text: string; enabled: boolean; hover: boolean }[];
   /** Cỡ chữ NHỎ NHẤT (px) trong cửa sổ đang mở (thùng bán / sạp hạt) — GDD §11: chữ ≥ 24px. 0 = không mở cửa sổ nào. */
   shopMinFontPx: number;
+  /** T-007: hộp hỏi "Đi ngủ?" đang hiện; nút đang sáng. */
+  sleepPromptVisible: boolean;
+  sleepPromptHover: 'yes' | 'no' | null;
+  /** Lớp tối (ngủ / ngủ gục / thức dậy): độ đục đang vẽ (0 = tắt). */
+  nightOverlayAlpha: number;
+  /** Số chữ "Z" đang hiện trên đầu nhân vật. */
+  zzzVisible: number;
+  /** Màn tổng kết đang hiện; tiêu đề, dòng phụ, các dòng đang hiện (chữ + độ đục + lệch ngang so với chỗ nằm yên), nút. */
+  summaryVisible: boolean;
+  summaryTitle: string;
+  summarySubtitle: string;
+  summaryLines: { text: string; alpha: number; offsetX: number }[];
+  summaryDetail: string;
+  summaryButtonText: string;
+  summaryButtonHover: boolean;
+  /** Cỡ chữ nhỏ nhất (px) trên màn tổng kết / hộp hỏi ngủ đang hiện (0 = không hiện). */
+  nightMinFontPx: number;
 }
 
 /** Màu ruột thanh Sức theo dải (palette Art Bible). */
@@ -213,6 +240,24 @@ export class GardenHudScene extends Phaser.Scene {
   private readonly stallButtons: { bg: Phaser.GameObjects.Graphics; label: Phaser.GameObjects.Text; owned: Phaser.GameObjects.Text }[] = [];
   /** "Chữ ký" lần vẽ nút sạp gần nhất (tiền, hover, gùi) — chỉ vẽ lại khi đổi. */
   private stallDrawnSig = '';
+  // ---- Ngủ, ngủ gục, tổng kết (T-007) ----
+  private nightOverlay!: Phaser.GameObjects.Rectangle;
+  private readonly zzz: Phaser.GameObjects.Text[] = [];
+  private zzzT = 0;
+  private sleepPrompt!: Phaser.GameObjects.Container;
+  private sleepYesBg!: Phaser.GameObjects.Graphics;
+  private sleepNoBg!: Phaser.GameObjects.Graphics;
+  private sleepHoverDrawn: string | null = null;
+  private summaryWindow!: Phaser.GameObjects.Container;
+  private summaryTitleText!: Phaser.GameObjects.Text;
+  private summarySubText!: Phaser.GameObjects.Text;
+  private summaryDetailText!: Phaser.GameObjects.Text;
+  private readonly summaryLineTexts: Phaser.GameObjects.Text[] = [];
+  private summaryButtonBg!: Phaser.GameObjects.Graphics;
+  private summaryButtonLabel!: Phaser.GameObjects.Text;
+  private summaryButtonHoverDrawn: boolean | null = null;
+  /** Kết quả đêm đang hiện trên màn tổng kết (đổi → đặt lại chữ). */
+  private summaryShownFor: unknown = null;
 
   constructor() {
     super('GardenHud');
@@ -237,6 +282,12 @@ export class GardenHudScene extends Phaser.Scene {
     this.sellBoxSlots.length = 0;
     this.stallButtons.length = 0;
     this.stallDrawnSig = '';
+    this.zzz.length = 0;
+    this.zzzT = 0;
+    this.summaryLineTexts.length = 0;
+    this.sleepHoverDrawn = null;
+    this.summaryButtonHoverDrawn = null;
+    this.summaryShownFor = null;
 
     // Viền màn tối khi đuối: vẽ trước tiên để mọi thứ HUD khác nằm đè lên.
     this.buildVignette();
@@ -277,6 +328,7 @@ export class GardenHudScene extends Phaser.Scene {
     this.buildSellWindow();
     this.buildStallWindow();
     this.buildPauseWindow();
+    this.buildNight();
 
     for (let i = 0; i < FLY_POOL; i++) {
       this.flyers.push({ g: this.add.graphics().setVisible(false).setDepth(100), t: 0, fromX: 0, fromY: 0, target: -1 });
@@ -414,6 +466,198 @@ export class GardenHudScene extends Phaser.Scene {
     g.fillStyle(palette.ink, 1).fillRoundedRect(b.x - 4, b.y - 4, b.w + 8, b.h + 8, 16);
     g.fillStyle(hover ? palette.gold : palette.wood, 1).fillRoundedRect(b.x, b.y, b.w, b.h, 13);
     g.fillStyle(palette.paper, hover ? 0.35 : 0.2).fillRoundedRect(b.x + 6, b.y + 6, b.w - 12, 10, 5);
+  }
+
+  // ---------------------------------------------------------------- ngủ, ngủ gục, tổng kết (T-007)
+
+  /**
+   * Dựng một lần: lớp tối phủ cả màn (kể cả HUD), 3 chữ "Z", hộp hỏi "Đi ngủ?", màn tổng kết. Lớp tối nằm dưới tổng kết và
+   * cửa sổ Tạm dừng (mất focus lúc tổng kết thì Tạm dừng vẫn hiện trên cùng).
+   */
+  private buildNight(): void {
+    const { gameWidth: w, gameHeight: h } = gameConfig;
+    this.nightOverlay = this.add.rectangle(0, 0, w, h, palette.ink, 1).setOrigin(0).setDepth(80).setAlpha(0).setVisible(false);
+    for (let i = 0; i < 3; i++) {
+      this.zzz.push(
+        this.add
+          .text(0, 0, 'Z', { fontFamily: uiFontFamily, fontSize: '40px', fontStyle: 'bold', color: cssColor('paper'), stroke: cssColor('indigo'), strokeThickness: 7 })
+          .setOrigin(0.5)
+          .setDepth(82)
+          .setVisible(false),
+      );
+    }
+
+    // Hộp hỏi "Đi ngủ?" — nền tối mờ (thế giới vẫn thấy), khung giữa màn, 2 nút Có / Không.
+    const p = sleepPromptRect();
+    const g = this.add.graphics();
+    g.fillStyle(palette.ink, 1).fillRoundedRect(p.x - 5, p.y - 5, p.w + 10, p.h + 10, 22);
+    g.fillStyle(palette.earth, 1).fillRoundedRect(p.x, p.y, p.w, p.h, 18);
+    this.sleepYesBg = this.add.graphics();
+    this.sleepNoBg = this.add.graphics();
+    const yes = sleepButtonRect('yes');
+    const no = sleepButtonRect('no');
+    const btnStyle = { ...textStyles.nameTag, fontSize: '32px', color: cssColor('ink'), strokeThickness: 0 };
+    this.sleepPrompt = this.add
+      .container(0, 0, [
+        this.add.rectangle(0, 0, w, h, palette.ink, 0.45).setOrigin(0),
+        g,
+        this.add.text(p.x + p.w / 2, p.y + 66, 'Đi ngủ?', { ...textStyles.subtitle, fontSize: '52px' }).setOrigin(0.5),
+        this.add
+          .text(p.x + p.w / 2, p.y + 132, 'Ngủ tới sáng mai — thùng bán tự bán qua đêm.', { ...textStyles.body, fontSize: '24px', strokeThickness: 5 })
+          .setOrigin(0.5),
+        this.sleepYesBg,
+        this.sleepNoBg,
+        this.add.text(yes.x + yes.w / 2, yes.y + yes.h / 2, 'Có (Enter)', btnStyle).setOrigin(0.5),
+        this.add.text(no.x + no.w / 2, no.y + no.h / 2, 'Không (Esc)', btnStyle).setOrigin(0.5),
+      ])
+      .setDepth(50)
+      .setVisible(false);
+
+    // Màn tổng kết ngày: khung giữa màn trên lớp tối, tiêu đề + dòng phụ, tối đa 6 dòng (dòng tiền to, vàng) + dòng chi tiết.
+    const s = summaryPanelRect();
+    const sg = this.add.graphics();
+    sg.fillStyle(palette.ink, 1).fillRoundedRect(s.x - 6, s.y - 6, s.w + 12, s.h + 12, 26);
+    sg.fillStyle(palette.earth, 1).fillRoundedRect(s.x, s.y, s.w, s.h, 22);
+    sg.lineStyle(3, palette.wood, 0.9).lineBetween(s.x + SUMMARY_WINDOW.pad, s.y + 142, s.x + s.w - SUMMARY_WINDOW.pad, s.y + 142);
+    this.summaryTitleText = this.add.text(s.x + s.w / 2, s.y + 58, '', { ...textStyles.subtitle, fontSize: '54px', color: cssColor('gold') }).setOrigin(0.5);
+    this.summarySubText = this.add.text(s.x + s.w / 2, s.y + 114, '', { ...textStyles.body, fontSize: '26px', strokeThickness: 5 }).setOrigin(0.5);
+    this.summaryDetailText = this.add
+      .text(s.x + SUMMARY_WINDOW.pad + 4, summaryDetailY(), '', { ...textStyles.body, fontSize: '24px', strokeThickness: 5 })
+      .setOrigin(0, 0.5);
+    const parts: Phaser.GameObjects.GameObject[] = [sg, this.summaryTitleText, this.summarySubText, this.summaryDetailText];
+    for (let i = 0; i < 6; i++) {
+      const t = this.add
+        .text(s.x + SUMMARY_WINDOW.pad, summaryLineY(i), '', { fontFamily: uiFontFamily, fontSize: '36px', fontStyle: 'bold', color: cssColor('paper'), stroke: cssColor('ink'), strokeThickness: 7 })
+        .setOrigin(0, 0.5);
+      this.summaryLineTexts.push(t);
+      parts.push(t);
+    }
+    const b = summaryButtonRect();
+    this.summaryButtonBg = this.add.graphics();
+    this.summaryButtonLabel = this.add.text(b.x + b.w / 2, b.y + b.h / 2, 'Ngày mới (Enter)', btnStyle).setOrigin(0.5);
+    parts.push(this.summaryButtonBg, this.summaryButtonLabel);
+    this.summaryWindow = this.add.container(0, 0, parts).setDepth(85).setVisible(false);
+  }
+
+  /** Vẽ một nút gỗ (rê chuột → vàng hoa hòe), giống nút "Tiếp tục". */
+  private drawWoodButton(g: Phaser.GameObjects.Graphics, b: Rect, hover: boolean): void {
+    g.clear();
+    g.fillStyle(palette.ink, 1).fillRoundedRect(b.x - 4, b.y - 4, b.w + 8, b.h + 8, 16);
+    g.fillStyle(hover ? palette.gold : palette.wood, 1).fillRoundedRect(b.x, b.y, b.w, b.h, 13);
+    g.fillStyle(palette.paper, hover ? 0.35 : 0.2).fillRoundedRect(b.x + 6, b.y + 6, b.w - 12, 10, 5);
+  }
+
+  /** Mỗi frame: lớp tối, chữ "Zzz", hộp hỏi ngủ, màn tổng kết theo trạng thái GardenScene. */
+  private updateNight(dt: number): void {
+    const garden = this.garden;
+    const fade = garden.nightFade;
+    this.nightOverlay.setAlpha(fade).setVisible(fade > 0.001);
+
+    // "Zzz": 3 chữ Z lần lượt bay lên chéo từ đầu nhân vật, to dần, mờ dần. Nằm trên lớp tối để vẫn thấy khi màn đã tối.
+    if (garden.zzzActive) {
+      this.zzzT += dt;
+      const head = garden.heroHeadScreen();
+      const rise = gameConfig.zzzRiseSeconds;
+      const gap = gameConfig.zzzIntervalSeconds;
+      const cycle = Math.max(rise, gap * this.zzz.length);
+      this.zzz.forEach((z, i) => {
+        const local = this.zzzT - i * gap;
+        if (local < 0) {
+          z.setVisible(false);
+          return;
+        }
+        const k = (local % cycle) / rise;
+        if (k >= 1) {
+          z.setVisible(false);
+          return;
+        }
+        z.setPosition(head.x + 24 + k * 50 + Math.sin(k * Math.PI * 2) * 8, head.y - 10 - k * 110)
+          .setScale(0.7 + 0.6 * k)
+          .setAlpha(k < 0.7 ? 1 : 1 - (k - 0.7) / 0.3)
+          .setVisible(true);
+      });
+    } else if (this.zzzT !== 0) {
+      this.zzzT = 0;
+      for (const z of this.zzz) z.setVisible(false);
+    }
+
+    // Hộp hỏi ngủ.
+    const prompt = garden.nightPhase === 'sleepPrompt';
+    this.sleepPrompt.setVisible(prompt);
+    if (prompt) {
+      const hover = garden.sleepPromptHover;
+      if (String(hover) !== this.sleepHoverDrawn) {
+        this.sleepHoverDrawn = String(hover);
+        this.drawWoodButton(this.sleepYesBg, sleepButtonRect('yes'), hover === 'yes');
+        this.drawWoodButton(this.sleepNoBg, sleepButtonRect('no'), hover === 'no');
+      }
+    } else {
+      this.sleepHoverDrawn = null;
+    }
+
+    // Màn tổng kết.
+    const sum = garden.nightPhase === 'summary' ? garden.lastSummary : null;
+    this.summaryWindow.setVisible(sum !== null);
+    if (!sum) {
+      this.summaryShownFor = null;
+      this.summaryButtonHoverDrawn = null;
+      return;
+    }
+    const lines = garden.summaryLineList;
+    if (this.summaryShownFor !== sum) {
+      this.summaryShownFor = sum;
+      this.summaryTitleText.setText(summaryTitle(sum));
+      this.summarySubText.setText(summarySubtitle(sum, gameConfig.daysPerSeason));
+      this.summaryLineTexts.forEach((t, i) => {
+        const line = lines[i];
+        if (!line) {
+          t.setText('').setVisible(false);
+          return;
+        }
+        const money = line.kind === 'money';
+        t.setText(line.text)
+          .setFontSize(money ? 44 : 36)
+          .setColor(cssColor(money ? 'gold' : line.warn ? 'vermilion' : 'paper'))
+          .setStroke(cssColor(line.warn ? 'paper' : 'ink'), line.warn ? 5 : 7)
+          .setVisible(true);
+      });
+    }
+    const reveal = garden.summaryReveal;
+    const timing = {
+      lineInterval: gameConfig.summaryLineIntervalSeconds,
+      lineSlide: gameConfig.summaryLineSlideSeconds,
+      countSeconds: gameConfig.summaryCountSeconds,
+    };
+    const left = summaryPanelRect().x + SUMMARY_WINDOW.pad;
+    this.summaryLineTexts.forEach((t, i) => {
+      if (!lines[i]) return;
+      const p = lineProgress(reveal, i, timing);
+      const ease = 1 - (1 - p) * (1 - p) * (1 - p);
+      t.setX(left + (1 - ease) * gameConfig.summaryLineSlidePx).setAlpha(p);
+      if (lines[i].kind === 'money') {
+        const txt = moneyLineText(moneyShown(reveal, sum.sale.earned, timing));
+        if (t.text !== txt) t.setText(txt);
+      }
+    });
+    const detail = garden.summaryDetail;
+    if (this.summaryDetailText.text !== detail) this.summaryDetailText.setText(detail);
+    this.summaryDetailText.setAlpha(lineProgress(reveal, 0, timing));
+    const hover = garden.summaryHoverButton;
+    if (hover !== this.summaryButtonHoverDrawn) {
+      this.summaryButtonHoverDrawn = hover;
+      this.drawWoodButton(this.summaryButtonBg, summaryButtonRect(), hover);
+    }
+  }
+
+  /** Cỡ chữ nhỏ nhất (px) trong hộp hỏi ngủ / màn tổng kết đang hiện — QA kiểm "chữ ≥ 24px". */
+  private nightMinFontPx(): number {
+    const win = this.summaryWindow?.visible ? this.summaryWindow : this.sleepPrompt?.visible ? this.sleepPrompt : null;
+    if (!win) return 0;
+    let min = Number.POSITIVE_INFINITY;
+    for (const o of win.list) {
+      if (o instanceof Phaser.GameObjects.Text && o.visible && o.text.trim() !== '') min = Math.min(min, parseFloat(String(o.style.fontSize)));
+    }
+    return Number.isFinite(min) ? min : 0;
   }
 
   /** Ô tiền dưới thanh Sức: khung mực + nền nâu đất, icon đồng xu vàng (lỗ vuông — quan tiền), chữ "60 quan". */
@@ -825,6 +1069,7 @@ export class GardenHudScene extends Phaser.Scene {
     this.updateStaminaBar();
     this.updateClock(dt);
     this.updatePauseWindow();
+    this.updateNight(dt);
     this.updateVignette(dt);
     this.updateTooltip();
     this.updateFlyers(dt);
@@ -968,6 +1213,20 @@ export class GardenHudScene extends Phaser.Scene {
         hover: garden?.stallHover === i,
       })),
       shopMinFontPx: garden && this.sellWindow ? this.shopMinFontPx() : 0,
+      sleepPromptVisible: this.sleepPrompt?.visible ?? false,
+      sleepPromptHover: garden?.sleepPromptHover ?? null,
+      nightOverlayAlpha: this.nightOverlay?.visible ? this.nightOverlay.alpha : 0,
+      zzzVisible: this.zzz.filter((z) => z.visible).length,
+      summaryVisible: this.summaryWindow?.visible ?? false,
+      summaryTitle: this.summaryWindow?.visible ? this.summaryTitleText.text : '',
+      summarySubtitle: this.summaryWindow?.visible ? this.summarySubText.text : '',
+      summaryLines: this.summaryWindow?.visible
+        ? this.summaryLineTexts.filter((t) => t.visible).map((t) => ({ text: t.text, alpha: t.alpha, offsetX: t.x - (summaryPanelRect().x + SUMMARY_WINDOW.pad) }))
+        : [],
+      summaryDetail: this.summaryWindow?.visible ? this.summaryDetailText.text : '',
+      summaryButtonText: this.summaryButtonLabel?.text ?? '',
+      summaryButtonHover: this.summaryButtonHoverDrawn === true,
+      nightMinFontPx: this.summaryWindow ? this.nightMinFontPx() : 0,
     };
   }
 }

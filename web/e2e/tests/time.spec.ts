@@ -2,7 +2,7 @@
 // Theo "Bạn thử thế nào" của T-005: đồng hồ góc trên phải chạy → F9 nhiều lần: chiều vàng, tối dần, 23h nháy đỏ →
 // chuyển tab rồi quay lại: đang Tạm dừng, giờ không nhảy → Esc chơi tiếp. Thêm: gùi dừng đồng hồ, cuốc thì đồng hồ chạy,
 // Esc khi gùi mở chỉ đóng gùi, nút "Tiếp tục", Alt+Tab (window blur), Tạm dừng giữa lúc cuốc không nhảy nhát (D-022),
-// phím bấm lúc dừng không có tác dụng sau khi chơi tiếp, 24:00 đứng yên (tạm tới T-007), bố cục HUD 1366×768,
+// phím bấm lúc dừng không có tác dụng sau khi chơi tiếp, 24:00 ngủ gục (T-007), bố cục HUD 1366×768,
 // bản build không có F9.
 // Đọc trạng thái qua window.__game.scene.getScene('Garden').debugState. Chờ theo TRẠNG THÁI (expect.poll / frame game),
 // không chờ giờ cố định (BUG-006) — riêng các ca "đứng yên" phải chờ một khoảng thật để chứng minh không có gì đổi.
@@ -330,7 +330,8 @@ test.describe('bản dev', () => {
     expect(s.sky.alpha).toBeLessThanOrEqual(SKY_MAX + 1e-6);
   });
 
-  test('24:00: đồng hồ đứng ở 24:00 (tạm, ngủ gục làm ở T-007), vẫn nháy đỏ, chơi tiếp được, không lỗi', async ({ page }) => {
+  test('24:00: đồng hồ dừng ở 24:00, ngủ gục (T-007) — F9 lúc ngủ gục không tác dụng — sáng ngày 2 đi lại được', async ({ page }) => {
+    test.setTimeout(90_000);
     await call(page, 'debugSetHour', 23.5);
     await press(page, 'F9');
     let s = await st(page);
@@ -346,7 +347,15 @@ test.describe('bản dev', () => {
     expect(s.hud!.clockText).toBe('24:00');
     expect(s.time.dayEndHits).toBe(1);
     expect(s.time.warn).toBe(true);
-    // Vẫn đi lại được.
+    expect(s.time.reasons).toEqual(['sleep']); // đang ngủ gục
+    // Tổng kết → Enter (lần 1 có thể chỉ hiện hết) → sáng ngày 2.
+    await expect.poll(async () => (await st(page)).time.reasons, { timeout: 15_000 }).toContain('daySummary');
+    await press(page, 'Enter');
+    if ((await st(page)).time.reasons.includes('daySummary')) await press(page, 'Enter');
+    await expect.poll(async () => (await st(page)).time.reasons, { timeout: 10_000 }).toEqual([]);
+    expect((await st(page)).time.day).toBe(2);
+    expect((await st(page)).time.dayEndHits).toBe(1);
+    // Đi lại được.
     await teleportAndSettle(page, 12, 14);
     const y0 = (await st(page)).footY;
     await page.keyboard.down('s');

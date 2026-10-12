@@ -17,6 +17,7 @@ export type Action =
   | 'openQuests' // Q
   | 'menu' // Esc
   | 'confirm' // Space
+  | 'accept' // Enter — "Có" ở hộp hỏi đi ngủ, "Ngày mới" ở màn tổng kết (T-007)
   | 'devNextDay' // G — phím thử "qua đêm" (chỉ bản dev, gameConfig.devCheatsEnabled)
   | 'devDrainStamina' // F8 — phím thử −20 Sức (chỉ bản dev)
   | 'devAddHour'; // F9 — phím thử +1 giờ game (chỉ bản dev, T-005)
@@ -34,6 +35,7 @@ const DEFAULT_BINDINGS: Record<Action, number[]> = {
   openQuests: [KC.Q],
   menu: [KC.ESC],
   confirm: [KC.SPACE],
+  accept: [KC.ENTER],
   devNextDay: [KC.G],
   devDrainStamina: [KC.F8],
   devAddHour: [KC.F9],

@@ -245,3 +245,65 @@ export function stallButtonAt(px: number, py: number, buttons: number): number {
   for (let i = 0; i < buttons; i++) if (inside(stallButtonRect(i, buttons), px, py)) return i;
   return -1;
 }
+
+// ---------------------------------------------------------------- T-007: hỏi đi ngủ, màn tổng kết ngày
+
+/** Hộp hỏi "Đi ngủ?" (giữa màn): rộng/cao khung, cỡ 2 nút Có / Không, khoảng hở giữa 2 nút. */
+export const SLEEP_PROMPT = { w: 680, h: 330, buttonW: 250, buttonH: 88, gap: 40 } as const;
+
+export function sleepPromptRect(): Rect {
+  return { x: Math.round((W - SLEEP_PROMPT.w) / 2), y: Math.round((H - SLEEP_PROMPT.h) / 2) - 40, w: SLEEP_PROMPT.w, h: SLEEP_PROMPT.h };
+}
+
+/** Nút "Có" (trái) / "Không" (phải) trong hộp hỏi ngủ. */
+export function sleepButtonRect(which: 'yes' | 'no'): Rect {
+  const p = sleepPromptRect();
+  const total = SLEEP_PROMPT.buttonW * 2 + SLEEP_PROMPT.gap;
+  const x0 = p.x + Math.round((p.w - total) / 2);
+  return {
+    x: which === 'yes' ? x0 : x0 + SLEEP_PROMPT.buttonW + SLEEP_PROMPT.gap,
+    y: p.y + p.h - SLEEP_PROMPT.buttonH - 44,
+    w: SLEEP_PROMPT.buttonW,
+    h: SLEEP_PROMPT.buttonH,
+  };
+}
+
+/** Nút trong hộp hỏi ngủ dưới điểm (px, py), null nếu không trúng. */
+export function sleepButtonAt(px: number, py: number): 'yes' | 'no' | null {
+  if (inside(sleepButtonRect('yes'), px, py)) return 'yes';
+  if (inside(sleepButtonRect('no'), px, py)) return 'no';
+  return null;
+}
+
+/**
+ * Màn tổng kết ngày (GDD §7): khung giữa màn; tiêu đề "Hết Ngày 1" + dòng phụ "Sáng mai: …"; các dòng bắt đầu từ
+ * `firstLine`, cách nhau `lineGap`; dòng tiền có thêm dòng chi tiết nhỏ (`detailGap`); nút "Ngày mới" ở chân.
+ * Tối đa 6 dòng + chi tiết vẫn nằm trên nút (kiểm ở hudLayout.test.ts).
+ */
+export const SUMMARY_WINDOW = { w: 980, h: 760, pad: 64, firstLine: 182, lineGap: 70, detailGap: 48, buttonW: 380, buttonH: 92, buttonBottom: 40 } as const;
+
+export function summaryPanelRect(): Rect {
+  return { x: Math.round((W - SUMMARY_WINDOW.w) / 2), y: Math.round((H - SUMMARY_WINDOW.h) / 2), w: SUMMARY_WINDOW.w, h: SUMMARY_WINDOW.h };
+}
+
+/** Toạ độ Y (tâm dòng) của dòng thứ i; dòng 0 = tiền, có dòng chi tiết bên dưới nên các dòng sau lùi xuống detailGap. */
+export function summaryLineY(i: number): number {
+  const p = summaryPanelRect();
+  return p.y + SUMMARY_WINDOW.firstLine + i * SUMMARY_WINDOW.lineGap + (i > 0 ? SUMMARY_WINDOW.detailGap : 0);
+}
+
+/** Toạ độ Y dòng chi tiết dưới dòng tiền ("Rau cải ×3 · Khoai lang ×1"). */
+export function summaryDetailY(): number {
+  return summaryLineY(0) + SUMMARY_WINDOW.detailGap;
+}
+
+/** Nút "Ngày mới" (Enter). */
+export function summaryButtonRect(): Rect {
+  const p = summaryPanelRect();
+  return {
+    x: Math.round(p.x + (p.w - SUMMARY_WINDOW.buttonW) / 2),
+    y: p.y + p.h - SUMMARY_WINDOW.buttonH - SUMMARY_WINDOW.buttonBottom,
+    w: SUMMARY_WINDOW.buttonW,
+    h: SUMMARY_WINDOW.buttonH,
+  };
+}

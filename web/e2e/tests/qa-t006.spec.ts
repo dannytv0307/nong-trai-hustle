@@ -226,12 +226,12 @@ test('Q2 bảo toàn đồ: 60 lần chuyển ngẫu nhiên gùi ⇄ thùng, t�
   s = await st(page);
   expect(count(s.sellBox.slots, 'hat-khoai-lang')).toBe(0);
   expect(s.hud.shopStatusText).toBe('Hạt giống không bán được');
-  // Đóng thùng, qua đêm bằng G: tiền KHÔNG cộng (T-007 mới nối) — thùng còn nguyên.
+  // Đóng thùng, qua đêm bằng G: T-007 nối hàm qua đêm chung → thùng bán hết, tiền cộng 666, thùng trống.
   await press(page, 'Escape');
   await press(page, 'g');
   s = await st(page);
-  expect(s.money.current).toBe(60);
-  expect(s.sellBox.total).toBe(666);
+  expect(s.money.current).toBe(60 + 666);
+  expect(s.sellBox.total).toBe(0);
 });
 
 test('Q3 thùng đầy / gùi đầy: chuyển một phần, phần dư ở lại, không mất', async ({ page }) => {

@@ -286,30 +286,31 @@ test('Q1 trừ Sức đúng từng việc: đi 0, cuốc 4 ở nhát cuối, b�
   await expect.poll(async () => (await st(page)).farmJuice.waters).toBe(1);
   expect((await st(page)).stamina.current).toBe(94);
   await idle(page);
-  // Qua đêm → rau cải chín → hái −1
+  // Qua đêm → rau cải chín → hái −1. T-007: qua đêm (kể cả phím thử) = sáng ra Sức đầy 100.
   await call(page, 'debugAdvanceDay');
   await waitFrames(page, 3);
+  expect((await st(page)).stamina.current).toBe(100);
   await clickTile(page, 13, 14);
   await expect.poll(async () => (await st(page)).farmJuice.harvests).toBe(1);
-  expect((await st(page)).stamina.current).toBe(93);
+  expect((await st(page)).stamina.current).toBe(99);
   await idle(page);
 
-  // Dọn cây héo −1: cuốc (13,15) (−4 → 89), gieo (−1 → 88), không tưới 2 đêm → héo → dọn (−1 → 87)
+  // Dọn cây héo −1: cuốc (13,15) (−4 → 95), gieo (−1 → 94), không tưới 2 đêm (sáng ra Sức đầy 100) → héo → dọn (−1 → 99)
   await call(page, 'debugSetTillTuning', { strikeSeconds: 0.08 });
   await tillOne(page, 13, 15);
-  expect((await st(page)).stamina.current).toBe(89);
+  expect((await st(page)).stamina.current).toBe(95);
   await clickTile(page, 13, 15);
   await expect.poll(async () => (await st(page)).farmJuice.plants).toBe(2);
   await idle(page);
-  expect((await st(page)).stamina.current).toBe(88);
+  expect((await st(page)).stamina.current).toBe(94);
   await call(page, 'debugAdvanceDay');
   await call(page, 'debugAdvanceDay');
   await waitFrames(page, 3);
   expect(plotOf(await st(page), 13, 15).crop?.withered).toBe(true);
   await clickTile(page, 13, 15);
   await expect.poll(async () => (await st(page)).farmJuice.clears).toBe(1);
-  expect((await st(page)).stamina.current).toBe(87);
-  expect((await st(page)).hud!.staminaText).toBe('87/100');
+  expect((await st(page)).stamina.current).toBe(99);
+  expect((await st(page)).hud!.staminaText).toBe('99/100');
 });
 
 test('Q2 đúng 4 Sức cuốc được → 0, đuối + chửi; 3 Sức thì "đuối rồi…"; ô dở 4/6 với 3 Sức không cho', async ({ page }) => {

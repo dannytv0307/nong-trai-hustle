@@ -14,6 +14,9 @@
 // T-006: tiền (systems/economy.ts), thùng bán cạnh nhà + sạp hạt tạm ở cổng (systems/interact.ts): click trong tầm hoặc F
 // khi đứng cạnh → cửa sổ (HUD vẽ, scene này giữ trạng thái + xử lý click). Đồ trong thùng chưa thành tiền — T-007 bán lúc
 // qua đêm (sellBoxContents). Mở cửa sổ = "lý do dừng" sellBox / seedStall: đồng hồ dừng, nhân vật đứng.
+// T-007: giường (click/F từ 18h → hỏi "Đi ngủ?"), ngủ gục lúc 24h (nằm ra đất, Zzz, màn tối), qua đêm bằng MỘT hàm thuần
+// (systems/overnight.ts — ruộng + bán thùng + ngày mới + Sức; phím G cũng gọi nó), màn tổng kết ngày (HUD vẽ, scene giữ
+// trạng thái + phím), sáng ra đứng cạnh giường. Chuỗi "đêm" là một máy trạng thái nhỏ `nightPhase` (xem updateNight).
 // Nhà, cây, ao, rào, thùng bán, sạp hạt là hình khối màu theo palette (chưa có asset thật).
 import Phaser from 'phaser';
 import { heroTextureKey, heroTurnKey, heroWalkKey } from '../config/assets';
@@ -32,7 +35,6 @@ import {
   type TileRect,
 } from '../systems/garden';
 import {
-  advanceDay,
   clearWithered,
   createFarm,
   cropStage,
@@ -70,6 +72,19 @@ import {
   type SaleReport,
 } from '../systems/economy';
 import { nearestKeyTarget, targetAt, targetInReach, type InteractTarget } from '../systems/interact';
+import { canSleepAt, runOvernight, type OvernightCause, type OvernightSummary } from '../systems/overnight';
+import {
+  acceptPress,
+  allRevealed,
+  createReveal,
+  moneyShown,
+  saleDetailText,
+  summaryLines,
+  tickReveal,
+  type RevealState,
+  type RevealTiming,
+  type SummaryLine,
+} from '../systems/daySummary';
 import seedStallJson from '../data/seedStall.json';
 import type { SeedStallItem } from '../data/types';
 import {
@@ -100,6 +115,9 @@ import {
   sellPanelRect,
   sellSlotAt,
   sellSlotRect,
+  sleepButtonAt,
+  sleepButtonRect,
+  summaryButtonRect,
   stallButtonAt,
   stallButtonRect,
   stallPanelRect,
@@ -262,8 +280,22 @@ const OBJECT_HIGHLIGHT_KEY = 1_000_000;
 /** Hàng ở sạp hạt tạm (data/seedStall.json) — bỏ dòng có cây không còn trong crops.json. */
 const SEED_STALL: readonly SeedStallItem[] = (seedStallJson.items as SeedStallItem[]).filter((it) => seedPriceOf(it.cropId) !== null);
 
-/** Cửa sổ "cửa hàng" đang mở: thùng bán hoặc sạp hạt (trùng tên lý do dừng trong systems/pause.ts). */
-export type ShopWindow = InteractTarget;
+/** Cửa sổ "cửa hàng" đang mở: thùng bán hoặc sạp hạt (trùng tên lý do dừng trong systems/pause.ts). Giường không phải cửa hàng. */
+export type ShopWindow = Exclude<InteractTarget, 'bed'>;
+/** Giường vẽ nhô lên trên ô bấy nhiêu px (ảnh giường đặt lệch lên 12px) — viền khi trỏ chuột bao cả hình. */
+const BED_LIFT = 12;
+
+/**
+ * Chuỗi "đêm" (T-007): none (chơi bình thường) → sleepPrompt (hộp "Đi ngủ?") → fallingAsleep (màn tối dần) → summary
+ * (tổng kết) → waking (sáng dần, đứng cạnh giường) → none. Ngủ gục: none → passingOut (nằm ra đất, Zzz, tối dần) → summary…
+ */
+export type NightPhase = 'none' | 'sleepPrompt' | 'fallingAsleep' | 'passingOut' | 'summary' | 'waking';
+/** Nhịp hiện dần của màn tổng kết (gameConfig). */
+const REVEAL_TIMING: RevealTiming = {
+  lineInterval: gameConfig.summaryLineIntervalSeconds,
+  lineSlide: gameConfig.summaryLineSlideSeconds,
+  countSeconds: gameConfig.summaryCountSeconds,
+};
 /** Khung ảnh cây: rộng, cao, và toạ độ Y của chân gốc trong ảnh. */
 const TREE_TEX = { w: 160, h: 192, baseY: 186 } as const;
 
@@ -489,6 +521,38 @@ export interface GardenDebugState {
   seedStall: {
     buttons: { cropId: string; label: string; price: number; enabled: boolean }[];
     hoverButton: number;
+  };
+  /**
+   * Ngủ / ngủ gục / tổng kết (T-007). `overnights` = số lần qua đêm (mọi cách), `lastCause` = cách gần nhất
+   * ('sleep' | 'passout' | 'devG'), `passingOut` = đang trong lúc ngủ gục, `passedOut` = đêm gần nhất là ngủ gục,
+   * `fade` = độ tối màn (0–1), `heroAngle` = độ nghiêng sprite (nằm ra đất), `summary` = màn tổng kết (null = không mở).
+   */
+  night: {
+    phase: NightPhase;
+    overnights: number;
+    lastCause: OvernightCause | null;
+    sleepPromptOpen: boolean;
+    sleepPromptHover: 'yes' | 'no' | null;
+    sleepPromptOpens: number;
+    tooEarly: number;
+    passingOut: boolean;
+    passedOut: boolean;
+    fade: number;
+    heroAngle: number;
+    zzz: boolean;
+    wakes: number;
+    summaryAccepts: number;
+    summaryTicks: number;
+    summary: {
+      open: boolean;
+      data: OvernightSummary;
+      lines: string[];
+      detail: string;
+      moneyShown: number;
+      allRevealed: boolean;
+      hoverButton: boolean;
+    } | null;
+    lastSummary: OvernightSummary | null;
   };
   /** Cuốc nhiều nhát (D-022): thông số đang dùng + đếm sự kiện + thứ đang hiện trên màn. */
   till: {
@@ -748,6 +812,34 @@ export class GardenScene extends Phaser.Scene {
   private transfers = 0;
   private interactKeyPresses = 0;
   private lastCoinSfx: string | null = null;
+
+  // ---- Ngủ, ngủ gục, qua đêm, tổng kết (T-007) ----
+  /** Đang ở bước nào của chuỗi "đêm" ('none' = chơi bình thường). HUD đọc để vẽ hộp hỏi / lớp tối / tổng kết. */
+  nightPhase: NightPhase = 'none';
+  /** Giây đã trôi trong bước hiện tại của chuỗi đêm. */
+  private nightT = 0;
+  /** Độ tối màn 0–1 (HUD vẽ lớp phủ mực). */
+  nightFade = 0;
+  /** Nút dưới con trỏ ở hộp "Đi ngủ?" (HUD tô sáng). */
+  sleepPromptHover: 'yes' | 'no' | null = null;
+  /** Con trỏ trên nút "Ngày mới" ở màn tổng kết. */
+  summaryHoverButton = false;
+  /** Kết quả đêm vừa qua + các dòng chữ của màn tổng kết (HUD đọc). */
+  lastSummary: OvernightSummary | null = null;
+  summaryLineList: SummaryLine[] = [];
+  summaryDetail = '';
+  /** Nhịp hiện dần của màn tổng kết. Công khai để HUD đọc (chỉ scene này sửa). */
+  summaryReveal: RevealState = createReveal(0);
+  private overnightCount = 0;
+  private lastOvernightCause: OvernightCause | null = null;
+  private sleepPromptOpens = 0;
+  private tooEarlyCount = 0;
+  private wakeCount = 0;
+  private summaryAccepts = 0;
+  private summaryTicks = 0;
+  /** Số tiền đếm lên lần trước (để biết lúc nào phát tiếng "tách") + lúc phát lần trước (nightT). */
+  private summaryMoneyPrev = 0;
+  private summaryTickAt = Number.NEGATIVE_INFINITY;
 
   gardenReady = false;
 
@@ -1168,6 +1260,12 @@ export class GardenScene extends Phaser.Scene {
       return;
     }
     this.clock += dt;
+    // T-007: đang hỏi ngủ / ngủ / ngủ gục / tổng kết / thức dậy → chỉ chạy chuỗi "đêm" (thế giới đứng yên, đồng hồ dừng).
+    if (this.nightPhase !== 'none') {
+      this.updateNight(dt);
+      this.controls.endFrame();
+      return;
+    }
     // Tốc độ chuẩn (đủ Sức) — dùng để đo nhịp bước. Đuối thì đi chậm (moveSpeed) → tỷ lệ tốc độ thật ~0.5 → anim
     // bước tự chậm theo (walkTimeScale), chân không "trượt".
     const speed = gameConfig.walkSpeed * T;
@@ -1175,6 +1273,11 @@ export class GardenScene extends Phaser.Scene {
     // T-003: phím bấm-một-lần (1–9, cuộn, E/Esc, G) trước, để mở gùi có tác dụng ngay frame này.
     this.handleUiKeys();
     if (this.pauseMenuOpen) return; // Esc vừa mở Tạm dừng ở frame này
+    if (this.nightPhase !== 'none') {
+      // F ở giường vừa mở hộp "Đi ngủ?", hoặc F9 vừa đẩy đồng hồ tới 24h (ngủ gục) → frame sau chạy chuỗi đêm.
+      this.controls.endFrame();
+      return;
+    }
     // Đồng hồ ngày chạy khi không có lý do dừng (gùi, Tạm dừng…) — kể cả lúc đang cuốc (D-022: cuốc là làm việc).
     // Dùng thời gian THẬT giữa hai frame (rawDelta), không dùng `delta` đã làm mượt: Phaser chặn `delta` ≤ 1/60 s trong
     // ~120 frame đầu và sau khi quay lại tab → máy chậm thì ngày dài hơn 600 giây thật. Chặn trên dayClockMaxStepSeconds
@@ -1182,6 +1285,10 @@ export class GardenScene extends Phaser.Scene {
     const clockDt = Math.min(this.game.loop.rawDelta / 1000, gameConfig.dayClockMaxStepSeconds);
     if (advanceDayClock(this.dayClock, clockDt, this.pauseReasons.stopped, gameConfig)) this.onDayEndReached();
     this.updateSky();
+    if (this.nightPhase !== 'none') {
+      this.controls.endFrame(); // vừa chạm 24h → ngủ gục bắt đầu từ frame sau
+      return;
+    }
     // Cửa sổ gùi / thùng bán / sạp hạt mở = "modal": không đi, việc trên ô đứng yên (không mất nhát), click không xuống ruộng.
     const modal = this.windowOpen;
     if (this.shopNoticeT > 0) this.shopNoticeT = Math.max(0, this.shopNoticeT - dt);
@@ -1397,12 +1504,16 @@ export class GardenScene extends Phaser.Scene {
       h.job = null;
       h.tillable = false;
       // Viền bao cả hình vật (kể cả phần vẽ nhô lên trên ô) và nằm TRÊN vật — viền đặt dưới đất như ô ruộng sẽ bị vật che.
-      const lift = obj === 'sellBox' ? SELL_BOX_LIFT : SEED_STALL_LIFT;
-      this.drawHighlightBox(OBJECT_HIGHLIGHT_KEY + (obj === 'sellBox' ? 0 : 1), L[obj], h.inReach, dt, 0, lift, (L[obj].y + L[obj].h) * T + 2);
+      const lift = obj === 'sellBox' ? SELL_BOX_LIFT : obj === 'seedStall' ? SEED_STALL_LIFT : BED_LIFT;
+      const keyOffset = obj === 'sellBox' ? 0 : obj === 'seedStall' ? 1 : 2;
+      this.drawHighlightBox(OBJECT_HIGHLIGHT_KEY + keyOffset, L[obj], h.inReach, dt, 0, lift, (L[obj].y + L[obj].h) * T + 2);
       if (pressed) {
         this.dragKind = null;
         this.dragBlocked = true;
-        if (h.inReach) this.openShop(obj);
+        if (h.inReach) {
+          if (obj === 'bed') this.requestSleep();
+          else this.openShop(obj);
+        }
       }
       return;
     }
@@ -1512,7 +1623,9 @@ export class GardenScene extends Phaser.Scene {
       this.inventoryRevision++;
     }
     if (c.consumePressed('devNextDay') && gameConfig.devCheatsEnabled && !windowOpen) {
-      this.runOvernight();
+      // T-007: G gọi CHUNG hàm qua đêm với lúc ngủ (ruộng + bán thùng + ngày mới + Sức đầy) nhưng "im lặng": không màn
+      // tối, không tổng kết, không dời nhân vật về giường — để thử nhanh.
+      this.applyOvernight('devG');
       this.showBubble(bubbles.devNextDay);
     }
     // T-004: chuột phải = ăn món ở ô hotbar đang chọn. Không đụng tới việc đang làm (đang cuốc vẫn cuốc tiếp).
@@ -1539,7 +1652,8 @@ export class GardenScene extends Phaser.Scene {
     if (this.bagOpen) return;
     const c = this.feetBody.center;
     const target = nearestKeyTarget(L, c.x, c.y, T, gameConfig.interactKeyRange);
-    if (target) this.openShop(target);
+    if (target === 'bed') this.requestSleep();
+    else if (target) this.openShop(target);
   }
 
   /** Mở cửa sổ thùng bán / sạp hạt: đồng hồ dừng (lý do sellBox / seedStall), nhân vật đứng, lần giữ chuột dở bị chặn. */
@@ -1747,7 +1861,11 @@ export class GardenScene extends Phaser.Scene {
    * răng cưa đỏ + tiếng càu nhàu. Chỉ gọi lúc CHUYỂN (becameExhausted) nên mỗi lần đuối chửi đúng 1 lần.
    */
   private curseExhausted(): void {
-    const lines = bubbles.grumbleExhausted;
+    this.curse(bubbles.grumbleExhausted);
+  }
+
+  /** Chửi một câu trong `lines` (luôn hiện — bong bóng chửi ưu tiên cao nhất) + tiếng càu nhàu. T-007: sáng sau ngủ gục. */
+  private curse(lines: readonly string[]): void {
     const line = lines[Math.floor(Math.random() * lines.length)];
     this.showBubble(line, 'grumble');
     this.curseCount++;
@@ -1875,18 +1993,244 @@ export class GardenScene extends Phaser.Scene {
     if (open) this.hideHighlight();
   }
 
+  // ---------------------------------------------------------------- ngủ, ngủ gục, qua đêm, tổng kết (T-007)
+
   /**
-   * "Qua đêm" (GDD §3.4) — gọi chung hàm thuần `advanceDay` với lúc ngủ ở T-007: cây đã tưới lớn +1 ngày,
-   * không tưới thì khát, khát đủ ngày thì héo, mọi ô bỏ "đã tưới". Hình cây tự vẽ lại theo trạng thái mới.
+   * Qua đêm bằng MỘT hàm thuần dùng chung (systems/overnight.ts): ruộng lớn / khát / héo (ô cuốc dở giữ nhát), bán hết
+   * thùng bán, ngày +1 về 6:00, Sức đầy (ngủ gục: 70). Ngủ ở giường, ngủ gục và phím G đều đi qua đây.
+   * Scene chỉ báo HUD vẽ lại (gùi/thùng, tiền) và ghi lại kết quả cho màn tổng kết + QA. Hình cây tự vẽ lại theo trạng thái mới.
    */
-  runOvernight(): OvernightReport {
-    this.lastOvernight = advanceDay(this.farm, {
-      growDaysOf,
-      unwateredDaysToWither: gameConfig.unwateredDaysToWither,
-      tillProgressKeepsOvernight: gameConfig.tillProgressKeepsOvernight,
-    });
+  private applyOvernight(cause: OvernightCause): OvernightSummary {
+    const summary = runOvernight(
+      { farm: this.farm, sellBox: this.sellBox, wallet: this.wallet, clock: this.dayClock, stamina: this.stamina },
+      cause,
+      {
+        growDaysOf,
+        unwateredDaysToWither: gameConfig.unwateredDaysToWither,
+        tillProgressKeepsOvernight: gameConfig.tillProgressKeepsOvernight,
+        passOutStaminaRatio: gameConfig.passOutStaminaRatio,
+        daysPerSeason: gameConfig.daysPerSeason,
+      },
+    );
+    this.lastOvernight = summary.farm;
+    this.lastSummary = summary;
     this.farmCounts.nights++;
-    return this.lastOvernight;
+    this.overnightCount++;
+    this.lastOvernightCause = cause;
+    this.inventoryRevision++; // thùng bán vừa trống
+    if (summary.sale.earned > 0) this.onMoneyChanged(summary.sale.earned);
+    this.updateSky();
+    return summary;
+  }
+
+  /** Hộp hỏi "Đi ngủ?" đang mở (Esc = "Không" — systems/pause.ts resolveEsc). */
+  get sleepPromptOpen(): boolean {
+    return this.nightPhase === 'sleepPrompt';
+  }
+
+  /** Đang ngủ / ngủ gục / tổng kết / thức dậy: Esc không mở Tạm dừng. */
+  get nightBusy(): boolean {
+    return this.nightPhase !== 'none' && this.nightPhase !== 'sleepPrompt';
+  }
+
+  /** Chữ "Zzz" trên đầu nhân vật: lúc đang thiếp đi ở giường và lúc ngủ gục (HUD vẽ, nằm trên lớp tối). */
+  get zzzActive(): boolean {
+    return this.nightPhase === 'fallingAsleep' || this.nightPhase === 'passingOut';
+  }
+
+  /** Toạ độ màn (1920×1080) ngay trên đầu nhân vật — HUD đặt chữ "Zzz" ở đây. Nằm ra đất thì đầu ở bên cạnh. */
+  heroHeadScreen(): { x: number; y: number } {
+    const cam = this.cameras.main;
+    const lying = Math.abs(this.hero.angle) > 45;
+    const side = this.hero.angle < 0 ? -1 : 1;
+    const wx = this.hero.x + (lying ? side * this.hero.displayHeight * 0.8 : 0);
+    const wy = this.hero.y - (lying ? T * 0.5 : this.hero.displayHeight);
+    return { x: cam.x + (wx - cam.worldView.x) * cam.zoom, y: cam.y + (wy - cam.worldView.y) * cam.zoom };
+  }
+
+  /** Click / F ở giường: từ earliestSleepHour (18h) → hỏi "Đi ngủ?"; sớm hơn → bong bóng "Còn sớm, ngủ gì giờ này". */
+  private requestSleep(): void {
+    if (!canSleepAt(this.clockHour, gameConfig.earliestSleepHour)) {
+      this.tooEarlyCount++;
+      this.showBubble(bubbles.tooEarlyToSleep);
+      return;
+    }
+    if (this.bagOpen) this.setBagOpen(false);
+    this.closeShop();
+    this.sleepPromptOpens++;
+    this.sleepPromptHover = null;
+    this.enterNight('sleepPrompt');
+  }
+
+  /** "Không" (Esc / nút Không): đóng hộp hỏi, chơi tiếp (đồng hồ chạy lại). */
+  private declineSleep(): void {
+    this.sleepPromptHover = null;
+    this.enterNight('none');
+  }
+
+  /** "Có" (Enter / nút Có): việc dở trên ô dừng, màn tối dần rồi qua đêm. */
+  private startFallingAsleep(): void {
+    this.stopWorkForNight();
+    this.sleepPromptHover = null;
+    this.enterNight('fallingAsleep');
+  }
+
+  /**
+   * Chạm 24h mà chưa ngủ → ngủ gục (GDD §3.1, B2): đang cuốc thì bỏ dở như bấm WASD (ô giữ số nhát), đóng mọi cửa sổ,
+   * tắt bong bóng, nhân vật lăn ra đất + "Zzz", màn tối dần → qua đêm → tổng kết → sáng ra ở nhà, Sức 70, chửi một câu.
+   */
+  private startPassOut(): void {
+    if (this.nightPhase !== 'none' && this.nightPhase !== 'sleepPrompt') return;
+    this.stopWorkForNight();
+    if (this.bagOpen) this.setBagOpen(false);
+    this.closeShop();
+    this.bubbleT = 0;
+    this.bubbleKind = null;
+    this.bubbleShakeX = 0;
+    this.bubble.setVisible(false);
+    this.enterNight('passingOut');
+  }
+
+  /** Việc dở trên ô dừng trước khi ngủ: cuốc = bỏ dở như WASD (D-022, giữ nhát đã chạm), việc nhanh đang chờ thì bỏ. */
+  private stopWorkForNight(): void {
+    if (this.isTilling()) this.abandonTill();
+    else if (isBusy(this.action)) cancelTileAction(this.action);
+    this.dragKind = null;
+    this.dragBlocked = true;
+  }
+
+  /**
+   * Sang một bước của chuỗi đêm: đặt lý do dừng đồng hồ ('sleep' suốt chuỗi, thêm 'daySummary' lúc tổng kết), nhân vật
+   * đứng yên ở ảnh tĩnh, bỏ mọi phím/chuột bấm dở (không lọt sang bước sau).
+   */
+  private enterNight(phase: NightPhase): void {
+    this.nightPhase = phase;
+    this.nightT = 0;
+    this.pauseReasons.set('sleep', phase !== 'none');
+    this.pauseReasons.set('daySummary', phase === 'summary');
+    this.feetBody.setVelocity(0, 0);
+    this.hideHighlight();
+    this.hover.valid = false;
+    this.summaryHoverButton = false;
+    if (phase !== 'none') {
+      if (this.hero.anims.isPlaying) this.hero.anims.stop();
+      clearWalkBob(this.walk);
+      this.showStill(heroTextureKey(1, this.facing));
+      this.hero.setScale(1);
+    }
+    this.controls.clearPending();
+  }
+
+  /** Mở màn tổng kết với kết quả đêm vừa qua: dòng chữ, dòng chi tiết bán, nhịp hiện dần từ đầu. */
+  private openSummary(summary: OvernightSummary): void {
+    this.summaryLineList = summaryLines(summary, this.stamina.max);
+    this.summaryDetail = saleDetailText(summary, (id) => itemInfo(id)?.name ?? id);
+    this.summaryReveal = createReveal(this.summaryLineList.length);
+    this.summaryMoneyPrev = 0;
+    this.summaryTickAt = Number.NEGATIVE_INFINITY;
+    this.nightFade = 1;
+    this.enterNight('summary');
+  }
+
+  /** Enter / click "Ngày mới": lần 1 lúc các dòng còn trượt → hiện hết ngay; lần sau → thức dậy sang ngày mới. */
+  private pressSummaryAccept(): void {
+    this.summaryAccepts++;
+    if (acceptPress(this.summaryReveal, REVEAL_TIMING) === 'close') this.startWaking();
+  }
+
+  /** Số tiền đang đếm lên → tiếng "tách" (tạm dùng tiếng nhặt xu, nhỏ + cao), cách nhau tối thiểu summaryTickSeconds. */
+  private tickSummarySound(): void {
+    const earned = this.lastSummary?.sale.earned ?? 0;
+    const shown = moneyShown(this.summaryReveal, earned, REVEAL_TIMING);
+    if (shown === this.summaryMoneyPrev) return;
+    this.summaryMoneyPrev = shown;
+    if (this.summaryReveal.skipped || this.nightT - this.summaryTickAt < gameConfig.summaryTickSeconds) return;
+    const key = COIN_SFX[this.summaryTicks % COIN_SFX.length];
+    if (!this.cache.audio.exists(key)) return;
+    this.sound.play(key, { volume: gameConfig.sfxVolume * gameConfig.summaryTickVolume, detune: 700 });
+    this.summaryTickAt = this.nightT;
+    this.summaryTicks++;
+  }
+
+  /** Thức dậy: đứng ở ô cạnh giường (wakeSpot), mặt hướng xuống, hết nằm; camera nhảy về nhà; màn sáng dần. */
+  private startWaking(): void {
+    const x = L.wakeSpot.x * T + T / 2;
+    const y = L.wakeSpot.y * T + T / 2;
+    this.feetBody.reset(x, y);
+    this.prevFootX = x;
+    this.prevFootY = y;
+    this.speedRatio = 0;
+    this.facing = 'down';
+    this.turn.frame = null;
+    this.hero.setAngle(0);
+    this.showStill(heroTextureKey(1, 'down'));
+    const footBottom = y + this.feetBody.height / 2;
+    this.hero.setPosition(x, footBottom).setDepth(footBottom);
+    this.heroShadow.setPosition(x, footBottom - 2);
+    this.cameras.main.centerOn(x, y);
+    this.enterNight('waking');
+  }
+
+  /** Sáng hẳn: chơi tiếp (đồng hồ chạy từ 6:00). Đêm qua ngủ gục → LUÔN chửi một câu (GDD §3.12, bỏ qua xác suất). */
+  private finishWaking(): void {
+    this.nightFade = 0;
+    this.wakeCount++;
+    this.enterNight('none');
+    if (this.lastSummary?.passedOut) this.curse(bubbles.grumblePassOut);
+  }
+
+  /**
+   * Mỗi frame trong chuỗi đêm (thế giới đứng yên): xử lý phím/chuột của bước hiện tại, độ tối màn, nhân vật nằm ra đất,
+   * nhịp hiện dần của tổng kết. Vẫn vẽ lại cây / ruộng / bong bóng (qua đêm xong hình cây phải đổi ngay).
+   */
+  private updateNight(dt: number): void {
+    const c = this.controls;
+    this.feetBody.setVelocity(0, 0);
+    this.nightT += dt;
+    const esc = c.consumePressed('menu') ? resolveEsc(this) : null;
+    const enter = c.consumePressed('accept');
+    const clicked = c.consumePrimaryPress();
+    const inside = c.isPointerInside();
+    const sp = c.pointerScreen(this.pointerScreenPt);
+    switch (this.nightPhase) {
+      case 'sleepPrompt':
+        this.sleepPromptHover = inside ? sleepButtonAt(sp.x, sp.y) : null;
+        if (enter || (clicked && this.sleepPromptHover === 'yes')) this.startFallingAsleep();
+        else if (esc === 'declineSleep' || (clicked && this.sleepPromptHover === 'no')) this.declineSleep();
+        break;
+      case 'fallingAsleep':
+        this.nightFade = Math.min(1, this.nightT / gameConfig.sleepFadeSeconds);
+        if (this.nightT >= gameConfig.sleepFadeSeconds) this.openSummary(this.applyOvernight('sleep'));
+        break;
+      case 'passingOut': {
+        // Nghiêng dần ra đất (xoay quanh bàn chân — gốc sprite ở chân), về phía đang quay mặt; màn tối nhanh dần về cuối.
+        const tip = Math.min(1, this.nightT / gameConfig.passOutTipSeconds);
+        const side = this.facing === 'left' ? -1 : 1;
+        this.hero.setAngle(side * gameConfig.passOutTipDegrees * (1 - (1 - tip) * (1 - tip)));
+        const p = Math.min(1, this.nightT / gameConfig.passOutSeconds);
+        this.nightFade = p * p;
+        if (this.nightT >= gameConfig.passOutSeconds) this.openSummary(this.applyOvernight('passout'));
+        break;
+      }
+      case 'summary':
+        tickReveal(this.summaryReveal, dt);
+        this.summaryHoverButton = inside && rectContains(summaryButtonRect(), sp.x, sp.y);
+        this.tickSummarySound();
+        if (enter || (clicked && this.summaryHoverButton)) this.pressSummaryAccept();
+        else if (clicked && !allRevealed(this.summaryReveal, REVEAL_TIMING)) this.pressSummaryAccept(); // click chỗ khác: chỉ hiện hết
+        break;
+      case 'waking':
+        this.nightFade = Math.max(0, 1 - this.nightT / gameConfig.wakeFadeSeconds);
+        if (this.nightT >= gameConfig.wakeFadeSeconds) this.finishWaking();
+        break;
+      default:
+        break;
+    }
+    this.updateSky();
+    this.updateCropVisuals();
+    this.updateTillVisuals(0);
+    this.updateBubble(dt);
+    this.updateFloats(dt);
   }
 
   /**
@@ -2715,12 +3059,10 @@ export class GardenScene extends Phaser.Scene {
     this.skyOverlay.setFillStyle(tint.color, tint.alpha).setVisible(tint.alpha > 0.001);
   }
 
-  /**
-   * Đồng hồ vừa chạm dayEndHour (24h). TẠM (tới T-007): đồng hồ đứng ở 24:00, vẫn nhấp nháy đỏ, vẫn chơi tiếp được,
-   * không ngủ gục. T-007 thay chỗ này bằng "ngủ gục → sáng hôm sau".
-   */
+  /** Đồng hồ vừa chạm dayEndHour (24h) mà chưa ngủ → ngủ gục (T-007). */
   private onDayEndReached(): void {
     this.dayEndHits++;
+    this.startPassOut();
   }
 
   /** Phím thử F9 (chỉ bản dev): +devAddHours giờ game, không vượt 24h. */
@@ -2983,6 +3325,36 @@ export class GardenScene extends Phaser.Scene {
         }),
         hoverButton: this.stallHover,
       },
+      night: {
+        phase: this.nightPhase,
+        overnights: this.overnightCount,
+        lastCause: this.lastOvernightCause,
+        sleepPromptOpen: this.sleepPromptOpen,
+        sleepPromptHover: this.sleepPromptHover,
+        sleepPromptOpens: this.sleepPromptOpens,
+        tooEarly: this.tooEarlyCount,
+        passingOut: this.nightPhase === 'passingOut',
+        passedOut: this.lastSummary?.passedOut ?? false,
+        fade: this.nightFade,
+        heroAngle: this.hero?.angle ?? 0,
+        zzz: this.zzzActive,
+        wakes: this.wakeCount,
+        summaryAccepts: this.summaryAccepts,
+        summaryTicks: this.summaryTicks,
+        summary:
+          this.nightPhase === 'summary' && this.lastSummary
+            ? {
+                open: true,
+                data: { ...this.lastSummary, sale: { ...this.lastSummary.sale, lines: this.lastSummary.sale.lines.map((l) => ({ ...l })) } },
+                lines: this.summaryLineList.map((l) => l.text),
+                detail: this.summaryDetail,
+                moneyShown: moneyShown(this.summaryReveal, this.lastSummary.sale.earned, REVEAL_TIMING),
+                allRevealed: allRevealed(this.summaryReveal, REVEAL_TIMING),
+                hoverButton: this.summaryHoverButton,
+              }
+            : null,
+        lastSummary: this.lastSummary ? { ...this.lastSummary } : null,
+      },
       till: {
         tuning: { ...this.tillTuning },
         finishes: this.finishCount,
@@ -3116,9 +3488,33 @@ export class GardenScene extends Phaser.Scene {
     return report;
   }
 
-  /** Qua một đêm như phím G (QA/test) — trả về tóm tắt đêm. */
+  /** Qua một đêm như phím G (QA/test): hàm qua đêm chung, "im lặng" (không tổng kết) — trả về tóm tắt ruộng. */
   debugAdvanceDay(): OvernightReport {
-    return this.runOvernight();
+    return this.applyOvernight('devG').farm;
+  }
+
+  /** Toạ độ màn (1920×1080) tâm nút "Có" / "Không" ở hộp hỏi ngủ — cho e2e. */
+  debugSleepButtonCenter(which: 'yes' | 'no'): { x: number; y: number } {
+    const r = sleepButtonRect(which);
+    return { x: r.x + r.w / 2, y: r.y + r.h / 2 };
+  }
+
+  /** Toạ độ màn tâm nút "Ngày mới" ở màn tổng kết — cho e2e. */
+  debugSummaryButtonCenter(): { x: number; y: number } {
+    const r = summaryButtonRect();
+    return { x: r.x + r.w / 2, y: r.y + r.h / 2 };
+  }
+
+  /**
+   * Đẩy đồng hồ tới 24:00 và ngủ gục ngay (QA/test) — dùng được cả khi đang mở cửa sổ (lúc chơi thật đồng hồ đứng khi mở
+   * cửa sổ nên không tới được 24h). Trả về bước đêm sau khi gọi.
+   */
+  debugTriggerDayEnd(): NightPhase {
+    if (this.nightPhase === 'none' || this.nightPhase === 'sleepPrompt') {
+      setGameHour(this.dayClock, gameConfig.dayEndHour, gameConfig);
+      this.onDayEndReached();
+    }
+    return this.nightPhase;
   }
 
   /** Đặt giờ game (QA/test, vd 17.5 để chụp hoàng hôn). Trả về giờ sau khi kẹp trong [6, 24]. */

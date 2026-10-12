@@ -1,4 +1,4 @@
-// Vật tương tác được trong Vườn (T-006): thùng bán, sạp hạt tạm. Thuần TS → test được.
+// Vật tương tác được trong Vườn (T-006): thùng bán, sạp hạt tạm; T-007: giường. Thuần TS → test được.
 // - Click: con trỏ trên ô thuộc vật + vật trong tầm `interactRange` (tính như ô ruộng: từ tâm nhân vật tới TÂM Ô gần nhất
 //   của vật — vật to nhiều ô thì với tới ô nào cũng được).
 // - Phím F: "đứng cạnh" = khoảng cách từ tâm hộp chân tới MÉP vật ≤ `interactKeyRange` ô; nhiều vật thì lấy vật gần nhất
@@ -6,9 +6,10 @@
 // Sau này giường (T-007), bếp, rương… chỉ cần thêm tên vào INTERACT_TARGETS + toạ độ trong gardenLayout.json.
 import type { GardenLayout, TileRect } from './garden';
 
-export type InteractTarget = 'sellBox' | 'seedStall';
+export type InteractTarget = 'sellBox' | 'seedStall' | 'bed';
 
-export const INTERACT_TARGETS: readonly InteractTarget[] = ['sellBox', 'seedStall'];
+/** T-007: giường trong nhà — click / F để đi ngủ (từ earliestSleepHour). */
+export const INTERACT_TARGETS: readonly InteractTarget[] = ['sellBox', 'seedStall', 'bed'];
 
 export function targetRect(layout: GardenLayout, t: InteractTarget): TileRect {
   return layout[t];

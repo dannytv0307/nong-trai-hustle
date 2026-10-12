@@ -70,6 +70,30 @@ export const gameConfig = {
   /** Đang mở cửa sổ Tạm dừng thì nhạc nền nhỏ lại còn tỷ lệ này (0 = tắt hẳn, 1 = không đổi). */
   pauseMusicVolumeMultiplier: 0.35,
 
+  // ---- Ngủ, ngủ gục, sang ngày mới, tổng kết ngày (T-007, GDD §3.1, §3.12, §7, §8) ----
+  /** Bấm "Có" ở giường: màn tối dần trong bấy nhiêu giây rồi mới hiện tổng kết. */
+  sleepFadeSeconds: 1.2,
+  /** Ngủ gục (24h): tổng thời gian nhân vật lăn ra đất + "Zzz" + màn tối dần, trước khi hiện tổng kết (giây). */
+  passOutSeconds: 3,
+  /** Ngủ gục: nhân vật nghiêng dần ra đất trong bấy nhiêu giây (xoay sprite bằng code — chưa có hình nằm). */
+  passOutTipSeconds: 0.45,
+  /** Ngủ gục: nằm nghiêng bao nhiêu độ (90 = nằm hẳn). */
+  passOutTipDegrees: 90,
+  /** Sáng ra: màn sáng dần trong bấy nhiêu giây (nhân vật đã đứng cạnh giường). */
+  wakeFadeSeconds: 0.8,
+  /** Chữ "Zzz": mỗi chữ Z bay lên mất bao lâu (giây), chữ sau cách chữ trước bao lâu. */
+  zzzRiseSeconds: 1.4,
+  zzzIntervalSeconds: 0.45,
+  /** Tổng kết: dòng sau bắt đầu trượt vào sau dòng trước bấy nhiêu giây; một dòng trượt mất bao lâu; trượt từ xa bao nhiêu px. */
+  summaryLineIntervalSeconds: 0.45,
+  summaryLineSlideSeconds: 0.35,
+  summaryLineSlidePx: 140,
+  /** Tổng kết: số tiền bán được đếm từ 0 lên trong bấy nhiêu giây. */
+  summaryCountSeconds: 1.2,
+  /** Tiếng "tách tách" khi đếm tiền (tạm dùng tiếng nhặt xu, nhỏ + cao): cách nhau tối thiểu (giây), âm lượng × hệ số. */
+  summaryTickSeconds: 0.11,
+  summaryTickVolume: 0.35,
+
   // ---- 3.2 Sức và ăn uống ----
   staminaMax: 100,
   /** Sức mỗi ô cuốc (D-022: 2 → 4, trừ một lần khi XONG ô; bỏ dở không mất). Dùng từ T-004. */

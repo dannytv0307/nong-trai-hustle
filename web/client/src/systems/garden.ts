@@ -19,6 +19,8 @@ export interface GardenLayout {
   /** Khung nhà (tường dày 1 ô), cửa ở tường dưới từ cột doorX, rộng doorW ô. */
   house: TileRect & { doorX: number; doorW: number };
   bed: TileRect;
+  /** Ô nhân vật đứng khi thức dậy (T-007): ngay cạnh giường, mặt hướng xuống. */
+  wakeSpot: { x: number; y: number };
   /** Ruộng ban đầu (startPlots ô). */
   plots: TileRect;
   /** Lối đất từ cửa nhà xuống Đầu ngõ (chỉ trang trí). */

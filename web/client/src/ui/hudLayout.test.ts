@@ -156,3 +156,35 @@ describe('hudLayout — tiền, thùng bán, sạp hạt (T-006)', () => {
     expect(stallButtonAt(p.x + 2, p.y + 2, 2)).toBe(-1);
   });
 });
+
+describe('hudLayout — hỏi đi ngủ, tổng kết ngày (T-007)', () => {
+  it('hộp hỏi ngủ: 2 nút nằm trong khung, không chồng nhau, bấm trúng đúng nút', async () => {
+    const { sleepPromptRect, sleepButtonRect, sleepButtonAt } = await import('./hudLayout');
+    const p = sleepPromptRect();
+    const yes = sleepButtonRect('yes');
+    const no = sleepButtonRect('no');
+    for (const b of [yes, no]) {
+      expect(b.x).toBeGreaterThanOrEqual(p.x);
+      expect(b.x + b.w).toBeLessThanOrEqual(p.x + p.w);
+      expect(b.y + b.h).toBeLessThanOrEqual(p.y + p.h);
+    }
+    expect(yes.x + yes.w).toBeLessThan(no.x);
+    expect(sleepButtonAt(yes.x + 5, yes.y + 5)).toBe('yes');
+    expect(sleepButtonAt(no.x + no.w - 5, no.y + 5)).toBe('no');
+    expect(sleepButtonAt(p.x + 2, p.y + 2)).toBeNull();
+  });
+
+  it('tổng kết: khung nằm trong màn 1920×1080; 6 dòng + chi tiết nằm trên nút "Ngày mới"', async () => {
+    const { summaryPanelRect, summaryLineY, summaryDetailY, summaryButtonRect } = await import('./hudLayout');
+    const p = summaryPanelRect();
+    expect(p.x).toBeGreaterThanOrEqual(0);
+    expect(p.y).toBeGreaterThanOrEqual(0);
+    expect(p.x + p.w).toBeLessThanOrEqual(gameConfig.gameWidth);
+    expect(p.y + p.h).toBeLessThanOrEqual(gameConfig.gameHeight);
+    const b = summaryButtonRect();
+    expect(summaryDetailY()).toBeLessThan(summaryLineY(1));
+    for (let i = 1; i < 6; i++) expect(summaryLineY(i)).toBeGreaterThan(summaryLineY(i - 1));
+    expect(summaryLineY(5) + 24).toBeLessThan(b.y);
+    expect(b.y + b.h).toBeLessThanOrEqual(p.y + p.h);
+  });
+});

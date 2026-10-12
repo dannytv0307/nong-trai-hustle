@@ -171,40 +171,51 @@ test('Q2 đồng hồ đứng khi gùi mở / Tạm dừng (đếm theo frame), 
   expect(s.time.elapsedSeconds - e0).toBeGreaterThan(real * 0.8);
 });
 
-test('Q3 F9 liên tục tới quá 24:00: kẹp 24:00, chạm 1 lần, đi lại được, không lỗi', async ({ page }) => {
+test('Q3 F9 liên tục tới quá 24:00: kẹp 24:00, chạm 1 lần, ngủ gục (T-007), F9 lúc ngủ gục không tác dụng, sáng ra đi lại được', async ({ page }) => {
   test.setTimeout(120_000);
   test.skip(PROD, 'F9 chỉ có ở bản dev');
+  // T-007 thay hành vi tạm của T-005 ("đứng ở 24:00, chơi tiếp") bằng ngủ gục.
+  const nightPhase = () =>
+    page.evaluate(() => (window as Any).__game.scene.getScene('Garden').debugState.night.phase as string);
   const hours: number[] = [];
-  for (let i = 0; i < 22; i++) {
+  let s = await st(page);
+  for (let i = 0; i < 22 && s.time.hour < 24; i++) {
     await press(page, 'F9');
-    hours.push((await st(page)).time.hour);
+    s = await st(page); // ảnh chụp trạng thái NGAY sau lần bấm chạm 24h (ngủ gục chỉ kéo dài vài giây)
+    hours.push(s.time.hour);
   }
-  // Bấm dồn (không chờ frame) cũng không vượt.
-  for (let i = 0; i < 10; i++) await page.keyboard.press('F9');
-  await waitFrames(page, 10);
-  // Giữ F9 (auto-repeat) không cộng thêm
-  const s = await st(page);
   console.log('Q3 hours', hours.map((h) => h.toFixed(2)).join(' '), 'presses', s.time.devHourPresses);
   for (let i = 1; i < hours.length; i++) expect(hours[i]).toBeGreaterThanOrEqual(hours[i - 1]);
   expect(Math.max(...hours)).toBe(24);
+  expect(s.time.dayEndHits).toBe(1);
+  expect(s.time.day).toBe(1);
   expect(s.time.hour).toBe(24);
   expect(s.time.clockText).toBe('24:00');
   expect(s.hud.clockText).toBe('24:00');
-  expect(s.time.dayEndHits).toBe(1);
-  expect(s.time.day).toBe(1);
   expect(s.time.phase).toBe('night');
   expect(s.hud.clockIcon).toBe('moon');
-  // chờ thêm: vẫn 24:00
-  await waitFrames(page, 60);
-  expect((await st(page)).time.hour).toBe(24);
-  // đi lại + cuốc vẫn được
+  expect(await nightPhase()).not.toBe('none'); // đang ngủ gục (máy chậm: có thể đã sang tổng kết)
+  await shot(page, 'qa-t005-24h.png');
+  // Bấm dồn F9 lúc ngủ gục / tổng kết: bị bỏ hết (không đếm, không cộng giờ, không qua thêm ngày).
+  const presses0 = s.time.devHourPresses;
+  for (let i = 0; i < 10; i++) await page.keyboard.press('F9');
+  await waitFrames(page, 5);
+  expect((await st(page)).time.devHourPresses).toBe(presses0);
+  expect((await st(page)).time.day).toBeLessThanOrEqual(2);
+  // Ngủ gục → tổng kết → Enter (lần 1 có thể chỉ hiện hết) → sáng ngày 2.
+  await expect.poll(nightPhase, { timeout: 15_000 }).toBe('summary');
+  await press(page, 'Enter');
+  if ((await nightPhase()) === 'summary') await press(page, 'Enter');
+  await expect.poll(nightPhase, { timeout: 10_000 }).toBe('none');
+  expect((await st(page)).time.day).toBe(2);
+  expect((await st(page)).time.dayEndHits).toBe(1);
+  // đi lại vẫn được
   await teleportAndSettle(page, 12, 14);
   const x0 = (await st(page)).footX;
   await page.keyboard.down('a');
   await waitFrames(page, 15);
   await page.keyboard.up('a');
   expect((await st(page)).footX).toBeLessThan(x0 - 10);
-  await shot(page, 'qa-t005-24h.png');
 });
 
 test('Q4 màu trời đúng khung giờ GDD §3.1 tại các mốc biên + chuyển mượt (bước 0.01 giờ)', async ({ page }) => {
@@ -585,7 +596,8 @@ test('Q12 đêm: bong bóng + thanh tiến độ + chữ bay nằm trên lớp t
   test.setTimeout(90_000);
   await teleportAndSettle(page, 12, 14);
   await call(page, 'debugSetTillTuning', { strikeSeconds: 2 });
-  await call(page, 'debugSetHour', 23.95);
+  // T-007: 24h là ngủ gục → để dư ≈ 17 giây thật cho lần cuốc + chụp ảnh.
+  await call(page, 'debugSetHour', 23.5);
   const p = await tileToPage(page, 13, 14);
   await page.mouse.click(p.x, p.y);
   await expect.poll(async () => (await st(page)).action.strikesDone, { timeout: 20_000 }).toBeGreaterThanOrEqual(2);
