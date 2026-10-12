@@ -18,7 +18,7 @@ Mỗi task được `qa-tester` kiểm (Playwright chụp màn hình + đọc tr
 | T-005 | 3.3 | Đồng hồ ngày trên HUD, trời tối dần, tạm dừng (Esc / chuyển tab) | game-dev | M | T-001 | ✅ |
 | T-006 | 3.3 | Thùng bán, tiền và sạp hạt tạm | game-dev | M | T-003, T-005 | ✅ |
 | T-007 | 3.3 | Ngủ, ngủ gục sau 24h, sang ngày mới (cây lớn, héo) và tổng kết ngày | game-dev | L | T-004, T-006 | ✅ |
-| T-008 | 3.3 | Tự lưu trong trình duyệt, F5 vào lại đúng chỗ, đúng giờ | game-dev | M | T-007 | 👀 |
+| T-008 | 3.3 | Tự lưu trong trình duyệt, F5 vào lại đúng chỗ, đúng giờ | game-dev | M | T-007 | ✅ |
 | T-009 | 3.3 | Tinh chỉnh cảm giác chơi theo góp ý của bạn | game-planner + game-dev | M | T-008 | ⬜ |
 
 **Tổng ước lượng:** 2 L + 7 M ≈ **40–46 giờ** (+3–4 giờ cho T-002 phần 2 theo D-022 → ≈ 43–50 giờ) (S = 1–2 giờ, M = 3–4 giờ, L = 6–8 giờ), cộng thời gian bạn thử và góp ý. Với **15 giờ/tuần**: khoảng **3 tuần** cho bước 3.3.
@@ -284,6 +284,8 @@ Mỗi task được `qa-tester` kiểm (Playwright chụp màn hình + đọc tr
 | BUG-015 | (T-005) **Chữ phụ của cửa sổ Tạm dừng 22 px và gợi ý phím 20 px — dưới mức "chữ thân ≥ 24px ở 1080p" (GDD §11).** "Đồng hồ ngày đang đứng yên", "Esc: chơi tiếp" (22 px) và cả khối gợi ý góc dưới phải (20 px) ở cửa sổ 1366×768 chỉ còn ~14–15 px, đọc được nhưng nhỏ. **Tái hiện:** ảnh `web/e2e/screenshots/qa-t005-pause-1366.png`, `qa-t005-hud-1366.png`; `qa-t005.spec.ts` Q11 in cỡ chữ. Gợi ý: nâng lên 24 px (gợi ý phím có thể bỏ dòng phím thử ở bản build cho đỡ chật). Thẩm mỹ / dễ đọc. **Đã sửa (game-dev, 2026-10-11):** chữ phụ cửa sổ Tạm dừng ("Đồng hồ ngày đang đứng yên", "Esc: chơi tiếp") và cả khối gợi ý phím nâng lên 24 px; dòng gợi ý chính vẫn nằm trên nút gùi, các dòng ngắn ở khe bên phải nút gùi — e2e `time.spec.ts` (bố cục 1920×1080 + 1366×768) kiểm không đè đồng hồ / thanh Sức / hotbar / nút gùi. | Nhẹ | Đã sửa |
 
 ## Changelog
+
+- 2026-10-13 — T-008 ✅ (người dùng xác nhận ổn).
 
 - 2026-10-12 — T-008: tự lưu localStorage (cấu trúc save có `version` ở `@bph/shared`, luật nạp ở client), F5 vào lại đúng chỗ / giờ / ruộng / gùi / tiền / thùng / Sức; không lưu giữa chuỗi đêm (bản chụp ngay lúc qua đêm → không mất / nhân đôi tiền); save hỏng → Ngày 1 + console.warn + giữ bản hỏng; cửa sổ Tạm dừng có "Đã lưu lúc…" + "Chơi lại từ đầu" (hỏi Có/Không); → 👀 chờ bạn thử.
 
