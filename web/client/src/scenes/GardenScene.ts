@@ -11,7 +11,10 @@
 // T-005: đồng hồ ngày (systems/time.ts) chạy 6h → 24h trong dayLengthSeconds, dừng khi có "lý do dừng" (systems/pause.ts:
 // gùi, Tạm dừng…). Lớp màu trời phủ thế giới (HUD nằm scene khác nên không bị phủ). Esc / mất focus / ẩn tab → cửa sổ
 // Tạm dừng: cả thế giới đứng yên (việc, bụi, bong bóng, vật lý, anim), phím bấm lúc dừng bị bỏ. F9 (dev) +1 giờ.
-// Nhà, cây, ao, rào là hình khối màu theo palette (chưa có asset thật).
+// T-006: tiền (systems/economy.ts), thùng bán cạnh nhà + sạp hạt tạm ở cổng (systems/interact.ts): click trong tầm hoặc F
+// khi đứng cạnh → cửa sổ (HUD vẽ, scene này giữ trạng thái + xử lý click). Đồ trong thùng chưa thành tiền — T-007 bán lúc
+// qua đêm (sellBoxContents). Mở cửa sổ = "lý do dừng" sellBox / seedStall: đồng hồ dừng, nhân vật đứng.
+// Nhà, cây, ao, rào, thùng bán, sạp hạt là hình khối màu theo palette (chưa có asset thật).
 import Phaser from 'phaser';
 import { heroTextureKey, heroTurnKey, heroWalkKey } from '../config/assets';
 import { gameConfig } from '../config/gameConfig';
@@ -52,8 +55,23 @@ import {
 } from '../systems/farm';
 import { CROPS, growDaysOf } from '../systems/crops';
 import { createPitchLadder, nextLadderStep, tickPitchLadder } from '../systems/pitchLadder';
-import { addItem, canAdd, removeFromSlot, scrollSelect, selectSlot, setSlot, type Inventory } from '../systems/inventory';
-import { cropItemId, cropOfSeed, createStartInventory, itemInfo, pickSeedSlot, staminaRestoreOf } from '../systems/items';
+import { addItem, canAdd, countOf, createInventory, moveFromSlot, removeFromSlot, scrollSelect, selectSlot, setSlot, type Inventory } from '../systems/inventory';
+import { cropItemId, cropOfSeed, createStartInventory, isSeedItem, itemInfo, pickSeedSlot, seedItemId, staminaRestoreOf } from '../systems/items';
+import {
+  buySeeds,
+  canSellItem,
+  createWallet,
+  hasMoney,
+  seedPriceOf,
+  sellBoxContents,
+  sellBoxTotal,
+  sellPriceOf,
+  setMoney,
+  type SaleReport,
+} from '../systems/economy';
+import { nearestKeyTarget, targetAt, targetInReach, type InteractTarget } from '../systems/interact';
+import seedStallJson from '../data/seedStall.json';
+import type { SeedStallItem } from '../data/types';
 import {
   canAfford,
   consume,
@@ -70,7 +88,24 @@ import {
   type StaminaChange,
 } from '../systems/stamina';
 import { bubbleCanShow, createBarkState, pickBarkLine, recordBark, shouldBark, type BubbleKind } from '../systems/bubbles';
-import { bagPanelRect, bagSlotAt, bagSlotRect, bagButtonRect, hotbarSlotAt, hotbarSlotRect, isOverHud, pauseResumeButtonRect, type Rect } from '../ui/hudLayout';
+import {
+  bagPanelRect,
+  bagSlotAt,
+  bagSlotRect,
+  bagButtonRect,
+  hotbarSlotAt,
+  hotbarSlotRect,
+  isOverHud,
+  pauseResumeButtonRect,
+  sellPanelRect,
+  sellSlotAt,
+  sellSlotRect,
+  stallButtonAt,
+  stallButtonRect,
+  stallPanelRect,
+  type Rect,
+  type SellSide,
+} from '../ui/hudLayout';
 import {
   addGameHours,
   advanceDayClock,
@@ -213,7 +248,22 @@ const TEX = {
   tree: 'ph-tree',
   bed: 'ph-bed',
   pond: 'ph-pond',
+  sellBox: 'ph-sell-box',
+  seedStall: 'ph-seed-stall',
 } as const;
+/** Thùng bán / sạp hạt vẽ cao hơn ô bấy nhiêu px (mặt trước + nắp) — chỉ để nhìn. */
+const SELL_BOX_LIFT = 26;
+const SEED_STALL_LIFT = 30;
+/** Tiếng nhặt xu khi mua (AUD-SFX nhat-xu) — chọn ngẫu nhiên một trong hai. */
+const COIN_SFX = ['sfx-nhat-xu-1', 'sfx-nhat-xu-2'] as const;
+/** Khóa viền "ô" cho vật tương tác (khác mọi khóa ô thường = ty × cols + tx). */
+const OBJECT_HIGHLIGHT_KEY = 1_000_000;
+
+/** Hàng ở sạp hạt tạm (data/seedStall.json) — bỏ dòng có cây không còn trong crops.json. */
+const SEED_STALL: readonly SeedStallItem[] = (seedStallJson.items as SeedStallItem[]).filter((it) => seedPriceOf(it.cropId) !== null);
+
+/** Cửa sổ "cửa hàng" đang mở: thùng bán hoặc sạp hạt (trùng tên lý do dừng trong systems/pause.ts). */
+export type ShopWindow = InteractTarget;
 /** Khung ảnh cây: rộng, cao, và toạ độ Y của chân gốc trong ảnh. */
 const TREE_TEX = { w: 160, h: 192, baseY: 186 } as const;
 
@@ -292,6 +342,8 @@ export interface GardenDebugState {
     job: TileJob | null;
     highlight: 'bright' | 'gray';
     alpha: number;
+    /** T-006: con trỏ đang trên thùng bán / sạp hạt (null = ô thường). */
+    object: InteractTarget | null;
   } | null;
   /**
    * Việc trên ô: đang làm ô nào, tiến độ NHÁT hiện tại (0–1), hàng chờ (theo thứ tự 1, 2, 3), số nhát còn lại /
@@ -409,6 +461,35 @@ export interface GardenDebugState {
   sky: { color: number; alpha: number; visible: boolean };
   /** Cửa sổ Tạm dừng: đang mở, vì sao mở, con trỏ trên nút "Tiếp tục", số lần mở, âm lượng nhạc nền hiện tại. */
   pause: { menuOpen: boolean; cause: PauseCause | null; hoverResume: boolean; opens: number; musicVolume: number | null };
+  /** Tiền (T-006): số quan, các lần mua hạt (cũ → mới), tiếng xu vừa phát. */
+  money: {
+    current: number;
+    revision: number;
+    purchases: { cropId: string; count: number; cost: number }[];
+    lastCoinSfx: string | null;
+  };
+  /** Cửa sổ thùng bán / sạp hạt đang mở (null = không), dòng báo đang hiện, phím F. */
+  shop: {
+    window: ShopWindow | null;
+    status: string;
+    statusWarn: boolean;
+    opens: { sellBox: number; seedStall: number };
+    /** Số lần bấm F; vật đứng cạnh lúc này (null = không đứng cạnh vật nào). */
+    keyPresses: number;
+    nearby: InteractTarget | null;
+  };
+  /** Thùng bán: đồ trong thùng, tổng tiền cuối ngày (giá gốc), ô dưới con trỏ, số lần chuyển món. */
+  sellBox: {
+    slots: ({ id: string; count: number; name: string } | null)[];
+    total: number;
+    hover: { side: SellSide; index: number } | null;
+    transfers: number;
+  };
+  /** Sạp hạt: các nút (giá, có đủ tiền không), nút dưới con trỏ. */
+  seedStall: {
+    buttons: { cropId: string; label: string; price: number; enabled: boolean }[];
+    hoverButton: number;
+  };
   /** Cuốc nhiều nhát (D-022): thông số đang dùng + đếm sự kiện + thứ đang hiện trên màn. */
   till: {
     tuning: TillTuning;
@@ -530,7 +611,15 @@ export class GardenScene extends Phaser.Scene {
   /** Ô viền đang chỉ (để biết khi nào đổi ô); -1 = chưa có. */
   private highlightTileKey = -1;
   /** Ô dưới con trỏ ở frame này (tái dùng object). */
-  private readonly hover = { x: 0, y: 0, valid: false, inReach: false, tillable: false, job: null as TileJob | null };
+  private readonly hover = {
+    x: 0,
+    y: 0,
+    valid: false,
+    inReach: false,
+    tillable: false,
+    job: null as TileJob | null,
+    object: null as InteractTarget | null,
+  };
   private readonly pointerWorldPt = new Phaser.Math.Vector2();
   private readonly pointerScreenPt = new Phaser.Math.Vector2();
 
@@ -634,6 +723,31 @@ export class GardenScene extends Phaser.Scene {
   private devHourPresses = 0;
   /** Lớp màu trời phủ thế giới (một hình chữ nhật dùng lại, chỉ đổi màu + độ đục). */
   private skyOverlay!: Phaser.GameObjects.Rectangle;
+
+  // ---- Tiền, thùng bán, sạp hạt (T-006) ----
+  /** Ví tiền (quan). Công khai để HUD đọc; chỉ scene này sửa (qua systems/economy.ts — không bao giờ âm). */
+  readonly wallet = createWallet(gameConfig.startMoney);
+  /** Đồ trong thùng bán — chưa thành tiền, cuối ngày (T-007) mới bán. HUD đọc để vẽ; vẽ lại theo inventoryRevision. */
+  readonly sellBox: Inventory = createInventory(gameConfig.sellBoxSlots, gameConfig.sellBoxSlots, gameConfig.stackMax);
+  /** Hàng ở sạp hạt (HUD đọc để vẽ nút). */
+  readonly seedStallItems: readonly SeedStallItem[] = SEED_STALL;
+  /** Cửa sổ thùng bán / sạp hạt đang mở (null = không). Mở = "modal" như gùi. */
+  shopWindow: ShopWindow | null = null;
+  /** Ô dưới con trỏ trong cửa sổ thùng bán (null = không trúng ô nào). */
+  shopHover: { side: SellSide; index: number } | null = null;
+  /** Nút mua dưới con trỏ trong cửa sổ sạp hạt (-1 = không). */
+  stallHover = -1;
+  /** Tăng mỗi khi tiền đổi → HUD vẽ lại số tiền + chữ bay "−4 quan" (lastMoneyDelta). */
+  moneyRevision = 0;
+  lastMoneyDelta = 0;
+  private shopNotice = '';
+  private shopNoticeWarn = false;
+  private shopNoticeT = 0;
+  private readonly shopOpens = { sellBox: 0, seedStall: 0 };
+  private readonly purchases: { cropId: string; count: number; cost: number }[] = [];
+  private transfers = 0;
+  private interactKeyPresses = 0;
+  private lastCoinSfx: string | null = null;
 
   gardenReady = false;
 
@@ -740,24 +854,6 @@ export class GardenScene extends Phaser.Scene {
     for (let y = L.plots.y; y < L.plots.y + L.plots.h; y++) {
       for (let x = L.plots.x; x < L.plots.x + L.plots.w; x++) g.strokeRect(x * T + 1, y * T + 1, T - 2, T - 2);
     }
-
-    // Chừa chỗ cho thùng bán và sạp hạt (T-006): khung mờ + nhãn.
-    this.markReserved(L.sellBox, 'Thùng bán');
-    this.markReserved(L.seedStall, 'Sạp hạt');
-  }
-
-  private markReserved(r: TileRect, label: string): void {
-    this.add
-      .rectangle(r.x * T + 4, r.y * T + 4, r.w * T - 8, r.h * T - 8)
-      .setOrigin(0)
-      .setStrokeStyle(3, palette.gold, 0.7)
-      .setDepth(DEPTH_GROUND_DECOR);
-    this.add
-      .text((r.x + r.w / 2) * T, (r.y + r.h / 2) * T, label, { ...textStyles.body, fontSize: '16px', strokeThickness: 4 })
-      .setOrigin(0.5)
-      .setResolution(2)
-      .setAlpha(0.85)
-      .setDepth(DEPTH_GROUND_DECOR);
   }
 
   /**
@@ -833,6 +929,10 @@ export class GardenScene extends Phaser.Scene {
     const p = L.pond;
     this.add.image(p.x * T, p.y * T, TEX.pond).setOrigin(0).setDepth(DEPTH_GROUND_DECOR);
 
+    // T-006: thùng bán (cạnh nhà) + sạp hạt tạm (cổng vườn). Chặn bằng lớp va chạm Tilemap (tileSolidGrid); depth = đáy vật.
+    this.buildShopObject(L.sellBox, TEX.sellBox, 'Thùng bán');
+    this.buildShopObject(L.seedStall, TEX.seedStall, 'Sạp hạt');
+
     // Cây: chỉ gốc chặn (hộp nhỏ), tán cây vẽ cao → đi ra sau cây thì tán che người.
     const [trunkW, trunkH] = gameConfig.treeTrunkHitbox;
     for (const [tx, ty] of L.trees) {
@@ -847,6 +947,19 @@ export class GardenScene extends Phaser.Scene {
       this.trees.push(tree);
     }
     return solids;
+  }
+
+  /** Một vật tương tác: ảnh khối (chân ảnh = đáy vật) + bảng tên nhỏ phía trên để người mới nhận ra. */
+  private buildShopObject(r: TileRect, tex: string, label: string): void {
+    const bottom = (r.y + r.h) * T;
+    this.add.ellipse((r.x + r.w / 2) * T, bottom - 6, r.w * T * 0.9, 22, palette.ink, 0.25).setDepth(DEPTH_SHADOW);
+    const img = this.add.image((r.x + r.w / 2) * T, bottom, tex).setOrigin(0.5, 1).setDepth(bottom);
+    // Chữ thế giới 17px × cameraZoom 1.5 ≈ 25px trên màn 1080p.
+    this.add
+      .text(img.x, img.y - img.height - 4, label, { ...textStyles.nameTag, fontSize: '17px', strokeThickness: 5 })
+      .setOrigin(0.5, 1)
+      .setResolution(2)
+      .setDepth(bottom + 1);
   }
 
   /**
@@ -906,6 +1019,44 @@ export class GardenScene extends Phaser.Scene {
       g.fillStyle(palette.paper).fillRoundedRect(10, 8, b.w * T - 20, b.h * T - 8, 6);
       g.fillStyle(palette.vermilion).fillRoundedRect(14, 12, 34, b.h * T - 16, 6);
       g.lineStyle(3, palette.ink).strokeRoundedRect(4, 2, b.w * T - 8, b.h * T + 6, 8);
+    });
+    // Thùng bán: thùng gỗ đóng nan, nắp sẫm, đồng xu vàng (lỗ vuông) ở mặt trước.
+    const sb = L.sellBox;
+    const sw = sb.w * T;
+    const sh = sb.h * T + SELL_BOX_LIFT;
+    bake(TEX.sellBox, sw, sh, (g) => {
+      g.fillStyle(palette.ink, 1).fillRoundedRect(4, 6, sw - 8, sh - 8, 6);
+      g.fillStyle(palette.wood, 1).fillRoundedRect(7, 9, sw - 14, sh - 14, 5);
+      g.fillStyle(palette.earth, 1).fillRect(7, 9, sw - 14, 16); // nắp
+      g.lineStyle(2, palette.ink, 0.6);
+      for (let y = 34; y < sh - 10; y += 14) g.lineBetween(9, y, sw - 9, y); // nan gỗ
+      g.lineStyle(3, palette.ink, 1).lineBetween(7, 25, sw - 7, 25);
+      const cx = sw / 2;
+      const cy = 25 + (sh - 25) / 2;
+      g.fillStyle(palette.ink, 1).fillCircle(cx, cy, 14);
+      g.fillStyle(palette.gold, 1).fillCircle(cx, cy, 11);
+      g.fillStyle(palette.ink, 1).fillRect(cx - 3.5, cy - 3.5, 7, 7);
+    });
+    // Sạp hạt tạm: bàn gỗ thấp, trên có 3 bao hạt mở miệng (màu hạt khác nhau) — "hộp hạt", không có người bán (D-019).
+    const ss = L.seedStall;
+    const tw = ss.w * T;
+    const th = ss.h * T + SEED_STALL_LIFT;
+    bake(TEX.seedStall, tw, th, (g) => {
+      const top = th * 0.42;
+      g.fillStyle(palette.ink, 1).fillRoundedRect(6, top - 4, tw - 12, th - top, 8);
+      g.fillStyle(palette.earth, 1).fillRoundedRect(9, top + 14, tw - 18, th - top - 20, 6); // mặt trước
+      g.fillStyle(palette.wood, 1).fillRoundedRect(9, top - 1, tw - 18, 18, 6); // mặt bàn
+      g.lineStyle(2, palette.ink, 0.5);
+      for (let x = 40; x < tw - 20; x += 36) g.lineBetween(x, top + 18, x, th - 10);
+      const seeds = [palette.sprout, palette.vermilion, palette.gold];
+      for (let i = 0; i < 3; i++) {
+        const bx = tw * (0.22 + i * 0.28);
+        const by = top + 2;
+        g.fillStyle(palette.ink, 1).fillEllipse(bx, by - 18, 54, 46);
+        g.fillStyle(palette.paper, 1).fillEllipse(bx, by - 18, 48, 40);
+        g.fillStyle(palette.ink, 1).fillEllipse(bx, by - 32, 40, 16);
+        g.fillStyle(seeds[i], 1).fillEllipse(bx, by - 32, 34, 11);
+      }
     });
     const p = L.pond;
     const pw = p.w * T;
@@ -1031,8 +1182,9 @@ export class GardenScene extends Phaser.Scene {
     const clockDt = Math.min(this.game.loop.rawDelta / 1000, gameConfig.dayClockMaxStepSeconds);
     if (advanceDayClock(this.dayClock, clockDt, this.pauseReasons.stopped, gameConfig)) this.onDayEndReached();
     this.updateSky();
-    // Cửa sổ gùi mở = "modal": không đi, việc trên ô đứng yên (không mất nhát), click không xuống ruộng.
-    const modal = this.bagOpen;
+    // Cửa sổ gùi / thùng bán / sạp hạt mở = "modal": không đi, việc trên ô đứng yên (không mất nhát), click không xuống ruộng.
+    const modal = this.windowOpen;
+    if (this.shopNoticeT > 0) this.shopNoticeT = Math.max(0, this.shopNoticeT - dt);
     const wantDir = modal ? NO_DIR : this.controls.moveDirection();
     const wantsToMove = wantDir.x !== 0 || wantDir.y !== 0;
     // Chạm phím đi (kể cả nhấn + nhả lọt giữa hai frame — BUG-007). Luôn "tiêu thụ" mỗi frame để lần chạm cũ
@@ -1192,6 +1344,10 @@ export class GardenScene extends Phaser.Scene {
     const inside = this.controls.isPointerInside();
     const sp = this.controls.pointerScreen(this.pointerScreenPt);
 
+    if (this.shopWindow) {
+      this.updateShopPointer(pressed, inside, sp.x, sp.y);
+      return;
+    }
     if (this.bagOpen) {
       // Cửa sổ gùi: chỉ biết con trỏ trên ô nào (HUD hiện tên món). Click ra ngoài khung = đóng gùi.
       this.hideHighlight();
@@ -1232,6 +1388,24 @@ export class GardenScene extends Phaser.Scene {
     const c = this.feetBody.center;
     h.x = tx;
     h.y = ty;
+    // T-006: con trỏ trên thùng bán / sạp hạt → viền cả vật (sáng trong tầm / xám ngoài tầm); click trong tầm thì mở cửa
+    // sổ, KHÔNG phải click ô ruộng (lần giữ chuột này cũng không làm việc gì trên ruộng).
+    const obj = targetAt(L, tx, ty);
+    h.object = obj;
+    if (obj) {
+      h.inReach = targetInReach(L, obj, c.x, c.y, T, gameConfig.interactRange);
+      h.job = null;
+      h.tillable = false;
+      // Viền bao cả hình vật (kể cả phần vẽ nhô lên trên ô) và nằm TRÊN vật — viền đặt dưới đất như ô ruộng sẽ bị vật che.
+      const lift = obj === 'sellBox' ? SELL_BOX_LIFT : SEED_STALL_LIFT;
+      this.drawHighlightBox(OBJECT_HIGHLIGHT_KEY + (obj === 'sellBox' ? 0 : 1), L[obj], h.inReach, dt, 0, lift, (L[obj].y + L[obj].h) * T + 2);
+      if (pressed) {
+        this.dragKind = null;
+        this.dragBlocked = true;
+        if (h.inReach) this.openShop(obj);
+      }
+      return;
+    }
     h.inReach = inReach(c.x, c.y, tx, ty, T, gameConfig.interactRange);
     h.job = jobFor(this.farm, tx, ty, growDaysOf);
     h.tillable = h.job === 'till';
@@ -1315,14 +1489,21 @@ export class GardenScene extends Phaser.Scene {
   private handleUiKeys(): void {
     const c = this.controls;
     if (c.consumePressed('menu')) {
-      if (resolveEsc(this) === 'closeBag') this.setBagOpen(false);
+      const esc = resolveEsc(this);
+      if (esc === 'closeShop') this.closeShop();
+      else if (esc === 'closeBag') this.setBagOpen(false);
       else {
         this.openPauseMenu('esc');
         return; // Tạm dừng: phím khác cùng frame bị bỏ (openPauseMenu đã xóa)
       }
     }
-    if (c.consumePressed('openBag')) this.setBagOpen(!this.bagOpen);
-    if (c.consumePressed('devAddHour') && gameConfig.devCheatsEnabled && !this.bagOpen) this.devAddHour();
+    // T-006: F = mở thùng bán / sạp hạt khi đứng cạnh; đang mở thì F đóng lại.
+    if (c.consumePressed('interact')) this.handleInteractKey();
+    // Đang mở thùng bán / sạp hạt thì E / Tab không mở gùi chồng lên (gùi đã hiện sẵn bên trái cửa sổ thùng bán).
+    const openBag = c.consumePressed('openBag');
+    if (openBag && !this.shopWindow) this.setBagOpen(!this.bagOpen);
+    const windowOpen = this.windowOpen;
+    if (c.consumePressed('devAddHour') && gameConfig.devCheatsEnabled && !windowOpen) this.devAddHour();
     const slot = c.hotbarPressed();
     if (slot !== null) this.selectHotbar(slot);
     const wheel = c.consumeWheelSteps();
@@ -1330,15 +1511,186 @@ export class GardenScene extends Phaser.Scene {
       scrollSelect(this.inventory, wheel);
       this.inventoryRevision++;
     }
-    if (c.consumePressed('devNextDay') && gameConfig.devCheatsEnabled && !this.bagOpen) {
+    if (c.consumePressed('devNextDay') && gameConfig.devCheatsEnabled && !windowOpen) {
       this.runOvernight();
       this.showBubble(bubbles.devNextDay);
     }
     // T-004: chuột phải = ăn món ở ô hotbar đang chọn. Không đụng tới việc đang làm (đang cuốc vẫn cuốc tiếp).
     // Luôn "tiêu thụ" lần bấm mỗi frame để lần bấm lúc mở gùi không lọt sang sau.
     const rightClick = c.consumeSecondaryPress();
-    if (rightClick && !this.bagOpen) this.tryEatSelected();
-    if (c.consumePressed('devDrainStamina') && gameConfig.devCheatsEnabled && !this.bagOpen) this.devDrainStamina();
+    if (rightClick && !windowOpen) this.tryEatSelected();
+    if (c.consumePressed('devDrainStamina') && gameConfig.devCheatsEnabled && !windowOpen) this.devDrainStamina();
+  }
+
+  // ---------------------------------------------------------------- tiền, thùng bán, sạp hạt (T-006)
+
+  /** Có cửa sổ nào (gùi, thùng bán, sạp hạt) đang mở không — mở thì thế giới "modal": không đi, việc trên ô đứng yên. */
+  get windowOpen(): boolean {
+    return this.bagOpen || this.shopWindow !== null;
+  }
+
+  /** Phím F: đang mở thùng bán / sạp hạt → đóng; gùi mở → bỏ qua; không thì mở vật đang đứng cạnh (nếu có). */
+  private handleInteractKey(): void {
+    this.interactKeyPresses++;
+    if (this.shopWindow) {
+      this.closeShop();
+      return;
+    }
+    if (this.bagOpen) return;
+    const c = this.feetBody.center;
+    const target = nearestKeyTarget(L, c.x, c.y, T, gameConfig.interactKeyRange);
+    if (target) this.openShop(target);
+  }
+
+  /** Mở cửa sổ thùng bán / sạp hạt: đồng hồ dừng (lý do sellBox / seedStall), nhân vật đứng, lần giữ chuột dở bị chặn. */
+  private openShop(kind: ShopWindow): void {
+    if (this.shopWindow === kind) return;
+    if (this.shopWindow) this.closeShop();
+    if (this.bagOpen) this.setBagOpen(false);
+    this.shopWindow = kind;
+    this.pauseReasons.set(kind, true);
+    this.shopOpens[kind]++;
+    this.shopHover = null;
+    this.stallHover = -1;
+    this.shopNoticeT = 0;
+    this.dragKind = null;
+    this.dragBlocked = true;
+    this.feetBody.setVelocity(0, 0);
+    this.hideHighlight();
+  }
+
+  private closeShop(): void {
+    const kind = this.shopWindow;
+    if (!kind) return;
+    this.shopWindow = null;
+    this.pauseReasons.set(kind, false);
+    this.shopHover = null;
+    this.stallHover = -1;
+    this.shopNoticeT = 0;
+    this.dragKind = null;
+    this.dragBlocked = true; // chuột còn giữ sau khi đóng → không tính là click xuống ruộng
+  }
+
+  /**
+   * Con trỏ khi cửa sổ thùng bán / sạp hạt mở: biết đang trên ô / nút nào; click ô = chuyển món (Shift = cả chồng), click
+   * nút = mua (Shift = mua seedBulkBuyCount); click ra ngoài khung = đóng (như gùi).
+   */
+  private updateShopPointer(pressed: boolean, inside: boolean, px: number, py: number): void {
+    this.hideHighlight();
+    this.hover.valid = false;
+    const shift = this.controls.primaryPressWithShift();
+    if (this.shopWindow === 'sellBox') {
+      const nBag = this.inventory.slots.length;
+      const nBox = this.sellBox.slots.length;
+      this.shopHover = inside ? sellSlotAt(px, py, nBag, nBox) : null;
+      if (pressed) {
+        if (!rectContains(sellPanelRect(nBag, nBox), px, py)) this.closeShop();
+        else if (this.shopHover) this.transferSlot(this.shopHover.side, this.shopHover.index, shift);
+      }
+    } else if (this.shopWindow === 'seedStall') {
+      const n = this.seedStallItems.length;
+      this.stallHover = inside ? stallButtonAt(px, py, n) : -1;
+      if (pressed) {
+        if (!rectContains(stallPanelRect(n), px, py)) this.closeShop();
+        else if (this.stallHover >= 0) this.buyFromStall(this.stallHover, shift);
+      }
+    }
+    if (pressed) {
+      this.dragKind = null;
+      this.dragBlocked = true;
+    }
+  }
+
+  /**
+   * Chuyển món giữa gùi và thùng bán: 1 món, hoặc cả chồng (`all`). Hạt giống không bỏ vào thùng được (không bán được —
+   * systems/economy.ts). Bên nhận đầy → báo, không mất đồ.
+   */
+  private transferSlot(side: SellSide, index: number, all: boolean): void {
+    const from = side === 'bag' ? this.inventory : this.sellBox;
+    const to = side === 'bag' ? this.sellBox : this.inventory;
+    const stack = from.slots[index];
+    if (!stack) return;
+    if (side === 'bag' && !canSellItem(stack.id)) {
+      this.setShopNotice(isSeedItem(stack.id) ? 'Hạt giống không bán được' : 'Món này không bán được', true);
+      return;
+    }
+    const r = moveFromSlot(from, index, to, all ? stack.count : 1);
+    if (r.moved <= 0) {
+      if (side === 'box') {
+        this.setShopNotice(bubbles.bagFull, true);
+        this.showBubble(bubbles.bagFull);
+      } else {
+        this.setShopNotice('Thùng đầy rồi!', true);
+      }
+      return;
+    }
+    this.transfers++;
+    this.inventoryRevision++;
+  }
+
+  /** Mua hạt ở nút thứ i (1 hạt, Shift = tối đa seedBulkBuyCount): thiếu tiền / gùi đầy thì báo, không trừ tiền. */
+  private buyFromStall(i: number, bulk: boolean): void {
+    const item = this.seedStallItems[i];
+    if (!item) return;
+    const result = buySeeds(this.wallet, this.inventory, item.cropId, bulk ? gameConfig.seedBulkBuyCount : 1);
+    if (!result.ok) {
+      if (result.reason === 'bagFull') {
+        this.setShopNotice(bubbles.bagFull, true);
+        this.showBubble(bubbles.bagFull);
+      } else if (result.reason === 'noMoney') {
+        this.setShopNotice('Không đủ tiền', true);
+      }
+      return;
+    }
+    this.inventoryRevision++;
+    this.onMoneyChanged(-result.cost);
+    this.purchases.push({ cropId: result.cropId, count: result.count, cost: result.cost });
+    this.setShopNotice(`Đã mua ${result.count} ${item.label.toLowerCase()} (−${result.cost} quan)`, false);
+    const key = COIN_SFX[Math.floor(Math.random() * COIN_SFX.length)];
+    if (this.cache.audio.exists(key)) {
+      this.sound.play(key, { volume: gameConfig.sfxVolume, detune: (Math.random() * 2 - 1) * 60 });
+      this.lastCoinSfx = key;
+      this.lastSfx = key;
+    }
+    // Icon hạt bay vào ô hotbar nhận (nếu ở hotbar) — dùng chung hiệu ứng hái; xuất phát từ nút vừa bấm.
+    const b = stallButtonRect(i, this.seedStallItems.length);
+    this.events.emit('item-gained', { itemId: seedItemId(item.cropId), slot: result.firstSlot, screenX: b.x + 60, screenY: b.y + b.h / 2 });
+  }
+
+  /** Tiền vừa đổi (`delta` quan, âm = tiêu) → HUD vẽ lại số + chữ bay. */
+  private onMoneyChanged(delta: number): void {
+    this.lastMoneyDelta = delta;
+    this.moneyRevision++;
+  }
+
+  private setShopNotice(text: string, warn: boolean): void {
+    this.shopNotice = text;
+    this.shopNoticeWarn = warn;
+    this.shopNoticeT = gameConfig.shopNoticeSeconds;
+  }
+
+  /**
+   * Dòng chữ chân cửa sổ: dòng báo vừa có (vd "Hạt giống không bán được") trong shopNoticeSeconds; không có thì mô tả thứ
+   * dưới con trỏ (tên món + giá bán / số hạt đang có trong gùi). HUD đọc mỗi frame.
+   */
+  get shopStatus(): { text: string; warn: boolean } {
+    if (this.shopNoticeT > 0) return { text: this.shopNotice, warn: this.shopNoticeWarn };
+    if (this.shopWindow === 'sellBox' && this.shopHover) {
+      const inv = this.shopHover.side === 'bag' ? this.inventory : this.sellBox;
+      const st = inv.slots[this.shopHover.index];
+      if (!st) return { text: '', warn: false };
+      const name = itemInfo(st.id)?.name ?? st.id;
+      const price = sellPriceOf(st.id);
+      return { text: price === null ? `${name} · không bán được` : `${name} · ${price} quan/món`, warn: false };
+    }
+    if (this.shopWindow === 'seedStall' && this.stallHover >= 0) {
+      const item = this.seedStallItems[this.stallHover];
+      if (!item) return { text: '', warn: false };
+      const price = seedPriceOf(item.cropId) ?? 0;
+      if (!hasMoney(this.wallet, price)) return { text: 'Không đủ tiền', warn: true };
+      return { text: `Trong gùi đang có ${countOf(this.inventory, seedItemId(item.cropId))} ${item.label.toLowerCase()}`, warn: false };
+    }
+    return { text: '', warn: false };
   }
 
   // ---------------------------------------------------------------- Sức, ăn, chửi thề (T-004)
@@ -1543,7 +1895,24 @@ export class GardenScene extends Phaser.Scene {
    * Chỉ đổi thuộc tính của 2 hình có sẵn — không tạo object mới mỗi frame.
    */
   private drawTileHighlight(tx: number, ty: number, inReachNow: boolean, dt: number): void {
-    const key = ty * L.cols + tx;
+    // Ô đang cuốc / cuốc dở / trong hàng chờ: bỏ nền phủ trắng (giữ nét viền) để thấy rõ nấc đất + thanh tiến độ.
+    const fillAlpha = this.isTillBusyTile(tx, ty) ? 0 : gameConfig.tileHighlightFillAlpha[inReachNow ? 0 : 1];
+    this.drawHighlightBox(ty * L.cols + tx, { x: tx, y: ty, w: 1, h: 1 }, inReachNow, dt, fillAlpha);
+  }
+
+  /**
+   * Viền một vùng ô (1 ô ruộng, hoặc cả thùng bán / sạp hạt — T-006). `key` đổi thì nhịp thở bắt đầu lại.
+   * Chỉ đổi kích thước 2 hình có sẵn khi vùng đổi cỡ — không tạo object mới mỗi frame.
+   */
+  private drawHighlightBox(
+    key: number,
+    r: TileRect,
+    inReachNow: boolean,
+    dt: number,
+    fillAlpha: number,
+    liftPx = 0,
+    depth = DEPTH_TILE_HIGHLIGHT,
+  ): void {
     if (key !== this.highlightTileKey) {
       this.highlightTileKey = key;
       this.highlightPulseT = 0;
@@ -1551,12 +1920,20 @@ export class GardenScene extends Phaser.Scene {
       this.highlightPulseT += dt;
     }
     const k = inReachNow ? 0 : 1; // chỉ số [trong tầm, ngoài tầm] trong các mảng config
-    // Ô đang cuốc / cuốc dở / trong hàng chờ: bỏ nền phủ trắng (giữ nét viền) để thấy rõ nấc đất + thanh tiến độ.
-    const fillAlpha = this.isTillBusyTile(tx, ty) ? 0 : gameConfig.tileHighlightFillAlpha[k];
     const w = gameConfig.tileHighlightWidth[k];
     const outline = gameConfig.tileHighlightOutline[k];
-    const x = tx * T + HIGHLIGHT_INSET;
-    const y = ty * T + HIGHLIGHT_INSET;
+    const x = r.x * T + HIGHLIGHT_INSET;
+    const y = r.y * T - liftPx + HIGHLIGHT_INSET;
+    const bw = r.w * T - HIGHLIGHT_INSET * 2;
+    const bh = r.h * T + liftPx - HIGHLIGHT_INSET * 2;
+    if (this.highlight.width !== bw || this.highlight.height !== bh) {
+      this.highlight.setSize(bw, bh);
+      this.highlightBacking.setSize(bw, bh);
+    }
+    if (this.highlight.depth !== depth + 1) {
+      this.highlightBacking.setDepth(depth);
+      this.highlight.setDepth(depth + 1);
+    }
     this.highlightBacking
       .setPosition(x, y)
       .setStrokeStyle(w + outline * 2, palette.ink, gameConfig.tileHighlightOutlineAlpha[k])
@@ -2473,6 +2850,7 @@ export class GardenScene extends Phaser.Scene {
             job: this.hover.job,
             highlight: this.hover.inReach ? 'bright' : 'gray',
             alpha: this.highlight.alpha,
+            object: this.hover.object,
           }
         : null,
       action: {
@@ -2578,6 +2956,33 @@ export class GardenScene extends Phaser.Scene {
         opens: this.pauseOpens,
         musicVolume: this.musicVolumeNow(),
       },
+      money: {
+        current: this.wallet.money,
+        revision: this.moneyRevision,
+        purchases: this.purchases.map((p) => ({ ...p })),
+        lastCoinSfx: this.lastCoinSfx,
+      },
+      shop: {
+        window: this.shopWindow,
+        status: this.shopStatus.text,
+        statusWarn: this.shopStatus.warn,
+        opens: { ...this.shopOpens },
+        keyPresses: this.interactKeyPresses,
+        nearby: body ? nearestKeyTarget(L, body.center.x, body.center.y, T, gameConfig.interactKeyRange) : null,
+      },
+      sellBox: {
+        slots: this.sellBox.slots.map((st) => (st ? { id: st.id, count: st.count, name: itemInfo(st.id)?.name ?? st.id } : null)),
+        total: sellBoxTotal(this.sellBox),
+        hover: this.shopHover ? { ...this.shopHover } : null,
+        transfers: this.transfers,
+      },
+      seedStall: {
+        buttons: this.seedStallItems.map((it) => {
+          const price = seedPriceOf(it.cropId) ?? 0;
+          return { cropId: it.cropId, label: it.label, price, enabled: hasMoney(this.wallet, price) };
+        }),
+        hoverButton: this.stallHover,
+      },
       till: {
         tuning: { ...this.tillTuning },
         finishes: this.finishCount,
@@ -2672,6 +3077,43 @@ export class GardenScene extends Phaser.Scene {
     if (t.fastActionSeconds !== undefined) this.fastParams.duration = t.fastActionSeconds;
     if (t.grumbleSeconds !== undefined) this.grumbleSeconds = t.grumbleSeconds;
     return { fastActionSeconds: this.fastParams.duration, grumbleSeconds: this.grumbleSeconds };
+  }
+
+  /** Đặt số tiền (QA/test, vd 3 quan để thử nút xám). Đi qua luật "không âm". Trả về số tiền sau khi đặt. */
+  debugSetMoney(n: number): number {
+    const before = this.wallet.money;
+    setMoney(this.wallet, n);
+    if (this.wallet.money !== before) this.onMoneyChanged(this.wallet.money - before);
+    return this.wallet.money;
+  }
+
+  /** Ghi đè một ô thùng bán (QA/test). */
+  debugSetSellBoxSlot(i: number, id: string | null, count: number): void {
+    setSlot(this.sellBox, i, id, count);
+    this.inventoryRevision++;
+  }
+
+  /** Toạ độ màn (1920×1080) tâm ô `i` bên gùi / thùng trong cửa sổ thùng bán — cho e2e. */
+  debugSellSlotCenter(side: SellSide, i: number): { x: number; y: number } {
+    const r = sellSlotRect(side, i, this.inventory.slots.length, this.sellBox.slots.length);
+    return { x: r.x + r.w / 2, y: r.y + r.h / 2 };
+  }
+
+  /** Toạ độ màn tâm nút mua thứ i ở sạp hạt — cho e2e. */
+  debugStallButtonCenter(i: number): { x: number; y: number } {
+    const r = stallButtonRect(i, this.seedStallItems.length);
+    return { x: r.x + r.w / 2, y: r.y + r.h / 2 };
+  }
+
+  /**
+   * "Bán thùng" ngay (QA/test, xem trước việc T-007 làm lúc qua đêm): bán hết theo giá gốc, cộng tiền. KHÔNG gọi trong game
+   * ở T-006 — tiền thùng bán chỉ cộng cuối ngày.
+   */
+  debugSellBoxNow(): SaleReport {
+    const report = sellBoxContents(this.sellBox, this.wallet);
+    this.inventoryRevision++;
+    if (report.earned > 0) this.onMoneyChanged(report.earned);
+    return report;
   }
 
   /** Qua một đêm như phím G (QA/test) — trả về tóm tắt đêm. */

@@ -274,6 +274,24 @@ export const gameConfig = {
   /** Hái xong ô trở về đất chưa cuốc. */
   harvestResetsSoil: true,
 
+  // ---- 3.9 Kinh tế: tiền, thùng bán, sạp hạt tạm (T-006) ----
+  /** Tiền khởi đầu (quan). Đủ mua hạt cho 9 ô + vài bát cơm. Tiền không bao giờ âm. */
+  startMoney: 60,
+  /** Số ô của thùng bán (mỗi ô chồng tối đa stackMax như gùi). 18 = 2 hàng × 9, bằng gùi. */
+  sellBoxSlots: 18,
+  /**
+   * Phím F mở thùng bán / sạp hạt khi "đứng cạnh": khoảng cách từ tâm hộp chân tới MÉP vật ≤ bấy nhiêu ô
+   * (1 = đứng ở ô kề, kể cả ô chéo). Click thì dùng interactRange như ô ruộng.
+   */
+  interactKeyRange: 1,
+  /** Sạp hạt: Shift+click mua tối đa bấy nhiêu hạt một lần (thiếu tiền / gùi gần đầy thì mua được bao nhiêu hay bấy nhiêu). */
+  seedBulkBuyCount: 5,
+  /** Dòng báo trong cửa sổ thùng bán / sạp hạt ("Hạt giống không bán được", "Không đủ tiền"…) hiện bao lâu (giây). */
+  shopNoticeSeconds: 2.2,
+  /** Chữ "−4 quan" / "+30 quan" bay cạnh ô tiền trên HUD: bao lâu (giây), bay lên bao nhiêu px. */
+  moneyFloatSeconds: 1.2,
+  moneyFloatRisePx: 20,
+
   // ---- Gùi + hotbar (T-003, GDD §3.3, §3.9) ----
   /** Số ô gùi lúc đầu (2 hàng × 9, hàng 1 = hotbar). */
   bagSlotsStart: 18,

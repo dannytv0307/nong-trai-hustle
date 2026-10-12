@@ -1,7 +1,7 @@
 // "Lý do dừng" đồng hồ ngày (GDD §3.1: đồng hồ dừng khi tạm dừng, túi đồ, cửa hàng, tổng kết…). Thuần TS → test bằng Vitest.
 // Mỗi cửa sổ khi mở thì THÊM lý do của mình, đóng thì BỎ đi; đồng hồ chỉ chạy khi không còn lý do nào.
 // Nhờ vậy nhiều cửa sổ chồng nhau (vd mất focus lúc đang mở gùi) không làm đồng hồ chạy lại sớm khi mới đóng một cái.
-// T-006 (thùng bán, sạp hạt) và T-007 (tổng kết ngày) chỉ cần gọi set('sellBox', true) / set('daySummary', true).
+// T-006: thùng bán / sạp hạt gọi set('sellBox' | 'seedStall', true). T-007 (tổng kết ngày) gọi set('daySummary', true).
 
 /** Các lý do đã biết. Thêm cửa sổ mới thì thêm tên ở đây. */
 export type PauseReason = 'bag' | 'pauseMenu' | 'sellBox' | 'seedStall' | 'daySummary' | 'sleep';
@@ -35,14 +35,16 @@ export class PauseReasons {
 }
 
 /** Việc phím Esc làm, theo cửa sổ đang mở (cửa sổ trên cùng được đóng trước). */
-export type EscAction = 'closePause' | 'closeBag' | 'openPause';
+export type EscAction = 'closePause' | 'closeShop' | 'closeBag' | 'openPause';
 
 /**
- * Esc: cửa sổ Tạm dừng đang mở → đóng (chơi tiếp); gùi đang mở → chỉ đóng gùi; không có gì → mở Tạm dừng.
- * (Mất focus lúc đang mở gùi thì Tạm dừng nằm trên gùi → Esc đầu đóng Tạm dừng, Esc sau đóng gùi.)
+ * Esc: cửa sổ Tạm dừng đang mở → đóng (chơi tiếp); thùng bán / sạp hạt đang mở → đóng nó (T-006); gùi đang mở → chỉ
+ * đóng gùi; không có gì → mở Tạm dừng.
+ * (Mất focus lúc đang mở gùi / thùng bán thì Tạm dừng nằm trên → Esc đầu đóng Tạm dừng, Esc sau đóng cửa sổ kia.)
  */
-export function resolveEsc(state: { pauseMenuOpen: boolean; bagOpen: boolean }): EscAction {
+export function resolveEsc(state: { pauseMenuOpen: boolean; bagOpen: boolean; shopWindow?: string | null }): EscAction {
   if (state.pauseMenuOpen) return 'closePause';
+  if (state.shopWindow) return 'closeShop';
   if (state.bagOpen) return 'closeBag';
   return 'openPause';
 }

@@ -24,8 +24,9 @@ export interface GardenLayout {
   /** Lối đất từ cửa nhà xuống Đầu ngõ (chỉ trang trí). */
   path: TileRect;
   pond: TileRect;
-  /** Chừa chỗ cho T-006 (chưa chặn đường). */
+  /** Thùng bán (T-006) — có va chạm. */
   sellBox: TileRect;
+  /** Sạp hạt tạm (T-006, D-019: hộp hạt, không NPC) — có va chạm. */
   seedStall: TileRect;
   /** Gốc cây [x, y] (ô). */
   trees: [number, number][];
@@ -33,7 +34,7 @@ export interface GardenLayout {
 
 export const gardenLayout = layoutJson as unknown as GardenLayout;
 
-export type SolidKind = 'fence' | 'wall' | 'bed' | 'pond' | 'tree';
+export type SolidKind = 'fence' | 'wall' | 'bed' | 'pond' | 'tree' | 'sellBox' | 'seedStall';
 
 export interface Solid {
   kind: SolidKind;
@@ -65,13 +66,15 @@ export function houseWallRects(h: GardenLayout['house']): TileRect[] {
   return rects;
 }
 
-/** Mọi vật cản, theo ô. Cây tính là 1 ô (hộp va chạm thật nhỏ hơn — xem treeTrunkHitbox). */
+/** Mọi vật cản, theo ô. Cây tính là 1 ô (hộp va chạm thật nhỏ hơn — xem treeTrunkHitbox). T-006: thùng bán, sạp hạt. */
 export function solids(layout: GardenLayout): Solid[] {
   return [
     ...fenceRects(layout.cols, layout.rows).map((rect) => ({ kind: 'fence' as const, rect })),
     ...houseWallRects(layout.house).map((rect) => ({ kind: 'wall' as const, rect })),
     { kind: 'bed', rect: layout.bed },
     { kind: 'pond', rect: layout.pond },
+    { kind: 'sellBox', rect: layout.sellBox },
+    { kind: 'seedStall', rect: layout.seedStall },
     ...layout.trees.map(([x, y]) => ({ kind: 'tree' as const, rect: { x, y, w: 1, h: 1 } })),
   ];
 }
@@ -128,7 +131,7 @@ export function rectsOverlap(a: TileRect, b: TileRect): boolean {
 }
 
 /**
- * Lưới vật cản cho lớp va chạm Tilemap: rào, tường, giường, ao (KHÔNG gồm cây — cây dùng hộp gốc nhỏ).
+ * Lưới vật cản cho lớp va chạm Tilemap: rào, tường, giường, ao, thùng bán, sạp hạt (KHÔNG gồm cây — cây dùng hộp gốc nhỏ).
  * Dùng Tilemap thay vì nhiều hộp nối nhau vì Phaser tự tắt "mặt trong" giữa hai ô chặn liền nhau
  * → đi trượt dọc tường không bị vấp ở chỗ nối (BUG-001).
  */

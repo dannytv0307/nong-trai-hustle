@@ -13,6 +13,15 @@ import {
   isOverHud,
   keyHintMainBottom,
   keyHintSideMaxWidth,
+  moneyPanelRect,
+  SELL_WINDOW,
+  sellGridsBottom,
+  sellPanelRect,
+  sellSlotAt,
+  sellSlotRect,
+  stallButtonAt,
+  stallButtonRect,
+  stallPanelRect,
   pausePanelRect,
   pauseResumeButtonRect,
   rectContains,
@@ -96,5 +105,54 @@ describe('hudLayout — đồng hồ + Tạm dừng (T-005)', () => {
   it('gợi ý phím: dòng chính nằm trên nút gùi; khe cho dòng ngắn đủ rộng', () => {
     expect(keyHintMainBottom()).toBeLessThan(bagButtonRect().y);
     expect(keyHintSideMaxWidth()).toBeGreaterThan(250);
+  });
+});
+
+describe('hudLayout — tiền, thùng bán, sạp hạt (T-006)', () => {
+  const overlap = (a: { x: number; y: number; w: number; h: number }, b: typeof a) =>
+    a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+
+  it('ô tiền ngay dưới thanh Sức, thẳng mép trái, không đè thanh Sức / đồng hồ / hotbar', () => {
+    const m = moneyPanelRect();
+    const s = staminaPanelRect();
+    expect(m.x).toBe(s.x);
+    expect(m.y).toBeGreaterThan(s.y + s.h);
+    expect(overlap(m, s)).toBe(false);
+    expect(overlap(m, clockPanelRect())).toBe(false);
+    expect(overlap(m, hotbarRect())).toBe(false);
+  });
+
+  it('cửa sổ thùng bán: 2 lưới 18 ô nằm trong khung, khung trong màn, không đè hotbar; sellSlotAt đúng ô', () => {
+    const p = sellPanelRect(18, 18);
+    expect(p.x).toBeGreaterThan(0);
+    expect(p.x + p.w).toBeLessThan(W);
+    expect(p.y).toBeGreaterThan(0);
+    expect(p.y + p.h).toBeLessThan(hotbarRect().y);
+    for (const side of ['bag', 'box'] as const) {
+      for (let i = 0; i < 18; i++) {
+        const r = sellSlotRect(side, i, 18, 18);
+        expect(r.x).toBeGreaterThanOrEqual(p.x);
+        expect(r.x + r.w).toBeLessThanOrEqual(p.x + p.w);
+        expect(r.y + r.h).toBeLessThanOrEqual(sellGridsBottom(18, 18));
+        expect(sellSlotAt(r.x + r.w / 2, r.y + r.h / 2, 18, 18)).toEqual({ side, index: i });
+      }
+    }
+    // Thùng nằm bên phải gùi, không chồng nhau.
+    expect(sellSlotRect('box', 0, 18, 18).x).toBeGreaterThan(sellSlotRect('bag', 8, 18, 18).x + SELL_WINDOW.slot);
+    expect(sellSlotAt(p.x + 2, p.y + 2, 18, 18)).toBeNull();
+    expect(sellGridsBottom(18, 18) + 150).toBeLessThan(p.y + p.h);
+  });
+
+  it('cửa sổ sạp hạt: nút nằm trong khung, không chồng nhau; stallButtonAt đúng nút', () => {
+    const p = stallPanelRect(2);
+    expect(Math.abs(p.x + p.w / 2 - W / 2)).toBeLessThanOrEqual(1);
+    expect(p.y + p.h).toBeLessThan(H);
+    const a = stallButtonRect(0, 2);
+    const b = stallButtonRect(1, 2);
+    expect(overlap(a, b)).toBe(false);
+    expect(b.y + b.h).toBeLessThan(p.y + p.h - 60);
+    expect(stallButtonAt(a.x + 5, a.y + 5, 2)).toBe(0);
+    expect(stallButtonAt(b.x + b.w - 5, b.y + b.h - 5, 2)).toBe(1);
+    expect(stallButtonAt(p.x + 2, p.y + 2, 2)).toBe(-1);
   });
 });

@@ -129,3 +129,28 @@ export function scrollSelect(inv: Inventory, steps: number): void {
 export function selectedStack(inv: Inventory): ItemStack | null {
   return inv.slots[inv.selected] ?? null;
 }
+
+export interface MoveResult {
+  /** Số món đã chuyển (0 = không chuyển được gì: ô trống, bên nhận đầy…). */
+  moved: number;
+  /** Mã món đã chuyển (null nếu ô nguồn trống). */
+  id: string | null;
+  /** Ô đầu tiên bên nhận có đồ mới (-1 nếu không chuyển được). */
+  toSlot: number;
+}
+
+/**
+ * Chuyển tối đa `count` món từ ô `index` của gùi `from` sang gùi `to` (T-006: gùi ↔ thùng bán). Bên nhận xếp như
+ * addItem (lấp chồng cùng loại trước, rồi ô trống đầu tiên). Bên nhận không đủ chỗ → chuyển được bao nhiêu hay bấy
+ * nhiêu, phần còn lại ở nguyên ô cũ — không bao giờ mất đồ hay sinh thêm đồ.
+ */
+export function moveFromSlot(from: Inventory, index: number, to: Inventory, count: number): MoveResult {
+  const s = from.slots[index];
+  if (!s || count <= 0) return { moved: 0, id: s?.id ?? null, toSlot: -1 };
+  const id = s.id;
+  const want = Math.min(s.count, Math.floor(count), spaceFor(to, id));
+  if (want <= 0) return { moved: 0, id, toSlot: -1 };
+  const added = addItem(to, id, want);
+  removeFromSlot(from, index, added.added);
+  return { moved: added.added, id, toSlot: added.firstSlot };
+}

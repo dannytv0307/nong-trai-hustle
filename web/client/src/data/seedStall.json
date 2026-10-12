@@ -1,0 +1,7 @@
+{
+  "_note": "Sạp hạt tạm (T-006, D-019): hộp hạt ở cổng vườn, không phải NPC — thay quán chị Thóc cho prototype. Giá lấy từ crops.json (seedPrice), ở đây chỉ chọn bán hạt gì và tên ngắn trên nút. Thêm hạt mới = thêm một dòng.",
+  "items": [
+    { "cropId": "rau-cai", "label": "Hạt cải" },
+    { "cropId": "khoai-lang", "label": "Hạt khoai lang" }
+  ]
+}

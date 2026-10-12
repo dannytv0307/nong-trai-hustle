@@ -28,9 +28,18 @@ describe('bố cục Vườn (T-001)', () => {
     expect(grid[spawnTile.y][spawnTile.x]).toBe(false);
   });
 
-  it('ruộng, lối đi, thùng bán, sạp hạt không đè lên vật cản', () => {
-    for (const area of [L.plots, L.path, L.sellBox, L.seedStall]) {
-      for (const s of solids(L)) expect(rectsOverlap(area, s.rect), `${JSON.stringify(area)} vs ${s.kind}`).toBe(false);
+  it('ruộng, lối đi, thùng bán, sạp hạt không đè lên vật cản khác', () => {
+    const areas = [
+      { name: 'plots', rect: L.plots },
+      { name: 'path', rect: L.path },
+      { name: 'sellBox', rect: L.sellBox },
+      { name: 'seedStall', rect: L.seedStall },
+    ];
+    for (const area of areas) {
+      for (const s of solids(L)) {
+        if (s.kind === area.name) continue; // T-006: thùng bán / sạp hạt chính là vật cản
+        expect(rectsOverlap(area.rect, s.rect), `${area.name} vs ${s.kind}`).toBe(false);
+      }
     }
   });
 
@@ -47,8 +56,9 @@ describe('bố cục Vườn (T-001)', () => {
     for (let y = L.plots.y; y < L.plots.y + L.plots.h; y++) {
       for (let x = L.plots.x; x < L.plots.x + L.plots.w; x++) expect(isReachable(grid, spawnTile, { x, y })).toBe(true);
     }
-    expect(isReachable(grid, spawnTile, L.sellBox)).toBe(true);
-    expect(isReachable(grid, spawnTile, L.seedStall)).toBe(true);
+    // T-006: thùng bán / sạp hạt có va chạm → đi tới được ô ngay dưới chúng (đứng cạnh để bấm F).
+    expect(isReachable(grid, spawnTile, { x: L.sellBox.x, y: L.sellBox.y + L.sellBox.h })).toBe(true);
+    expect(isReachable(grid, spawnTile, { x: L.seedStall.x, y: L.seedStall.y - 1 })).toBe(true);
   });
 
   it('không ra khỏi rào', () => {

@@ -12,7 +12,7 @@ export type Action =
   | 'moveDown'
   | 'moveLeft'
   | 'moveRight'
-  | 'interact' // F
+  | 'interact' // F — mở thùng bán / sạp hạt khi đứng cạnh (T-006)
   | 'openBag' // E hoặc Tab
   | 'openQuests' // Q
   | 'menu' // Esc
@@ -56,6 +56,8 @@ export class InputController {
   private readonly buf = new PressBuffer();
   /** Phần cuộn chưa đủ một nấc (BUG-009: touchpad bắn nhiều sự kiện deltaY nhỏ → cộng dồn đủ wheelStepDelta). */
   private readonly wheelAcc = createWheelAccumulator();
+  /** Lần bấm chuột trái gần nhất có giữ Shift không (T-006). */
+  private primaryShift = false;
 
   constructor(scene: Phaser.Scene) {
     const kb = scene.input.keyboard;
@@ -85,6 +87,9 @@ export class InputController {
     this.input = scene.input;
     scene.input.on(Phaser.Input.Events.POINTER_DOWN, (p: Phaser.Input.Pointer) => {
       this.buf.pointerDown(p.leftButtonDown(), p.rightButtonDown());
+      // T-006: Shift+click (chuyển cả chồng / mua 5) — đọc Shift NGAY LÚC BẤM từ sự kiện chuột, không đọc phím Shift
+      // lúc xử lý (người chơi có thể đã nhả Shift trước frame kế).
+      if (p.leftButtonDown()) this.primaryShift = (p.event as MouseEvent | undefined)?.shiftKey === true;
     });
     scene.input.on(
       Phaser.Input.Events.POINTER_WHEEL,
@@ -113,6 +118,11 @@ export class InputController {
   /** Chuột trái vừa được bấm kể từ lần hỏi trước (true một lần mỗi lần bấm). Gọi một lần mỗi frame. */
   consumePrimaryPress(): boolean {
     return this.buf.consumePrimary();
+  }
+
+  /** Lần bấm chuột trái gần nhất có giữ Shift không (Shift+click: chuyển cả chồng, mua nhiều — T-006). */
+  primaryPressWithShift(): boolean {
+    return this.primaryShift;
   }
 
   /** Chuột phải vừa được bấm kể từ lần hỏi trước (true một lần mỗi lần bấm). Gọi một lần mỗi frame. */

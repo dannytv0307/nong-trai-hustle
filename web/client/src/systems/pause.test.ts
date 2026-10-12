@@ -35,6 +35,13 @@ describe('Esc', () => {
     // Mất focus lúc đang mở gùi: Tạm dừng nằm trên → đóng Tạm dừng trước.
     expect(resolveEsc({ pauseMenuOpen: true, bagOpen: true })).toBe('closePause');
   });
+
+  it('T-006: thùng bán / sạp hạt mở → Esc đóng nó; Tạm dừng nằm trên thì đóng Tạm dừng trước', () => {
+    expect(resolveEsc({ pauseMenuOpen: false, bagOpen: false, shopWindow: 'sellBox' })).toBe('closeShop');
+    expect(resolveEsc({ pauseMenuOpen: false, bagOpen: false, shopWindow: 'seedStall' })).toBe('closeShop');
+    expect(resolveEsc({ pauseMenuOpen: true, bagOpen: false, shopWindow: 'sellBox' })).toBe('closePause');
+    expect(resolveEsc({ pauseMenuOpen: false, bagOpen: false, shopWindow: null })).toBe('openPause');
+  });
 });
 
 describe('tự tạm dừng khi mất focus', () => {

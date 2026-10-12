@@ -147,3 +147,101 @@ export function keyHintSideMaxWidth(): number {
   const b = bagButtonRect();
   return W - KEY_HINT.margin - (b.x + b.w) - 16;
 }
+
+// ---------------------------------------------------------------- T-006: tiền, thùng bán, sạp hạt
+
+/** Ô tiền góc trên trái, ngay dưới thanh Sức (GDD §11): khoảng cách với thanh Sức, rộng, cao, cỡ icon xu. */
+export const MONEY_PANEL = { gap: 14, w: 250, h: 56, icon: 36 } as const;
+
+/** Khung ô tiền (icon xu + "60 quan"), thẳng mép trái với thanh Sức. */
+export function moneyPanelRect(): Rect {
+  const s = staminaPanelRect();
+  return { x: s.x, y: s.y + s.h + MONEY_PANEL.gap, w: MONEY_PANEL.w, h: MONEY_PANEL.h };
+}
+
+/**
+ * Cửa sổ thùng bán (GDD §11 "Hai lưới cạnh nhau"): gùi bên trái, thùng bên phải, mỗi bên 9 cột (gùi giữ hàng trên =
+ * hotbar như cửa sổ gùi). Ô nhỏ hơn cửa sổ gùi để hai lưới vừa ngang màn.
+ * header = phần tiêu đề, footer = dòng "Cuối ngày bán được…" + dòng báo + dòng hướng dẫn.
+ */
+export const SELL_WINDOW = { slot: 80, gap: 8, pad: 36, midGap: 84, header: 100, rowSplit: 12, footer: 196, perRow: 9 } as const;
+
+export type SellSide = 'bag' | 'box';
+
+function sellGridSize(slotCount: number): { w: number; h: number } {
+  const per = SELL_WINDOW.perRow;
+  const rows = Math.ceil(slotCount / per);
+  return {
+    w: per * SELL_WINDOW.slot + (per - 1) * SELL_WINDOW.gap,
+    h: rows * SELL_WINDOW.slot + (rows - 1) * SELL_WINDOW.gap + (rows > 1 ? SELL_WINDOW.rowSplit : 0),
+  };
+}
+
+/** Khung cửa sổ thùng bán (giữa màn, hơi lệch lên để không đè hotbar). */
+export function sellPanelRect(bagSlots: number, boxSlots: number): Rect {
+  const a = sellGridSize(bagSlots);
+  const b = sellGridSize(boxSlots);
+  const w = SELL_WINDOW.pad * 2 + a.w + SELL_WINDOW.midGap + b.w;
+  const h = SELL_WINDOW.header + Math.max(a.h, b.h) + SELL_WINDOW.footer;
+  return { x: Math.round((W - w) / 2), y: Math.max(16, Math.round((H - h) / 2) - 40), w, h };
+}
+
+/** Góc trên-trái lưới một bên (gùi / thùng). */
+export function sellGridOrigin(side: SellSide, bagSlots: number, boxSlots: number): { x: number; y: number } {
+  const p = sellPanelRect(bagSlots, boxSlots);
+  const a = sellGridSize(bagSlots);
+  const x = side === 'bag' ? p.x + SELL_WINDOW.pad : p.x + SELL_WINDOW.pad + a.w + SELL_WINDOW.midGap;
+  return { x, y: p.y + SELL_WINDOW.header };
+}
+
+/** Ô thứ i của một bên (hàng đầu tách hàng dưới một khoảng rowSplit, như cửa sổ gùi). */
+export function sellSlotRect(side: SellSide, i: number, bagSlots: number, boxSlots: number): Rect {
+  const o = sellGridOrigin(side, bagSlots, boxSlots);
+  const row = Math.floor(i / SELL_WINDOW.perRow);
+  const col = i % SELL_WINDOW.perRow;
+  return {
+    x: o.x + col * (SELL_WINDOW.slot + SELL_WINDOW.gap),
+    y: o.y + row * (SELL_WINDOW.slot + SELL_WINDOW.gap) + (row > 0 ? SELL_WINDOW.rowSplit : 0),
+    w: SELL_WINDOW.slot,
+    h: SELL_WINDOW.slot,
+  };
+}
+
+/** Ô dưới điểm (px, py) trong cửa sổ thùng bán, null nếu không trúng ô nào. */
+export function sellSlotAt(px: number, py: number, bagSlots: number, boxSlots: number): { side: SellSide; index: number } | null {
+  for (let i = 0; i < bagSlots; i++) if (inside(sellSlotRect('bag', i, bagSlots, boxSlots), px, py)) return { side: 'bag', index: i };
+  for (let i = 0; i < boxSlots; i++) if (inside(sellSlotRect('box', i, bagSlots, boxSlots), px, py)) return { side: 'box', index: i };
+  return null;
+}
+
+/** Đáy hai lưới (y) — các dòng chữ chân cửa sổ xếp dưới mốc này. */
+export function sellGridsBottom(bagSlots: number, boxSlots: number): number {
+  const p = sellPanelRect(bagSlots, boxSlots);
+  return p.y + SELL_WINDOW.header + Math.max(sellGridSize(bagSlots).h, sellGridSize(boxSlots).h);
+}
+
+/** Cửa sổ sạp hạt: rộng, tiêu đề (tên + tiền), mỗi nút cao, khoảng hở, chân (dòng báo + hướng dẫn), lề trong. */
+export const STALL_WINDOW = { w: 780, header: 150, buttonH: 104, buttonGap: 18, footer: 118, pad: 48 } as const;
+
+export function stallPanelRect(buttons: number): Rect {
+  const n = Math.max(1, buttons);
+  const h = STALL_WINDOW.header + n * STALL_WINDOW.buttonH + (n - 1) * STALL_WINDOW.buttonGap + STALL_WINDOW.footer;
+  return { x: Math.round((W - STALL_WINDOW.w) / 2), y: Math.max(16, Math.round((H - h) / 2) - 40), w: STALL_WINDOW.w, h };
+}
+
+/** Nút mua thứ i. */
+export function stallButtonRect(i: number, buttons: number): Rect {
+  const p = stallPanelRect(buttons);
+  return {
+    x: p.x + STALL_WINDOW.pad,
+    y: p.y + STALL_WINDOW.header + i * (STALL_WINDOW.buttonH + STALL_WINDOW.buttonGap),
+    w: p.w - STALL_WINDOW.pad * 2,
+    h: STALL_WINDOW.buttonH,
+  };
+}
+
+/** Nút mua dưới điểm (px, py), -1 nếu không trúng. */
+export function stallButtonAt(px: number, py: number, buttons: number): number {
+  for (let i = 0; i < buttons; i++) if (inside(stallButtonRect(i, buttons), px, py)) return i;
+  return -1;
+}

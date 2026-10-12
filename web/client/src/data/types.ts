@@ -37,3 +37,11 @@ export interface ItemData {
   /** Ghi chú thiết kế (không hiện trong game). */
   note?: string;
 }
+
+/** Một món bán ở sạp hạt tạm (T-006) — file `seedStall.json`. Giá lấy từ crops.json (`seedPrice`). */
+export interface SeedStallItem {
+  /** Cây có hạt bán (id trong crops.json). */
+  cropId: string;
+  /** Tên ngắn trên nút ("Hạt cải"). */
+  label: string;
+}

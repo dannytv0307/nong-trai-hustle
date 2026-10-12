@@ -6,13 +6,15 @@
 // T-004: thanh Sức góc trên trái (xanh lá → vàng < 50% → đỏ < 20%), viền màn tối khi đuối, ô hotbar nảy khi ăn.
 // T-005: đồng hồ góc trên phải ("Ngày 1 · Mùa nắng", "14:30", icon mặt trời/trăng, nhấp nháy đỏ từ 23h), cửa sổ
 // Tạm dừng (Esc / mất focus — trạng thái do GardenScene giữ), gợi ý phím góc dưới phải theo GDD §11.
-// Các task sau (tiền T-006) sẽ thêm vào đây.
+// T-006: ô tiền dưới thanh Sức (icon xu + "60 quan", chữ bay "−4 quan" khi tiêu), cửa sổ thùng bán (gùi ↔ thùng, dòng
+// "Cuối ngày bán được: N quan") và cửa sổ sạp hạt (nút mua, xám khi thiếu tiền). Trạng thái do GardenScene giữ.
 import Phaser from 'phaser';
 import { gameConfig } from '../config/gameConfig';
 import { cssColor, palette } from '../config/palette';
 import { textStyles, uiFontFamily } from '../config/theme';
 import type { ItemStack } from '../systems/inventory';
-import { itemInfo } from '../systems/items';
+import { itemInfo, seedItemId } from '../systems/items';
+import { hasMoney, seedPriceOf, sellBoxTotal } from '../systems/economy';
 import { staminaBand, staminaLabel, staminaRatio, type StaminaBand } from '../systems/stamina';
 import {
   BAG_WINDOW,
@@ -25,6 +27,16 @@ import {
   hotbarSlotRect,
   KEY_HINT,
   keyHintMainBottom,
+  MONEY_PANEL,
+  moneyPanelRect,
+  SELL_WINDOW,
+  sellGridOrigin,
+  sellGridsBottom,
+  sellPanelRect,
+  sellSlotRect,
+  stallButtonRect,
+  stallPanelRect,
+  STALL_WINDOW,
   pausePanelRect,
   pauseResumeButtonRect,
   staminaFillRect,
@@ -32,7 +44,7 @@ import {
   type Rect,
 } from '../ui/hudLayout';
 import { blinkOn, dayLabel, formatClock, isPassOutWarning, skyPhase } from '../systems/time';
-import { drawItemIcon } from '../ui/itemArt';
+import { drawItemIcon, mixColor } from '../ui/itemArt';
 import type { GardenScene } from './GardenScene';
 
 /** Trạng thái HUD cho QA đọc (qua GardenScene.debugState.hud). */
@@ -78,7 +90,21 @@ export interface HudDebugState {
   hintLines: string[];
   hintBounds: Rect[];
   /** Khung các thành phần HUD cố định (QA kiểm không đè nhau). */
-  hudRects: { stamina: Rect; hotbar: Rect; bagButton: Rect; clock: Rect };
+  hudRects: { stamina: Rect; hotbar: Rect; bagButton: Rect; clock: Rect; money: Rect };
+  /** T-006: chữ ô tiền ("60 quan"), chữ bay đang hiện ('' = không). */
+  moneyText: string;
+  moneyFloat: string;
+  /** Cửa sổ thùng bán / sạp hạt đang hiện. */
+  sellBoxVisible: boolean;
+  seedStallVisible: boolean;
+  /** Dòng "Cuối ngày bán được: 30 quan", dòng báo chân cửa sổ, chữ số lượng trên ô thùng ('' = trống). */
+  sellTotalText: string;
+  shopStatusText: string;
+  sellBoxCounts: string[];
+  /** Nút sạp hạt: chữ trên nút, có bấm được không (đủ tiền), đang sáng (hover). */
+  stallButtons: { text: string; enabled: boolean; hover: boolean }[];
+  /** Cỡ chữ NHỎ NHẤT (px) trong cửa sổ đang mở (thùng bán / sạp hạt) — GDD §11: chữ ≥ 24px. 0 = không mở cửa sổ nào. */
+  shopMinFontPx: number;
 }
 
 /** Màu ruột thanh Sức theo dải (palette Art Bible). */
@@ -116,6 +142,8 @@ export interface ItemGainedEvent {
 
 /** Gợi ý phím (GDD §11). Dòng chính dài nằm trên nút gùi; dòng ngắn ở khe bên phải nút gùi. */
 const HINT_MAIN = 'WASD đi · Click làm · 1–9 chọn · E Gùi · Esc Menu';
+/** T-006: dòng thứ hai của khối gợi ý chính (phím mới F, Shift). */
+const HINT_MAIN_2 = 'F mở thùng bán / sạp hạt · Shift+click: cả chồng';
 const HINT_SIDE = ['Chuột phải: ăn món đang chọn'];
 const HINT_DEV = ['Phím thử: G qua đêm', 'F8 −20 Sức · F9 +1 giờ'];
 
@@ -168,6 +196,23 @@ export class GardenHudScene extends Phaser.Scene {
   private pauseButtonHover: boolean | null = null;
   private hintMain!: Phaser.GameObjects.Text;
   private hintSide!: Phaser.GameObjects.Text;
+  // ---- Tiền, thùng bán, sạp hạt (T-006) ----
+  private moneyText!: Phaser.GameObjects.Text;
+  private moneyFloat!: Phaser.GameObjects.Text;
+  private moneyFloatT = 0;
+  private moneyDrawn = -1;
+  private sellWindow!: Phaser.GameObjects.Container;
+  private readonly sellBagSlots: SlotView[] = [];
+  private readonly sellBoxSlots: SlotView[] = [];
+  private sellHoverFrame!: Phaser.GameObjects.Graphics;
+  private sellTotalText!: Phaser.GameObjects.Text;
+  private sellStatusText!: Phaser.GameObjects.Text;
+  private stallWindow!: Phaser.GameObjects.Container;
+  private stallMoneyText!: Phaser.GameObjects.Text;
+  private stallStatusText!: Phaser.GameObjects.Text;
+  private readonly stallButtons: { bg: Phaser.GameObjects.Graphics; label: Phaser.GameObjects.Text; owned: Phaser.GameObjects.Text }[] = [];
+  /** "Chữ ký" lần vẽ nút sạp gần nhất (tiền, hover, gùi) — chỉ vẽ lại khi đổi. */
+  private stallDrawnSig = '';
 
   constructor() {
     super('GardenHud');
@@ -186,17 +231,24 @@ export class GardenHudScene extends Phaser.Scene {
     this.clockIconDrawn = null;
     this.pauseButtonHover = null;
     this.blinkT = 0;
+    this.moneyDrawn = -1;
+    this.moneyFloatT = 0;
+    this.sellBagSlots.length = 0;
+    this.sellBoxSlots.length = 0;
+    this.stallButtons.length = 0;
+    this.stallDrawnSig = '';
 
     // Viền màn tối khi đuối: vẽ trước tiên để mọi thứ HUD khác nằm đè lên.
     this.buildVignette();
     this.buildStaminaBar();
+    this.buildMoney();
     this.buildClock();
 
     // Góc dưới phải: gợi ý phím (GDD §11). Dòng chính dài → đặt ngay TRÊN nút gùi (khe bên phải nút gùi chỉ ~340px);
     // dòng ngắn (chuột phải ăn, phím thử ở bản dev) nằm ở khe đó. Không đè hotbar / nút gùi.
     // BUG-015: chữ thân ≥ 24px ở 1080p (GDD §11).
     const hintStyle = { ...textStyles.body, fontSize: '24px', strokeThickness: 5, align: 'right' } as const;
-    this.hintMain = this.add.text(w - KEY_HINT.margin, keyHintMainBottom(), HINT_MAIN, hintStyle).setOrigin(1, 1);
+    this.hintMain = this.add.text(w - KEY_HINT.margin, keyHintMainBottom(), `${HINT_MAIN}\n${HINT_MAIN_2}`, hintStyle).setOrigin(1, 1);
     const side = gameConfig.devCheatsEnabled ? [...HINT_SIDE, ...HINT_DEV] : HINT_SIDE;
     this.hintSide = this.add.text(w - KEY_HINT.margin, h - KEY_HINT.bottom, side.join('\n'), hintStyle).setOrigin(1, 1);
 
@@ -222,6 +274,8 @@ export class GardenHudScene extends Phaser.Scene {
     this.bagButton = this.add.container(br.x + br.w / 2, br.y + br.h / 2, [btnBg, btnText]);
 
     this.buildBagWindow();
+    this.buildSellWindow();
+    this.buildStallWindow();
     this.buildPauseWindow();
 
     for (let i = 0; i < FLY_POOL; i++) {
@@ -360,6 +414,248 @@ export class GardenHudScene extends Phaser.Scene {
     g.fillStyle(palette.ink, 1).fillRoundedRect(b.x - 4, b.y - 4, b.w + 8, b.h + 8, 16);
     g.fillStyle(hover ? palette.gold : palette.wood, 1).fillRoundedRect(b.x, b.y, b.w, b.h, 13);
     g.fillStyle(palette.paper, hover ? 0.35 : 0.2).fillRoundedRect(b.x + 6, b.y + 6, b.w - 12, 10, 5);
+  }
+
+  /** Ô tiền dưới thanh Sức: khung mực + nền nâu đất, icon đồng xu vàng (lỗ vuông — quan tiền), chữ "60 quan". */
+  private buildMoney(): void {
+    const p = moneyPanelRect();
+    const g = this.add.graphics();
+    g.fillStyle(palette.ink, 0.92).fillRoundedRect(p.x - 3, p.y - 3, p.w + 6, p.h + 6, 14);
+    g.fillStyle(palette.earth, 1).fillRoundedRect(p.x, p.y, p.w, p.h, 12);
+    const cx = p.x + 14 + MONEY_PANEL.icon / 2;
+    const cy = p.y + p.h / 2;
+    drawCoin(g, cx, cy, MONEY_PANEL.icon / 2);
+    this.moneyText = this.add
+      .text(cx + MONEY_PANEL.icon / 2 + 14, cy, '', { fontFamily: uiFontFamily, fontSize: '28px', fontStyle: 'bold', color: cssColor('paper'), stroke: cssColor('ink'), strokeThickness: 6 })
+      .setOrigin(0, 0.5);
+    this.moneyFloat = this.add
+      .text(p.x + p.w + 16, cy, '', { fontFamily: uiFontFamily, fontSize: '28px', fontStyle: 'bold', color: cssColor('gold'), stroke: cssColor('ink'), strokeThickness: 6 })
+      .setOrigin(0, 0.5)
+      // Nổi trên nền tối của cửa sổ sạp hạt — mua xong vẫn thấy "−4 quan" bay lên.
+      .setDepth(60)
+      .setVisible(false);
+  }
+
+  /** Số tiền: chỉ đặt lại chữ khi đổi; tiền đổi (moneyRevision) → chữ "−4 quan" / "+30 quan" bay lên cạnh ô rồi mờ. */
+  private updateMoney(dt: number): void {
+    const money = this.garden.wallet.money;
+    const rev = this.garden.moneyRevision;
+    if (rev !== this.moneyDrawn) {
+      const first = this.moneyDrawn < 0;
+      this.moneyDrawn = rev;
+      this.moneyText.setText(`${money} quan`);
+      const d = this.garden.lastMoneyDelta;
+      if (!first && d !== 0) {
+        this.moneyFloat
+          .setText(d > 0 ? `+${d} quan` : `−${-d} quan`)
+          .setColor(cssColor(d > 0 ? 'gold' : 'vermilion'))
+          .setStroke(cssColor(d > 0 ? 'ink' : 'paper'), d > 0 ? 6 : 4)
+          .setVisible(true);
+        this.moneyFloatT = gameConfig.moneyFloatSeconds;
+      }
+    }
+    if (this.moneyFloatT > 0) {
+      this.moneyFloatT = Math.max(0, this.moneyFloatT - dt);
+      const p = 1 - this.moneyFloatT / gameConfig.moneyFloatSeconds;
+      const m = moneyPanelRect();
+      this.moneyFloat.setY(m.y + m.h / 2 - p * gameConfig.moneyFloatRisePx).setAlpha(p < 0.6 ? 1 : 1 - (p - 0.6) / 0.4);
+      if (this.moneyFloatT <= 0) this.moneyFloat.setVisible(false);
+    }
+  }
+
+  /**
+   * Cửa sổ thùng bán (GDD §11): nền tối mờ, khung giữa màn; trái "Gùi" (2 × 9, hàng trên = hotbar), phải "Thùng bán"
+   * (2 × 9); giữa có mũi tên ⇄. Dưới: "Cuối ngày bán được: N quan" (vàng), dòng báo, dòng hướng dẫn. Chữ ≥ 24px.
+   */
+  private buildSellWindow(): void {
+    const { gameWidth: w, gameHeight: h } = gameConfig;
+    const nBag = this.garden.inventory.slots.length;
+    const nBox = this.garden.sellBox.slots.length;
+    const p = sellPanelRect(nBag, nBox);
+    const parts: Phaser.GameObjects.GameObject[] = [this.add.rectangle(0, 0, w, h, palette.ink, 0.55).setOrigin(0)];
+    const g = this.add.graphics();
+    g.fillStyle(palette.ink, 1).fillRoundedRect(p.x - 5, p.y - 5, p.w + 10, p.h + 10, 22);
+    g.fillStyle(palette.earth, 1).fillRoundedRect(p.x, p.y, p.w, p.h, 18);
+    // Nền tối nhẹ sau từng lưới cho rõ hai bên.
+    for (const side of ['bag', 'box'] as const) {
+      const o = sellGridOrigin(side, nBag, nBox);
+      const last = sellSlotRect(side, (side === 'bag' ? nBag : nBox) - 1, nBag, nBox);
+      g.fillStyle(palette.ink, 0.25).fillRoundedRect(o.x - 10, o.y - 10, last.x + last.w - o.x + 20, last.y + last.h - o.y + 20, 12);
+    }
+    const bagO = sellGridOrigin('bag', nBag, nBox);
+    const boxO = sellGridOrigin('box', nBag, nBox);
+    const gridsBottom = sellGridsBottom(nBag, nBox);
+    // Mũi tên hai chiều giữa hai lưới.
+    const ax = (sellSlotRect('bag', SELL_WINDOW.perRow - 1, nBag, nBox).x + SELL_WINDOW.slot + boxO.x) / 2;
+    const ay = (bagO.y + gridsBottom) / 2;
+    parts.push(g);
+    parts.push(this.add.text(bagO.x, p.y + 24, 'Gùi', textStyles.subtitle).setOrigin(0, 0));
+    parts.push(this.add.text(boxO.x, p.y + 24, 'Thùng bán', textStyles.subtitle).setOrigin(0, 0));
+    parts.push(
+      this.add
+        .text(p.x + p.w - SELL_WINDOW.pad, p.y + 40, 'Cuối ngày tự bán theo giá gốc', { ...textStyles.body, fontSize: '24px', strokeThickness: 5 })
+        .setOrigin(1, 0),
+    );
+    parts.push(this.add.text(ax, ay, '⇄', { ...textStyles.subtitle, fontSize: '56px', color: cssColor('gold') }).setOrigin(0.5));
+    this.sellTotalText = this.add
+      .text(p.x + p.w / 2, gridsBottom + 26, '', { ...textStyles.subtitle, fontSize: '34px', color: cssColor('gold') })
+      .setOrigin(0.5, 0);
+    this.sellStatusText = this.add.text(p.x + p.w / 2, gridsBottom + 86, '', { ...textStyles.body, fontSize: '24px', strokeThickness: 5 }).setOrigin(0.5, 0);
+    parts.push(this.sellTotalText, this.sellStatusText);
+    parts.push(
+      this.add
+        .text(p.x + p.w / 2, p.y + p.h - 22, 'Click: chuyển 1 món · Shift+click: cả chồng · F / Esc: đóng', { ...textStyles.body, fontSize: '24px', strokeThickness: 5 })
+        .setOrigin(0.5, 1),
+    );
+    // Ô dưới con trỏ: "đế" vàng hoa hòe viền mực đặt SAU ô (ô vẽ đè lên → còn lại một vòng vàng quanh ô). Không dùng
+    // strokeRoundedRect nét dày vì WebGL vẽ lòi một mũi nhọn ở chỗ nối nét.
+    const s = SELL_WINDOW.slot;
+    this.sellHoverFrame = this.add.graphics().setVisible(false);
+    this.sellHoverFrame.fillStyle(palette.ink, 1).fillRoundedRect(-s / 2 - 10, -s / 2 - 10, s + 20, s + 20, 16);
+    this.sellHoverFrame.fillStyle(palette.gold, 1).fillRoundedRect(-s / 2 - 7, -s / 2 - 7, s + 14, s + 14, 14);
+    parts.push(this.sellHoverFrame);
+    this.sellWindow = this.add.container(0, 0, parts).setDepth(50).setVisible(false);
+    for (let i = 0; i < nBag; i++) {
+      const v = this.makeSlot(sellSlotRect('bag', i, nBag, nBox), i < gameConfig.hotbarSlots ? String(i + 1) : null);
+      this.sellBagSlots.push(v);
+      this.sellWindow.add(v.root);
+    }
+    for (let i = 0; i < nBox; i++) {
+      const v = this.makeSlot(sellSlotRect('box', i, nBag, nBox), null);
+      this.sellBoxSlots.push(v);
+      this.sellWindow.add(v.root);
+    }
+  }
+
+  /** Cửa sổ sạp hạt: tiêu đề "Sạp hạt" + "Tiền: 60 quan", mỗi hạt một nút (icon, "Hạt cải — 4 quan", số đang có), dòng báo, hướng dẫn. */
+  private buildStallWindow(): void {
+    const { gameWidth: w, gameHeight: h } = gameConfig;
+    const items = this.garden.seedStallItems;
+    const p = stallPanelRect(items.length);
+    const parts: Phaser.GameObjects.GameObject[] = [this.add.rectangle(0, 0, w, h, palette.ink, 0.55).setOrigin(0)];
+    const g = this.add.graphics();
+    g.fillStyle(palette.ink, 1).fillRoundedRect(p.x - 5, p.y - 5, p.w + 10, p.h + 10, 22);
+    g.fillStyle(palette.earth, 1).fillRoundedRect(p.x, p.y, p.w, p.h, 18);
+    parts.push(g);
+    parts.push(this.add.text(p.x + STALL_WINDOW.pad, p.y + 26, 'Sạp hạt', textStyles.subtitle).setOrigin(0, 0));
+    parts.push(
+      this.add
+        .text(p.x + STALL_WINDOW.pad, p.y + 84, 'Hộp hạt tự bán — bỏ tiền, lấy hạt', { ...textStyles.body, fontSize: '24px', strokeThickness: 5 })
+        .setOrigin(0, 0),
+    );
+    // Tiền đang có (góc phải tiêu đề) + icon xu.
+    const coin = this.add.graphics();
+    const mx = p.x + p.w - STALL_WINDOW.pad;
+    this.stallMoneyText = this.add
+      .text(mx, p.y + 46, '', { fontFamily: uiFontFamily, fontSize: '30px', fontStyle: 'bold', color: cssColor('paper'), stroke: cssColor('ink'), strokeThickness: 6 })
+      .setOrigin(1, 0.5);
+    parts.push(coin, this.stallMoneyText);
+    for (let i = 0; i < items.length; i++) {
+      const b = stallButtonRect(i, items.length);
+      const bg = this.add.graphics();
+      const icon = this.add.graphics().setPosition(b.x + 56, b.y + b.h / 2);
+      drawItemIcon(icon, seedItemId(items[i].cropId), 72);
+      const label = this.add
+        .text(b.x + 112, b.y + b.h / 2, '', { fontFamily: uiFontFamily, fontSize: '32px', fontStyle: 'bold', color: cssColor('ink') })
+        .setOrigin(0, 0.5);
+      const owned = this.add
+        .text(b.x + b.w - 24, b.y + b.h / 2, '', { fontFamily: uiFontFamily, fontSize: '24px', fontStyle: 'bold', color: cssColor('ink') })
+        .setOrigin(1, 0.5);
+      parts.push(bg, icon, label, owned);
+      this.stallButtons.push({ bg, label, owned });
+    }
+    const footY = stallButtonRect(items.length - 1, items.length);
+    this.stallStatusText = this.add
+      .text(p.x + p.w / 2, footY.y + footY.h + 22, '', { ...textStyles.body, fontSize: '24px', strokeThickness: 5 })
+      .setOrigin(0.5, 0);
+    parts.push(this.stallStatusText);
+    parts.push(
+      this.add
+        .text(p.x + p.w / 2, p.y + p.h - 22, `Click: mua 1 · Shift+click: mua ${gameConfig.seedBulkBuyCount} · F / Esc: đóng`, { ...textStyles.body, fontSize: '24px', strokeThickness: 5 })
+        .setOrigin(0.5, 1),
+    );
+    this.stallWindow = this.add.container(0, 0, parts).setDepth(50).setVisible(false);
+    // Icon xu đặt bên trái chữ tiền — vị trí phụ thuộc bề rộng chữ nên vẽ ở updateStallWindow.
+    this.stallCoin = coin;
+  }
+
+  private stallCoin!: Phaser.GameObjects.Graphics;
+
+  /** Vẽ lại nút sạp khi tiền / hover / số hạt trong gùi đổi: đủ tiền = nền gỗ (hover sáng vàng), thiếu tiền = xám mờ. */
+  private updateStallWindow(): void {
+    const open = this.garden.shopWindow === 'seedStall';
+    this.stallWindow.setVisible(open);
+    if (!open) return;
+    const items = this.garden.seedStallItems;
+    const money = this.garden.wallet.money;
+    const status = this.garden.shopStatus;
+    if (this.stallStatusText.text !== status.text) this.stallStatusText.setText(status.text);
+    this.stallStatusText.setColor(cssColor(status.warn ? 'gold' : 'paper'));
+    const sig = `${money}|${this.garden.stallHover}|${this.garden.inventoryRevision}`;
+    if (sig === this.stallDrawnSig) return;
+    this.stallDrawnSig = sig;
+    this.stallMoneyText.setText(`${money} quan`);
+    const p = stallPanelRect(items.length);
+    this.stallCoin.clear();
+    drawCoin(this.stallCoin, p.x + p.w - STALL_WINDOW.pad - this.stallMoneyText.width - 26, p.y + 46, 18);
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      const price = seedPriceOf(it.cropId) ?? 0;
+      const enabled = hasMoney(this.garden.wallet, price);
+      const hover = this.garden.stallHover === i;
+      const b = stallButtonRect(i, items.length);
+      const v = this.stallButtons[i];
+      v.bg.clear();
+      v.bg.fillStyle(palette.ink, 1).fillRoundedRect(b.x - 4, b.y - 4, b.w + 8, b.h + 8, 16);
+      const fill = !enabled ? GRAY_BUTTON : hover ? palette.gold : palette.wood;
+      v.bg.fillStyle(fill, 1).fillRoundedRect(b.x, b.y, b.w, b.h, 13);
+      if (enabled) v.bg.fillStyle(palette.paper, hover ? 0.35 : 0.2).fillRoundedRect(b.x + 6, b.y + 6, b.w - 12, 10, 5);
+      v.label.setText(`${it.label} — ${price} quan`).setAlpha(enabled ? 1 : 0.55);
+      v.owned.setText(`Có: ${countInBag(this.garden, seedItemId(it.cropId))}`).setAlpha(enabled ? 1 : 0.55);
+    }
+  }
+
+  /** Cửa sổ thùng bán mỗi frame: hiện/ẩn, viền ô dưới con trỏ, dòng báo; lưới + tổng vẽ lại khi inventoryRevision đổi. */
+  private updateSellWindow(redraw: boolean): void {
+    const open = this.garden.shopWindow === 'sellBox';
+    this.sellWindow.setVisible(open);
+    if (redraw) {
+      const inv = this.garden.inventory;
+      const box = this.garden.sellBox;
+      for (let i = 0; i < this.sellBagSlots.length; i++) this.drawSlot(this.sellBagSlots[i], inv.slots[i] ?? null);
+      for (let i = 0; i < this.sellBoxSlots.length; i++) this.drawSlot(this.sellBoxSlots[i], box.slots[i] ?? null);
+      this.sellTotalText.setText(`Cuối ngày bán được: ${sellBoxTotal(box)} quan`);
+    }
+    if (!open) return;
+    const hv = this.garden.shopHover;
+    if (hv) {
+      const v = (hv.side === 'bag' ? this.sellBagSlots : this.sellBoxSlots)[hv.index];
+      if (v) this.sellHoverFrame.setPosition(v.root.x, v.root.y).setVisible(true);
+    } else {
+      this.sellHoverFrame.setVisible(false);
+    }
+    const status = this.garden.shopStatus;
+    if (this.sellStatusText.text !== status.text) this.sellStatusText.setText(status.text);
+    this.sellStatusText.setColor(cssColor(status.warn ? 'gold' : 'paper'));
+  }
+
+  /** Cỡ chữ nhỏ nhất (px) trong cửa sổ đang mở — cho QA kiểm "chữ ≥ 24px". */
+  private shopMinFontPx(): number {
+    const win = this.garden.shopWindow === 'sellBox' ? this.sellWindow : this.garden.shopWindow === 'seedStall' ? this.stallWindow : null;
+    if (!win) return 0;
+    let min = Number.POSITIVE_INFINITY;
+    const visit = (o: Phaser.GameObjects.GameObject) => {
+      if (o instanceof Phaser.GameObjects.Text) {
+        if (o.text.trim() !== '') min = Math.min(min, parseFloat(String(o.style.fontSize)));
+      } else if (o instanceof Phaser.GameObjects.Container) {
+        // Số phím góc ô (1–9) là nhãn phụ trong ô, không phải chữ thân — bỏ qua như cửa sổ gùi.
+        o.list.forEach((c, k) => {
+          if (!(o !== win && k === 3)) visit(c);
+        });
+      }
+    };
+    visit(win);
+    return Number.isFinite(min) ? min : 0;
   }
 
   /** Thanh Sức góc trên trái: nhãn "Sức", khung mực, ruột tô màu theo tỷ lệ, chữ "64/100" giữa thanh. */
@@ -511,11 +807,15 @@ export class GardenHudScene extends Phaser.Scene {
   override update(_time: number, delta: number): void {
     const dt = delta / 1000;
     const inv = this.garden.inventory;
-    if (this.garden.inventoryRevision !== this.drawnRevision) {
+    const redraw = this.garden.inventoryRevision !== this.drawnRevision;
+    if (redraw) {
       this.drawnRevision = this.garden.inventoryRevision;
       for (let i = 0; i < this.hotbar.length; i++) this.drawSlot(this.hotbar[i], inv.slots[i] ?? null);
       for (let i = 0; i < this.bagSlots.length; i++) this.drawSlot(this.bagSlots[i], inv.slots[i] ?? null);
     }
+    this.updateSellWindow(redraw);
+    this.updateStallWindow();
+    this.updateMoney(dt);
     const sel = this.hotbar[inv.selected];
     if (sel) this.selectFrame.setPosition(sel.root.x, sel.root.y);
     const bagSel = this.bagSlots[inv.selected];
@@ -621,6 +921,8 @@ export class GardenHudScene extends Phaser.Scene {
   }
 
   get debugState(): HudDebugState {
+    // Có thể được hỏi trước khi create() chạy (QA đọc debugState sớm) → garden chưa có.
+    const garden = this.garden as GardenScene | undefined;
     return {
       flying: this.flyers.filter((f) => f.t > 0).length,
       landed: this.landed,
@@ -652,7 +954,40 @@ export class GardenHudScene extends Phaser.Scene {
         const r = t.getBounds();
         return [{ x: r.x, y: r.y, w: r.width, h: r.height }];
       }),
-      hudRects: { stamina: staminaPanelRect(), hotbar: hotbarRect(), bagButton: bagButtonRect(), clock: clockPanelRect() },
+      hudRects: { stamina: staminaPanelRect(), hotbar: hotbarRect(), bagButton: bagButtonRect(), clock: clockPanelRect(), money: moneyPanelRect() },
+      moneyText: this.moneyText?.text ?? '',
+      moneyFloat: this.moneyFloat?.visible ? this.moneyFloat.text : '',
+      sellBoxVisible: this.sellWindow?.visible ?? false,
+      seedStallVisible: this.stallWindow?.visible ?? false,
+      sellTotalText: this.sellTotalText?.text ?? '',
+      shopStatusText: garden?.shopWindow === 'sellBox' ? (this.sellStatusText?.text ?? '') : (this.stallStatusText?.text ?? ''),
+      sellBoxCounts: this.sellBoxSlots.map((v) => v.count.text),
+      stallButtons: (garden?.seedStallItems ?? []).map((it, i) => ({
+        text: this.stallButtons[i]?.label.text ?? '',
+        enabled: garden ? hasMoney(garden.wallet, seedPriceOf(it.cropId) ?? 0) : false,
+        hover: garden?.stallHover === i,
+      })),
+      shopMinFontPx: garden && this.sellWindow ? this.shopMinFontPx() : 0,
     };
   }
+}
+
+/** Nút sạp hạt khi thiếu tiền: xám ấm (trộn trắng điệp + mực, không thêm màu ngoài palette). */
+const GRAY_BUTTON = mixColor(palette.paper, palette.ink, 0.45);
+
+/** Đồng xu (quan tiền): đĩa vàng hoa hòe viền mực, lỗ vuông giữa, vệt sáng — tâm (cx, cy), bán kính r. */
+function drawCoin(g: Phaser.GameObjects.Graphics, cx: number, cy: number, r: number): void {
+  g.fillStyle(palette.ink, 1).fillCircle(cx, cy, r + 3);
+  g.fillStyle(palette.gold, 1).fillCircle(cx, cy, r);
+  g.lineStyle(2, palette.ink, 0.5).strokeCircle(cx, cy, r * 0.72);
+  const hole = r * 0.42;
+  g.fillStyle(palette.ink, 1).fillRect(cx - hole / 2, cy - hole / 2, hole, hole);
+  g.fillStyle(palette.paper, 0.55).fillCircle(cx - r * 0.45, cy - r * 0.45, r * 0.18);
+}
+
+/** Số món `id` trong gùi (đếm thẳng — HUD chỉ đọc). */
+function countInBag(garden: GardenScene, id: string): number {
+  let n = 0;
+  for (const st of garden.inventory.slots) if (st && st.id === id) n += st.count;
+  return n;
 }
