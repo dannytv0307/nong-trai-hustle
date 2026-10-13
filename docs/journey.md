@@ -3,9 +3,9 @@
 > Bạn chỉ cần gõ **`/next`** — Claude sẽ làm bước đang tới, hỏi bạn những gì cần quyết định, rồi đánh dấu xong.
 > Gõ `/map` để xem bản đồ này kèm tiến độ.
 
-**Đang ở: 3.3**
+**Đang ở: 3.4**
 
-> **📝 Ghi chú (2026-10-10):** T-001 ✅, T-002 ✅ (cuốc ~5 s/ô theo D-022), T-003 ✅, T-004 ✅, T-005 ✅, T-006 ✅, T-007 ✅. Đang làm T-008. Mở: BUG-003 (môi trường Docker: cổng 5432 bận, thiếu `.env`) — cho `backend-dev` sửa trước 3.4; BUG-006 (một số test e2e còn chờ cố định).
+> **📝 Ghi chú (2026-10-13):** Chặng 3 prototype xong: T-001 … T-009 ✅ (cuốc ~5 s/ô theo D-022, cuốc trong hotbar theo D-026, tự lưu trình duyệt theo D-025). T-009: giữ nguyên thông số, làm nông "Tạm" (D-028, playtest PT-000). Còn mở: **BUG-003** (môi trường Docker: cổng 5432 bận, thiếu `.env`) — `backend-dev` **phải sửa đầu tiên trong 3.4**; BUG-006 (một số test e2e còn chờ cố định, không chặn).
 
 Ký hiệu: 👤 việc của bạn · 🤖 agent phụ trách · ✅ điều kiện để coi là xong
 
@@ -65,7 +65,7 @@ Ký hiệu: 👤 việc của bạn · 🤖 agent phụ trách · ✅ điều ki
   🤖 `game-planner` tách core loop (đi lại, cuốc–gieo–tưới–hái, Sức, đồng hồ ngày, bán đồ, ngủ) thành task nhỏ vào `docs/tasks.md`.
   ✅ `docs/tasks.md` có task cho chặng 3.
 
-- [ ] **3.3 Làm prototype bằng hình khối** *(nhiều buổi — mỗi lần `/next` làm 1 task)*
+- [x] **3.3 Làm prototype bằng hình khối** *(nhiều buổi — mỗi lần `/next` làm 1 task)*
   Tại sao: thử "độ vui" bằng hình vuông/tròn trước, chưa tốn công làm đẹp.
   👤 Mở trình duyệt thử sau mỗi task, nói cảm giác (nhanh quá? chậm quá?).
   🤖 `game-dev` làm task, `qa-tester` chạy Playwright, chụp màn hình, kiểm tra lỗi.

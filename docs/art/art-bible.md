@@ -51,7 +51,7 @@ Màu lấy cảm hứng từ màu tranh Đông Hồ (đen than lá tre, đỏ so
 | Xanh đồng thẫm (tre, lá, bóng cỏ) | `#3D6B4B` | 90 | Lũy tre, tán cây, tông tối của cỏ |
 | Đỏ son (quai nón, mào gà, nguy hiểm) | `#A93226` | 84 | Quai nón {ten}, cột đình, pháo cưới; dấu hiệu nguy hiểm |
 | Chàm (miếng vá, nước sâu, bóng tối) | `#2F4B73` | 71 | Miếng vá lưng áo, nước sâu, màn đêm |
-| Xanh nước (suối, giếng) | `#6E9FA6` | 145 | Mặt nước sáng |
+| Xanh nước (hồ, giếng) | `#6E9FA6` | 145 | Mặt nước sáng |
 | Trắng điệp (highlight, nón lá, giấy UI) | `#EFE4C8` | 228 | Điểm sáng, mắt, mặt nón lá, giấy UI, bọt nước |
 
 Màu phụ cho phép khi cần (chỉ thêm khi asset bắt buộc, ghi changelog): tím sim `#6B3F6E`, đỏ gạch làng Sung `#9C4A32`, da người `#E2B48A`.

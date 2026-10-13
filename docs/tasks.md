@@ -19,7 +19,7 @@ Mỗi task được `qa-tester` kiểm (Playwright chụp màn hình + đọc tr
 | T-006 | 3.3 | Thùng bán, tiền và sạp hạt tạm | game-dev | M | T-003, T-005 | ✅ |
 | T-007 | 3.3 | Ngủ, ngủ gục sau 24h, sang ngày mới (cây lớn, héo) và tổng kết ngày | game-dev | L | T-004, T-006 | ✅ |
 | T-008 | 3.3 | Tự lưu trong trình duyệt, F5 vào lại đúng chỗ, đúng giờ | game-dev | M | T-007 | ✅ |
-| T-009 | 3.3 | Tinh chỉnh cảm giác chơi theo góp ý của bạn | game-planner + game-dev | M | T-008 | 🔄 |
+| T-009 | 3.3 | Tinh chỉnh cảm giác chơi theo góp ý của bạn | game-planner + game-dev | M | T-008 | ✅ |
 
 **Tổng ước lượng:** 2 L + 7 M ≈ **40–46 giờ** (+3–4 giờ cho T-002 phần 2 theo D-022 → ≈ 43–50 giờ) (S = 1–2 giờ, M = 3–4 giờ, L = 6–8 giờ), cộng thời gian bạn thử và góp ý. Với **15 giờ/tuần**: khoảng **3 tuần** cho bước 3.3.
 
@@ -253,15 +253,17 @@ Mỗi task được `qa-tester` kiểm (Playwright chụp màn hình + đọc tr
 **Mục tiêu:** chơi trọn 1–2 ngày, nói cảm giác, đội chỉnh số cho tới khi bạn thấy "làm nông vui".
 
 **Điều kiện xong:**
-- [ ] Bạn chơi ít nhất **1 ngày trọn vẹn** (10 phút, không dùng phím thử) và trả lời 5 câu: đi nhanh/chậm? tầm với đủ chưa? động tác có đã tay không? Sức có hết quá sớm/quá muộn? ngày 10 phút dài hay ngắn?
-- [ ] `game-planner` ghi góp ý vào `docs/playtests.md` (buổi 0 — tự chơi), quy ra thay đổi tham số cụ thể (tối đa 5–8 thay đổi một lượt).
-- [ ] `game-dev` sửa **chỉ trong `gameConfig.ts`** (cần sửa code thì tách task mới); bạn chơi lại xác nhận.
-- [ ] Bảng tham số trong GDD cập nhật giá trị mới; thay đổi lớn ghi `D-NNN`.
-- [ ] Ghi rõ câu trả lời "làm nông có vui không?": Có / Tạm / Chưa + lý do 1 câu. "Chưa" thì `game-planner` đề xuất 2–3 hướng sửa trước khi sang 3.4.
+- [x] Bạn chơi ít nhất **1 ngày trọn vẹn** (10 phút, không dùng phím thử) và trả lời 5 câu: đi nhanh/chậm? tầm với đủ chưa? động tác có đã tay không? Sức có hết quá sớm/quá muộn? ngày 10 phút dài hay ngắn?
+- [x] `game-planner` ghi góp ý vào `docs/playtests.md` (buổi 0 — tự chơi), quy ra thay đổi tham số cụ thể (tối đa 5–8 thay đổi một lượt). → PT-000: không cần đổi.
+- [x] `game-dev` sửa **chỉ trong `gameConfig.ts`** (cần sửa code thì tách task mới); bạn chơi lại xác nhận. → Không có gì để sửa (cái cuốc trong hotbar làm riêng theo D-026).
+- [x] Bảng tham số trong GDD cập nhật giá trị mới; thay đổi lớn ghi `D-NNN`. → Giá trị giữ nguyên, ghi D-028.
+- [x] Ghi rõ câu trả lời "làm nông có vui không?": Có / Tạm / Chưa + lý do 1 câu. "Chưa" thì `game-planner` đề xuất 2–3 hướng sửa trước khi sang 3.4. → **Tạm**: cảm giác tay ổn, nhưng thiếu mục tiêu và thế giới.
 
 **Thông số / ghi chú:** nút chỉnh chính: `walkSpeed`, `interactRange`, `actionDuration`, `staminaMax`, `staminaCost*`, `dayLengthSeconds`, `cameraLerp`, `screenShakeLight`. **Thêm theo D-022:** `tillStrikesPerPlot`, `tillStrikeSeconds`, `tillQueueMax`, `staminaCostTill`. Hỏi thêm câu thứ 6: "cuốc 5 giây một ô thấy **đáng công** hay **sốt ruột**?" — sốt ruột thì thử `tillStrikeSeconds` 0.7 (≈ 4,2 s) trước, rồi mới giảm số nhát; thấy dễ quá thì `staminaCostTill` 5.
 
 **Bạn thử thế nào:** mở http://localhost:5173, Esc → "Chơi lại từ đầu". Chơi một ngày như người chơi thật: trồng hết 9 ô, mua hạt, bán đồ, ngủ. Sau đó kể lại bằng lời thường, ví dụ "đi hơi chậm", "cuốc cả luống đã tay", "tới 3h chiều là hết việc".
+
+**Kết quả (2026-10-13) — ✅:** bạn chơi bản `e246fcd` (có cái cuốc, D-026): đi, tầm với, cuốc ≈ 5 s/ô ("đáng công"), Sức, ngày 10 phút đều ổn → **không đổi thông số nào**. Làm nông vui không: **Tạm** — cảm giác tay ổn nhưng thiếu mục tiêu ngắn hạn / phần thưởng / thế giới (giả thuyết và hướng xử lý ở `docs/playtests.md` PT-000, quyết định D-028). Ngoài thông số, đợt này có thêm cái cuốc trong hotbar + hoạt ảnh vung cuốc (D-026).
 
 ## Lỗi (bug)
 
@@ -285,6 +287,7 @@ Mỗi task được `qa-tester` kiểm (Playwright chụp màn hình + đọc tr
 
 ## Changelog
 
+- 2026-10-13 — T-009 ✅: bạn tự chơi (PT-000), giữ nguyên mọi thông số, đánh giá "Tạm" (D-028). Mọi task chặng 3 (T-001 … T-009) xong. Còn mở BUG-003 (sửa trước 3.4), BUG-006.
 - 2026-10-13 — T-008 ✅ (người dùng xác nhận ổn).
 
 - 2026-10-12 — T-008: tự lưu localStorage (cấu trúc save có `version` ở `@bph/shared`, luật nạp ở client), F5 vào lại đúng chỗ / giờ / ruộng / gùi / tiền / thùng / Sức; không lưu giữa chuỗi đêm (bản chụp ngay lúc qua đêm → không mất / nhân đôi tiền); save hỏng → Ngày 1 + console.warn + giữ bản hỏng; cửa sổ Tạm dừng có "Đã lưu lúc…" + "Chơi lại từ đầu" (hỏi Có/Không); → 👀 chờ bạn thử.

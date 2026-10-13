@@ -4,7 +4,7 @@
 |---|---|
 | Loại | MUS |
 | Cách tạo | Lyria (`gen_music.py`), seed 1201 |
-| Sự kiện kích hoạt | Ở khu Vườn + Nhà + Đầu ngõ ban ngày |
+| Sự kiện kích hoạt | Ở khu Xóm (Vườn + Nhà) ban ngày |
 | Độ dài | 30.77 s · Loop: có (crossfade 2 s) |
 | Kênh | stereo, 48 kHz |
 | Biến thể | 1 |
