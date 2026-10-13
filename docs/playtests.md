@@ -57,6 +57,19 @@ Không thêm task mới cho bước 3.3. Ở playtest 3.5 hỏi thêm 2 câu: "L
 | Làm nông mới "Tạm" | Vừa | Kiểm chứng giả thuyết 1, 3, 5 ở playtest 3.5; giả thuyết 2, 4 làm ở chặng 4 |
 | Sức không tự giảm khi đứng yên | Nhẹ | Bỏ qua (người chơi thấy không sao) |
 
+## PT-001 — 2026-10-13 — Prototype "một ngày ở Vườn" (bước 3.5, commit `e8c8a4c`)
+**Người chơi:** người quen của tác giả (người dùng không ghi số người/chi tiết) · **Thiết bị:** máy tác giả, trình duyệt PC
+**Câu hỏi cần trả lời:** người lạ có tự hiểu vòng cuốc → gieo → tưới → ngủ → bán không; giả thuyết 1, 3, 5 của PT-000.
+
+**Quan sát / góp ý:** người dùng báo **đã cho chơi thử, không ai góp ý gì**. Không có ghi chú quan sát chi tiết.
+
+**Phát hiện → hành động:**
+| Phát hiện | Mức độ | Hành động |
+|---|---|---|
+| Không có góp ý / không phát hiện vấn đề | — | Chốt 3.5, sang chặng 4 (D-033) |
+| Giả thuyết 1, 3, 5 (PT-000) chưa được kiểm chứng rõ vì thiếu ghi chú quan sát | Vừa | Kiểm lại ở buổi chơi thử 5.1 (có hình thật); quan sát kỹ hơn, ghi theo mẫu |
+
 ## Changelog
 
+- 2026-10-13 — Thêm PT-001 (bước 3.5): đã chơi thử, không góp ý; chốt 3.5 (D-033).
 - 2026-10-13 — Thêm PT-000 (tác giả tự chơi, T-009): giữ nguyên thông số, làm nông "Tạm", 5 giả thuyết + hướng xử lý (D-028).

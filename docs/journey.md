@@ -3,9 +3,9 @@
 > Bạn chỉ cần gõ **`/next`** — Claude sẽ làm bước đang tới, hỏi bạn những gì cần quyết định, rồi đánh dấu xong.
 > Gõ `/map` để xem bản đồ này kèm tiến độ.
 
-**Đang ở: 3.5**
+**Đang ở: 4.1**
 
-> **📝 Ghi chú (2026-10-13, cập nhật):** Người dùng dời phần tài khoản (3.4) xuống tận cuối thành **5.5**, sau khi game hoàn thiện và đã lên mạng (D-031, D-032); T-010 (sửa môi trường Docker, BUG-003) vẫn làm ngay vì có ích cho mọi bước. Trước đó: Chặng 3 prototype xong: T-001 … T-009 ✅ (cuốc ~5 s/ô theo D-022, cuốc trong hotbar theo D-026, tự lưu trình duyệt theo D-025). T-009: giữ nguyên thông số, làm nông "Tạm" (D-028, playtest PT-000). T-010 ✅ (BUG-003 đã sửa, người dùng xác nhận). Còn mở: BUG-006 (một số test e2e còn chờ cố định, không chặn).
+> **📝 Ghi chú (2026-10-13):** Chặng 3 xong — prototype T-001 … T-010 ✅, chơi thử 3.5 không có góp ý (PT-001, D-033). Tài khoản dời xuống 5.5 (D-031, D-032). Đang ở **4.1 Kế hoạch sản xuất**. Còn mở: BUG-006 (một số test e2e chờ cố định, không chặn).
 
 Ký hiệu: 👤 việc của bạn · 🤖 agent phụ trách · ✅ điều kiện để coi là xong
 
@@ -73,7 +73,7 @@ Ký hiệu: 👤 việc của bạn · 🤖 agent phụ trách · ✅ điều ki
 
 - [—] **3.4 Tài khoản & lưu game** → *dời xuống cuối, thành bước **5.5** — việc xây dựng cuối cùng (D-031, D-032). Tới lúc đó game vẫn lưu trong trình duyệt (D-025).*
 
-- [ ] **3.5 Cho người khác chơi thử**
+- [x] **3.5 Cho người khác chơi thử**
   Tại sao: bạn quá quen game của mình; người lạ cho biết chỗ khó hiểu thật sự.
   👤 Cho 2–3 người chơi trên máy bạn (hoặc qua link nội bộ), quan sát, kể lại cho Claude.
   🤖 `game-planner` ghi `docs/playtests.md`, đề xuất chỉnh sửa; bạn quyết định đi tiếp.
