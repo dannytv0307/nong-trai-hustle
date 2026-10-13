@@ -5,7 +5,7 @@
 
 **Đang ở: 3.5**
 
-> **📝 Ghi chú (2026-10-13, cập nhật):** Người dùng dời phần tài khoản (3.4) xuống tận cuối thành **5.5**, sau khi game hoàn thiện và đã lên mạng (D-031, D-032); T-010 (sửa môi trường Docker, BUG-003) vẫn làm ngay vì có ích cho mọi bước. Trước đó: Chặng 3 prototype xong: T-001 … T-009 ✅ (cuốc ~5 s/ô theo D-022, cuốc trong hotbar theo D-026, tự lưu trình duyệt theo D-025). T-009: giữ nguyên thông số, làm nông "Tạm" (D-028, playtest PT-000). Còn mở: **BUG-003** (môi trường Docker: cổng 5432 bận, thiếu `.env`) — `backend-dev` **phải sửa đầu tiên trong 3.4**; BUG-006 (một số test e2e còn chờ cố định, không chặn).
+> **📝 Ghi chú (2026-10-13, cập nhật):** Người dùng dời phần tài khoản (3.4) xuống tận cuối thành **5.5**, sau khi game hoàn thiện và đã lên mạng (D-031, D-032); T-010 (sửa môi trường Docker, BUG-003) vẫn làm ngay vì có ích cho mọi bước. Trước đó: Chặng 3 prototype xong: T-001 … T-009 ✅ (cuốc ~5 s/ô theo D-022, cuốc trong hotbar theo D-026, tự lưu trình duyệt theo D-025). T-009: giữ nguyên thông số, làm nông "Tạm" (D-028, playtest PT-000). T-010 ✅ (BUG-003 đã sửa, người dùng xác nhận). Còn mở: BUG-006 (một số test e2e còn chờ cố định, không chặn).
 
 Ký hiệu: 👤 việc của bạn · 🤖 agent phụ trách · ✅ điều kiện để coi là xong
 
