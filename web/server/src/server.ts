@@ -1,9 +1,19 @@
 // Điểm khởi động: đọc .env, dựng app, mở cổng, tắt êm khi nhận tín hiệu dừng.
 import 'dotenv/config';
 import { buildApp } from './app.js';
-import { loadConfig } from './config.js';
+import { ConfigError, loadConfig, type AppConfig } from './config.js';
 
-const config = loadConfig();
+let config: AppConfig;
+try {
+  config = loadConfig();
+} catch (err) {
+  // Thiếu/sai biến môi trường: in MỘT dòng dễ hiểu (tên biến + chỗ sửa), không stack trace.
+  if (err instanceof ConfigError) {
+    console.error(err.message);
+    process.exit(1);
+  }
+  throw err;
+}
 const app = await buildApp({ config });
 
 const shutdown = async (signal: string): Promise<void> => {

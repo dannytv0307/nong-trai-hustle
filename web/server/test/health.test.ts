@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import type { HealthResponse } from '@bph/shared';
 import { buildApp } from '../src/app.js';
-import { loadConfig } from '../src/config.js';
+import { ConfigError, loadConfig } from '../src/config.js';
 import { SERVER_VERSION } from '../src/version.js';
 import { fakeDb, testConfig } from './helpers.js';
 
@@ -99,5 +99,32 @@ describe('loadConfig', () => {
 
   it('báo lỗi khi DATABASE_URL sai dạng', () => {
     expect(() => loadConfig({ ...base, DATABASE_URL: 'mysql://x' })).toThrow(/DATABASE_URL/);
+  });
+
+  it('thiếu SESSION_SECRET (chưa có .env) → ConfigError MỘT dòng: tên biến + chỗ sửa', () => {
+    let err: unknown;
+    try {
+      loadConfig({ DATABASE_URL: base.DATABASE_URL });
+    } catch (e) {
+      err = e;
+    }
+    expect(err).toBeInstanceOf(ConfigError);
+    const msg = (err as Error).message;
+    expect(msg).not.toContain('\n');
+    expect(msg).toContain('SESSION_SECRET (thiếu)');
+    expect(msg).toContain('web/server/.env');
+  });
+
+  it('sai nhiều biến → liệt kê đủ trên một dòng, không lộ giá trị', () => {
+    const bad = 'mysql://user:matkhau-bi-mat@x/db';
+    try {
+      loadConfig({ DATABASE_URL: bad, SESSION_SECRET: 'ngan' });
+      expect.unreachable();
+    } catch (e) {
+      const msg = (e as Error).message;
+      expect(msg).toMatch(/DATABASE_URL.*SESSION_SECRET/);
+      expect(msg).not.toContain('matkhau-bi-mat');
+      expect(msg).not.toContain('\n');
+    }
   });
 });

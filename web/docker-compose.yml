@@ -5,7 +5,7 @@
 # Mã nguồn web/ được gắn vào container nên sửa code là tự nạp lại (hot reload).
 #
 # Mật khẩu DB dưới đây là giá trị DEV công khai, chỉ cho máy local — production dùng Cloud SQL + Secret Manager.
-# Muốn đổi: tạo file web/.env (gitignore) với POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB / POSTGRES_PORT.
+# Muốn đổi: sao chép web/.env.example thành web/.env (gitignore) rồi sửa POSTGRES_PORT (cổng DB trên máy, mặc định 5433) / POSTGRES_USER...
 # Bí mật của server (SESSION_SECRET, OAuth...) vẫn đọc từ web/server/.env (được gắn vào container cùng mã nguồn);
 # các biến khai ở mục `environment` bên dưới được ưu tiên hơn giá trị trong file đó.
 name: bph
@@ -34,7 +34,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bph_dev_only}
       POSTGRES_DB: ${POSTGRES_DB:-bph}
     ports:
-      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
     volumes:
       - bph-db-data:/var/lib/postgresql/data
     healthcheck:

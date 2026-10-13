@@ -3,9 +3,9 @@
 > Bạn chỉ cần gõ **`/next`** — Claude sẽ làm bước đang tới, hỏi bạn những gì cần quyết định, rồi đánh dấu xong.
 > Gõ `/map` để xem bản đồ này kèm tiến độ.
 
-**Đang ở: 3.4**
+**Đang ở: 3.5**
 
-> **📝 Ghi chú (2026-10-13):** Chặng 3 prototype xong: T-001 … T-009 ✅ (cuốc ~5 s/ô theo D-022, cuốc trong hotbar theo D-026, tự lưu trình duyệt theo D-025). T-009: giữ nguyên thông số, làm nông "Tạm" (D-028, playtest PT-000). Còn mở: **BUG-003** (môi trường Docker: cổng 5432 bận, thiếu `.env`) — `backend-dev` **phải sửa đầu tiên trong 3.4**; BUG-006 (một số test e2e còn chờ cố định, không chặn).
+> **📝 Ghi chú (2026-10-13, cập nhật):** Người dùng dời phần tài khoản (3.4) xuống tận cuối thành **5.5**, sau khi game hoàn thiện và đã lên mạng (D-031, D-032); T-010 (sửa môi trường Docker, BUG-003) vẫn làm ngay vì có ích cho mọi bước. Trước đó: Chặng 3 prototype xong: T-001 … T-009 ✅ (cuốc ~5 s/ô theo D-022, cuốc trong hotbar theo D-026, tự lưu trình duyệt theo D-025). T-009: giữ nguyên thông số, làm nông "Tạm" (D-028, playtest PT-000). Còn mở: **BUG-003** (môi trường Docker: cổng 5432 bận, thiếu `.env`) — `backend-dev` **phải sửa đầu tiên trong 3.4**; BUG-006 (một số test e2e còn chờ cố định, không chặn).
 
 Ký hiệu: 👤 việc của bạn · 🤖 agent phụ trách · ✅ điều kiện để coi là xong
 
@@ -71,11 +71,7 @@ Ký hiệu: 👤 việc của bạn · 🤖 agent phụ trách · ✅ điều ki
   🤖 `game-dev` làm task, `qa-tester` chạy Playwright, chụp màn hình, kiểm tra lỗi.
   ✅ Mọi task chặng 3 trong `docs/tasks.md` đã xong; chơi trọn một ngày trong game.
 
-- [ ] **3.4 Tài khoản & lưu game**
-  Tại sao: người chơi đăng nhập ở máy nào cũng chơi tiếp được.
-  👤 Tạo OAuth client trên Google Cloud Console và app trên Facebook Developers (Claude hướng dẫn từng bước), điền vào `.env`.
-  🤖 `backend-dev` làm đăng ký/đăng nhập email, Google, Facebook, phiên đăng nhập, API lưu/tải; `game-dev` làm màn đăng nhập + tự lưu; `qa-tester` thử toàn bộ luồng.
-  ✅ Đăng ký → chơi → F5 → đăng nhập lại vẫn còn tiến độ; đăng nhập Google và Facebook chạy được ở local.
+- [—] **3.4 Tài khoản & lưu game** → *dời xuống cuối, thành bước **5.5** — việc xây dựng cuối cùng (D-031, D-032). Tới lúc đó game vẫn lưu trong trình duyệt (D-025).*
 
 - [ ] **3.5 Cho người khác chơi thử**
   Tại sao: bạn quá quen game của mình; người lạ cho biết chỗ khó hiểu thật sự.
@@ -111,7 +107,12 @@ Ký hiệu: 👤 việc của bạn · 🤖 agent phụ trách · ✅ điều ki
 ## Chặng 5 — Hoàn thiện & phát hành 🚀
 
 - [ ] **5.1 Playtest vòng 2 & cân bằng độ khó**
-- [ ] **5.2 Kiểm tra kỹ** — FPS, nhiều trình duyệt/độ phân giải, thời gian tải trang, lưu/tải, bảo mật tài khoản (`qa-tester` + `game-dev` + `backend-dev`)
-- [ ] **5.3 Chuẩn bị ra mắt** — `art-director` gen logo, ảnh giới thiệu, favicon; `backend-dev` trang chính sách quyền riêng tư + xóa dữ liệu (bắt buộc cho đăng nhập Google/Facebook), chuyển OAuth sang chế độ công khai
-- [ ] **5.4 Đưa lên mạng** — `backend-dev` triển khai lên GCP (Cloud Run + Cloud SQL, hỏi bạn trước vì tốn phí), gắn tên miền (nếu có); gửi link cho bạn bè
-- [ ] **5.5 Nhìn lại** — ghi bài học; cân nhắc bản điện thoại / itch.io
+- [ ] **5.2 Kiểm tra kỹ** — FPS, nhiều trình duyệt/độ phân giải, thời gian tải trang, lưu/tải trong trình duyệt (`qa-tester` + `game-dev`)
+- [ ] **5.3 Chuẩn bị ra mắt** — `art-director` gen logo, ảnh giới thiệu, favicon
+- [ ] **5.4 Đưa lên mạng** — `backend-dev` triển khai lên GCP (hỏi bạn trước vì tốn phí), gắn tên miền (nếu có); gửi link cho bạn bè. Lúc này game vẫn lưu trong trình duyệt (chưa có tài khoản)
+- [ ] **5.5 Tài khoản & lưu game** *(việc xây dựng cuối cùng, khi game đã hoàn thiện — dời từ 3.4 theo D-031, D-032; task T-011 … T-017 trong `docs/tasks.md`)*
+  Tại sao: người chơi đăng nhập ở máy nào cũng chơi tiếp được.
+  👤 Tạo OAuth client trên Google Cloud Console (project `hp-ecommerce-v2`, D-030) và app trên Facebook Developers (Claude hướng dẫn từng bước), điền vào `.env`.
+  🤖 `backend-dev` làm đăng ký/đăng nhập email, Google, Facebook, phiên đăng nhập, API lưu/tải, trang chính sách quyền riêng tư + xóa dữ liệu (bắt buộc cho Google/Facebook), chuyển OAuth sang chế độ công khai, cập nhật bản trên mạng; `game-dev` làm màn đăng nhập + tự lưu + chuyển save trong trình duyệt lên tài khoản; `qa-tester` thử toàn bộ luồng + bảo mật tài khoản.
+  ✅ Đăng ký → chơi → F5 → đăng nhập lại vẫn còn tiến độ; người chơi cũ không mất tiến độ đang lưu trong trình duyệt; đăng nhập Google và Facebook chạy được.
+- [ ] **5.6 Nhìn lại** — ghi bài học; cân nhắc bản điện thoại / itch.io

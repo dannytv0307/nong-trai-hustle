@@ -16,6 +16,11 @@ const EnvSchema = z.object({
   SESSION_SECRET: z.string().min(32, 'cần ít nhất 32 ký tự ngẫu nhiên'),
 });
 
+/** Lỗi cấu hình: message một dòng, chỉ có tên biến + lý do (không bao giờ có giá trị). */
+export class ConfigError extends Error {
+  override name = 'ConfigError';
+}
+
 export interface AppConfig {
   nodeEnv: 'development' | 'test' | 'production';
   isProduction: boolean;
@@ -30,10 +35,15 @@ export interface AppConfig {
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const parsed = EnvSchema.safeParse(env);
   if (!parsed.success) {
-    const problems = parsed.error.issues
-      .map((i) => `  - ${i.path.join('.')}: ${i.message}`)
-      .join('\n');
-    throw new Error(`Cấu hình môi trường không hợp lệ (xem web/server/.env.example):\n${problems}`);
+    const problems = parsed.error.issues.map((i) => {
+      const key = i.path.join('.');
+      const raw = env[key];
+      return raw === undefined || raw === '' ? `${key} (thiếu)` : `${key} (${i.message})`;
+    });
+    throw new ConfigError(
+      `[config] Thiếu hoặc sai biến môi trường: ${problems.join(', ')} — sửa ở web/server/.env ` +
+        '(mẫu: web/server/.env.example; bấm web/start.bat sẽ tự tạo file này nếu chưa có).',
+    );
   }
   const e = parsed.data;
   return {

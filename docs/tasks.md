@@ -25,6 +25,41 @@ Mỗi task được `qa-tester` kiểm (Playwright chụp màn hình + đọc tr
 
 > Chặng 4 (đã lên lịch, D-020): chu trình bước đi thật 4 khung × 4 hướng cho {ten} (AI gen + chỉnh), áp dụng lần lượt cho 4 bậc ngoại hình — `art-director` + `game-dev`.
 
+## Chặng 3 — Bước 3.4 Tài khoản & lưu game (D-029)
+
+Mục tiêu: **phải đăng nhập mới chơi được**; tiến độ lưu trên server, máy nào đăng nhập cũng chơi tiếp được. Làm **email + mật khẩu trước**, rồi **Google**, **Facebook là task cuối** (cắt được nếu Facebook làm khó — GDD §14 mục cắt 0 (b)). **Chưa làm**: quên mật khẩu, xác minh email (không có dịch vụ gửi mail), chơi khách, menu chính (chặng 4), xóa tài khoản (bước 5.3).
+
+Thứ tự theo rủi ro: sửa môi trường (BUG-003) → đăng nhập email chạy được thật trong trình duyệt → lưu lên server (phần dễ mất dữ liệu nhất) → Google → Facebook → QA cả luồng. Mỗi task `qa-tester` kiểm trước khi chuyển 👀 như bước 3.3.
+
+> **D-031 (2026-10-13):** người dùng dời phần tài khoản xuống cuối → T-011 … T-017 thuộc **bước 5.5** — việc xây dựng cuối cùng, khi game đã hoàn thiện và lên mạng (D-032). T-010 vẫn làm ngay.
+
+| ID | Bước | Task | Ai làm | Size | Cần trước | Trạng thái |
+|---|---|---|---|---|---|---|
+| T-010 | 3.4 | Sửa BUG-003: `start.bat` bật được cả stack trên máy bạn (cổng DB đổi được, tự tạo `.env`, tự `prisma generate`) | backend-dev | M | — | 👀 |
+| T-011 | 5.5 | Server: đăng ký / đăng nhập / đăng xuất bằng email + mật khẩu, phiên cookie, `/api/me`, chống dò mật khẩu | backend-dev | L | T-010 | ⬜ |
+| T-012 | 5.5 | Màn đăng nhập / đăng ký trước khi vào game, tên tài khoản + "Đăng xuất" trong cửa sổ Tạm dừng | game-dev | L | T-011 | ⬜ |
+| T-013 | 5.5 | Server: API tải / lưu save (kiểm `GameSave`, số `revision` chống ghi đè bản cũ) | backend-dev | M | T-011 | ⬜ |
+| T-014 | 5.5 | Game tự lưu lên server: bản đệm trên máy, mất mạng vẫn chơi, đẩy save cũ lên tài khoản lần đầu | game-dev | L | T-012, T-013 | ⬜ |
+| T-015 | 5.5 | Đăng nhập bằng Google (bạn tạo OAuth client theo hướng dẫn), tự liên kết với tài khoản email cùng địa chỉ | backend-dev + bạn | L | T-012 | ⬜ |
+| T-016 | 5.5 | Đăng nhập bằng Facebook (bạn tạo app Facebook theo hướng dẫn) | backend-dev + bạn | M | T-015 | ⬜ |
+| T-017 | 5.5 | Kiểm toàn bộ luồng tài khoản + lưu (2 "máy", mất mạng, 2 tab, bảo mật cơ bản) | qa-tester | M | T-014, T-015 (+ T-016 nếu làm) | ⬜ |
+
+**Tổng ước lượng:** 4 L + 4 M ≈ **36–48 giờ** (cao hơn mức 25–35 giờ dự tính ở GDD §14 vì tách thêm chống ghi đè save, mất mạng và QA cả luồng). Với **15 giờ/tuần**: khoảng **2,5–3 tuần** → xong 3.4 khoảng **03–06/11/2026** (vẫn sớm hơn mốc 13/11 vì 3.3 xong sớm). Thêm thời gian bạn tự tạo OAuth client Google (~15 phút) và app Facebook (~20 phút). Nếu trễ: bỏ T-016 trước (phát hành với email + Google).
+
+**API dự kiến** (type để ở `@bph/shared`, `backend-dev` được đổi tên nếu có lý do, ghi lại ở ghi chú task):
+
+| Lệnh | Việc | Task |
+|---|---|---|
+| `GET /api/auth/providers` | `{ email: true, google: bool, facebook: bool }` — nút Google/Facebook chỉ hiện khi server đã có khóa | T-011 |
+| `POST /api/auth/register` `{ email, password }` | Tạo tài khoản + đăng nhập luôn (đặt cookie) | T-011 |
+| `POST /api/auth/login` `{ email, password }` | Đăng nhập | T-011 |
+| `POST /api/auth/logout` | Xóa phiên hiện tại | T-011 |
+| `GET /api/me` | `{ user: { id, email, displayName, providers[] } }` hoặc 401 | T-011 |
+| `GET /api/save` | `{ save, revision, updatedAt }` hoặc `{ save: null, revision: 0 }` | T-013 |
+| `PUT /api/save` `{ save, baseRevision }` | Lưu nếu `baseRevision` khớp → `{ revision }`; không khớp → **409** `{ revision, updatedAt }` | T-013 |
+| `GET /api/auth/google/start` · `/callback` | Đăng nhập Google (chuyển hướng) | T-015 |
+| `GET /api/auth/facebook/start` · `/callback` | Đăng nhập Facebook | T-016 |
+
 ## Chi tiết task
 
 ### T-001 — Dựng bản đồ Vườn thử, va chạm và camera đi theo
@@ -265,13 +300,204 @@ Mỗi task được `qa-tester` kiểm (Playwright chụp màn hình + đọc tr
 
 **Kết quả (2026-10-13) — ✅:** bạn chơi bản `e246fcd` (có cái cuốc, D-026): đi, tầm với, cuốc ≈ 5 s/ô ("đáng công"), Sức, ngày 10 phút đều ổn → **không đổi thông số nào**. Làm nông vui không: **Tạm** — cảm giác tay ổn nhưng thiếu mục tiêu ngắn hạn / phần thưởng / thế giới (giả thuyết và hướng xử lý ở `docs/playtests.md` PT-000, quyết định D-028). Ngoài thông số, đợt này có thêm cái cuốc trong hotbar + hoạt ảnh vung cuốc (D-026).
 
+---
+
+### T-010 — Sửa BUG-003: bấm `start.bat` là bật được cả database + server + game
+
+**Bước:** 3.4 · **Ai làm:** backend-dev · **Size:** M (3–4h) · **Cần trước:** —
+
+**Mục tiêu:** trên máy bạn (đang có Postgres của dự án khác chiếm cổng 5432), bấm đúp `web/start.bat` là cả 3 phần chạy, không phải gõ lệnh tay — vì từ 3.4 game cần server mới đăng nhập được.
+
+**Điều kiện xong:**
+- [x] **Cổng DB đổi được**: đọc `POSTGRES_PORT` từ `web/.env` (gitignore, có `web/.env.example`); mặc định **5433** (Giả định: tránh hẳn 5432 hay bị dự án khác chiếm). Server trong Docker vẫn nối `db:5432` bên trong mạng Docker nên không đổi gì phía code. Cập nhật mọi chỗ ghi `5432` dành cho máy (CLAUDE.md mục Web, `.env.example`, script cũ `db:up`).
+- [x] `start.bat` **kiểm cổng trước khi bật**: cổng DB / 3000 / 5173 bận → báo bằng tiếng Việt dễ hiểu (cổng nào, gợi ý đổi `POSTGRES_PORT` hoặc tắt chương trình đang dùng), không bật nửa chừng.
+- [x] **Thiếu `web/server/.env`** → `start.bat` tự tạo từ `.env.example` với `SESSION_SECRET` ngẫu nhiên (≥ 32 byte), báo "Đã tạo file cấu hình server lần đầu". Không bao giờ in giá trị bí mật ra màn hình / log.
+- [x] Server thiếu biến bắt buộc → dừng với **một dòng lỗi dễ hiểu** (thiếu biến gì, sửa ở file nào), không phải stack trace dài.
+- [x] Entrypoint container server **tự `prisma generate`** khi thiếu Prisma client (volume `node_modules` mới) rồi mới `migrate deploy`.
+- [x] Thử từ trạng thái "sạch" (xóa volume `bph-nm-*`, xóa `web/server/.env`, có một Postgres khác chiếm 5432): `start.bat` → mở được http://localhost:5173, `GET /api/health` trả `{ ok: true, db: true }`.
+- [x] `npm run test` + e2e hiện có vẫn xanh. BUG-003 → Đã sửa. *(test server xanh; e2e không chạy lại theo quyết định của bạn — phiên chính bảo bỏ qua e2e cho T-010)*
+
+**Thông số / ghi chú:** không đổi `gameConfig.ts`. `start.bat` vẫn dùng được với người chưa cài gì ngoài Docker Desktop.
+
+**Bạn thử thế nào:** tắt mọi thứ (`stop.bat`), bấm đúp `web/start.bat`. Phải thấy cửa sổ đen báo từng bước, rồi trình duyệt tự mở game. Mở thêm http://localhost:3000/api/health: thấy chữ `"db":true`. Không cần gõ lệnh nào.
+
+**Ghi chú khi làm (2026-10-13, backend-dev):**
+- Thêm `web/.env.example` (`POSTGRES_PORT=5433`); `docker-compose.yml` mặc định `${POSTGRES_PORT:-5433}`. Chưa tạo `web/.env` thật (không cần — mặc định đã là 5433). `web/server/.env.example`: `DATABASE_URL` trỏ `localhost:5433`, mật khẩu dev công khai `bph_dev_only`.
+- Mới: `web/docker/preflight.ps1` (PowerShell có sẵn trong Windows, không cần cài gì): Docker chạy chưa → cổng DB/3000/5173 (bỏ qua cổng đang do chính stack bph giữ; bận thì báo **ai** chiếm: tên container Docker hoặc tên chương trình + PID, kèm cách sửa; không bật gì) → thiếu `server/.env` thì tạo từ `.env.example` (SESSION_SECRET 48 byte ngẫu nhiên base64url, DATABASE_URL khớp cổng/tài khoản DB của compose, UTF-8 không BOM), không in bí mật. Biến `BPH_SERVER_ENV_FILE` chỉ dùng để kiểm thử (trỏ file khác). `start.bat` báo Bước 1/2/3 và gọi script này; `npm run up` = `npm run preflight && docker compose up …`.
+- `dev-entrypoint.sh` (chỉ container server): thiếu `server/.env` và không có `SESSION_SECRET` → một dòng `[config] …` rồi dừng; tự `prisma generate` khi thiếu `server/src/generated/prisma/client.ts` hoặc `schema.prisma`/`package-lock.json` đổi (dấu `server/src/generated/.bph-generate-hash`, gitignore).
+- `src/config.ts`: `ConfigError` một dòng (`[config] Thiếu hoặc sai biến môi trường: SESSION_SECRET (thiếu) — sửa ở web/server/.env …`), không lộ giá trị; `src/server.ts` in đúng dòng đó rồi thoát, không stack trace. +2 unit test.
+- Kiểm: (1) trạng thái sạch bằng một stack tách riêng (`-p bphtest`, cổng 5436/3001/5174, volume node_modules + DB **mới tinh**): build + `npm ci` + `prisma generate` + migrate → cả 3 healthy, `/api/health` `{ok:true, db:true}`, client 200; đã dọn sạch (chỉ volume `bphtest_*` của bản thử). (2) Stack thật: `stop.bat` → `start.bat` 1 phút 19 giây → 3 container healthy, DB ở 127.0.0.1:5433, dữ liệu DB giữ nguyên (không có migration chờ), `/api/health` db:true (cả qua proxy 5173), client 200; `npm run up` chạy được. (3) Thiếu `.env` mô phỏng bằng `BPH_SERVER_ENV_FILE` trỏ thư mục tạm (không đụng `.env` thật) → tạo đúng, có SESSION_SECRET ≥ 64 ký tự; server không có SESSION_SECRET → đúng một dòng `[config]`, exit 1. (4) Cổng bận: `POSTGRES_PORT` trỏ cổng do một chương trình node khác giữ → "chương trình node.exe (PID …)"; trỏ cổng của container dự án khác → 'container Docker "amano-mysql"'; `start.bat` dừng ở Bước 1, stack không bị đụng. (5) `docker compose exec server npm run test -w @bph/server`: 16/16 xanh.
+- Lưu ý: `web/server/.env` cũ của bạn (tạo trước T-010) có thể vẫn ghi `DATABASE_URL` cổng **5432** — chỉ ảnh hưởng khi chạy server/test **ngoài** Docker (trong Docker không dùng dòng này). Khi cần thì sửa `5432` → `5433` trong dòng đó.
+
+---
+
+### T-011 — Server: đăng ký, đăng nhập, đăng xuất bằng email + mật khẩu
+
+**Bước:** 3.4 · **Ai làm:** backend-dev · **Size:** L (1 ngày) · **Cần trước:** T-010
+
+**Mục tiêu:** server tạo được tài khoản, nhớ người đã đăng nhập bằng cookie an toàn, và chặn người dò mật khẩu — nền cho màn đăng nhập (T-012) và Google/Facebook (T-015, T-016).
+
+**Điều kiện xong:**
+- [ ] `POST /api/auth/register` `{ email, password }`: email chuẩn hóa chữ thường + bỏ khoảng trắng, đúng dạng email; mật khẩu **8–128 ký tự**. Tạo `User` (`displayName` = phần trước @, Giả định) + `AuthAccount` provider `email` với **hash argon2id**. Đăng ký xong là đăng nhập luôn.
+- [ ] Email đã có tài khoản (kể cả tài khoản tạo bằng Google/Facebook có cùng email) → **409** "Email này đã có tài khoản" — nếu tài khoản đó chỉ có Google thì thêm gợi ý "hãy đăng nhập bằng Google" (không cho gắn mật khẩu vào email chưa xác minh — D-029).
+- [ ] `POST /api/auth/login`: sai email hoặc sai mật khẩu → **cùng một thông báo** "Sai email hoặc mật khẩu" (không lộ email có tồn tại hay không), thời gian trả lời gần giống nhau.
+- [ ] **Phiên**: session ID ngẫu nhiên ≥ 32 byte trong cookie `bph_sid` — `httpOnly`, `SameSite=Lax`, `Path=/`, `Secure` khi chạy production; DB chỉ lưu SHA-256 (bảng `Session` đã có). Hạn **30 ngày**, tự gia hạn khi dùng (`sessionTtlDays` 30, `sessionRenewAfterHours` 24 trong config server). Phiên hết hạn bị bỏ qua và dọn định kỳ.
+- [ ] `POST /api/auth/logout` xóa phiên hiện tại + xóa cookie. `GET /api/me` → thông tin tài khoản (`id`, `email`, `displayName`, danh sách `providers`) hoặc **401**.
+- [ ] **Chống dò mật khẩu**: tối đa **5 lần sai / 15 phút** cho mỗi email và **20 lần / 15 phút** cho mỗi IP → **429** "Thử lại sau N phút"; đăng ký tối đa **10 / giờ / IP** (số để trong config server). Đăng nhập đúng thì xóa đếm sai của email đó.
+- [ ] **Chống CSRF** (trang khác lừa trình duyệt gửi lệnh ghi): mọi lệnh POST/PUT/DELETE dưới `/api` bắt buộc `Content-Type: application/json` và header `Origin` khớp `CLIENT_ORIGIN`; sai → 403.
+- [ ] `GET /api/auth/providers` → `{ email: true, google: false, facebook: false }` (google/facebook = true khi `.env` có đủ khóa — T-015/T-016).
+- [ ] Type request/response ở `@bph/shared`. Không bao giờ log mật khẩu, hash, session ID, cookie.
+- [ ] Test (Vitest + `app.inject`): đăng ký → `/api/me` ok; email trùng; mật khẩu ngắn; đăng nhập sai/đúng; 6 lần sai → 429; đăng xuất → `/api/me` 401; cookie hết hạn → 401; thiếu Origin → 403.
+
+**Thông số / ghi chú:** chọn thư viện nhỏ, ít phụ thuộc (gợi ý: `@fastify/cookie`, argon2 bản có sẵn file chạy cho Linux/Windows như `@node-rs/argon2`; giới hạn số lần có thể tự viết bằng bảng trong DB hoặc bộ nhớ). Thêm thư viện thì ghi vào ghi chú task. Chưa có quên mật khẩu / xác minh email (D-029).
+
+**Bạn thử thế nào:** task này chưa có màn hình (màn hình ở T-012). Bạn chỉ cần xem `qa-tester` báo kết quả. Muốn tự xem: mở http://localhost:3000/api/me → thấy lỗi 401 "chưa đăng nhập" là đúng.
+
+---
+
+### T-012 — Màn đăng nhập / đăng ký trước khi vào game
+
+**Bước:** 3.4 · **Ai làm:** game-dev · **Size:** L (1 ngày) · **Cần trước:** T-011
+
+**Mục tiêu:** mở game thấy màn đăng nhập theo phong cách Đông Hồ; chưa đăng nhập thì không vào được Vườn; đăng nhập rồi thì F5 vào thẳng game.
+
+**Điều kiện xong:**
+- [ ] Luồng: `Boot → Preload →` gọi `GET /api/me` → có phiên thì vào `Garden` như cũ; **401 → màn tài khoản**, không vào Garden. (Chưa có Menu chính — chặng 4.)
+- [ ] **Màn tài khoản là lớp HTML đè lên game** (GDD §11, để trình duyệt tự điền mật khẩu và gõ tiếng Việt được), style theo art bible: nền giấy điệp / ảnh làng có sẵn, viền mực `#2E2118`, màu trong `palette.ts`, chữ ≥ 24px ở 1080p, co theo cửa sổ (1366×768 vẫn đủ chỗ).
+- [ ] Hai thẻ **"Đăng nhập"** / **"Đăng ký"**: email, mật khẩu (nút hiện/ẩn mật khẩu), Đăng ký thêm "Nhập lại mật khẩu". Enter = gửi. Nút bấm xong thì khóa + chữ "Đang vào…" tới khi có trả lời (không gửi 2 lần).
+- [ ] Lỗi hiện **chữ đỏ dưới ô**, tiếng Việt: "Sai email hoặc mật khẩu", "Email này đã có tài khoản", "Mật khẩu cần ít nhất 8 ký tự", "Hai mật khẩu không khớp", "Thử sai nhiều quá, đợi N phút", "**Không kết nối được máy chủ**" + nút "Thử lại" (server tắt / mất mạng lúc mở game — bắt buộc đăng nhập nên chưa chơi offline được, D-029).
+- [ ] Nút **"Đăng nhập bằng Google"** / **"…Facebook"** chỉ hiện khi `GET /api/auth/providers` báo có (T-011) — bấm thì chuyển trang tới `/api/auth/<provider>/start` (T-015/T-016 làm phía server).
+- [ ] Dòng nhỏ "Quên mật khẩu? Hiện chưa hỗ trợ — hãy tạo tài khoản mới hoặc dùng Google" (Giả định — D-029).
+- [ ] Cửa sổ **Tạm dừng (Esc)** có dòng tài khoản (email hoặc "Google: tên") + nút **"Đăng xuất"** (hỏi "Đăng xuất?" Có / Không (Esc), như "Chơi lại từ đầu"). Có → lưu như khi đóng tab → `POST /api/auth/logout` → về màn tài khoản (dựng lại scene sạch như "Chơi lại", không rò listener).
+- [ ] Đang chơi mà phiên hết hạn (server trả 401) → chưa cần xử lý đẹp ở task này (T-014 làm), nhưng không treo game.
+- [ ] Nhạc chỉ bắt đầu sau lần click đầu (chính sách autoplay) — click trên màn tài khoản cũng tính.
+- [ ] **E2E**: helper `loginAsTestUser(page)` tạo tài khoản ngẫu nhiên qua API rồi vào game; **mọi test cũ** dùng helper này và vẫn xanh. Test mới: chưa đăng nhập → thấy màn tài khoản, không có `gardenReady`; đăng ký → vào Vườn; F5 → vẫn vào thẳng; đăng xuất → về màn tài khoản; sai mật khẩu → chữ đỏ; server tắt → "Không kết nối được máy chủ".
+- [ ] Debug cho QA: `registry.authState` (`checking` / `signedOut` / `signedIn`), `debugState.account`.
+
+**Thông số / ghi chú:** ở task này save **vẫn chỉ ở localStorage `bph-save`** như T-008 (chưa tách theo tài khoản — T-014 làm). Nghĩa là tạm thời đăng xuất rồi đăng nhập tài khoản khác trên cùng máy sẽ thấy cùng một save — chấp nhận tới T-014. Gọi server qua `src/net/api.ts`, `credentials: 'same-origin'`.
+
+**Bạn thử thế nào:** mở http://localhost:5173 → thấy màn đăng nhập, không thấy Vườn. Bấm "Đăng ký", nhập email của bạn + mật khẩu 8 ký tự trở lên → vào Vườn. Bấm F5 → vào thẳng Vườn, không hỏi lại. Esc → thấy email của bạn + nút "Đăng xuất" → bấm, chọn Có → về màn đăng nhập. Thử nhập sai mật khẩu: thấy chữ đỏ.
+
+---
+
+### T-013 — Server: API tải và lưu save, chống ghi đè bản cũ
+
+**Bước:** 3.4 · **Ai làm:** backend-dev · **Size:** M (3–4h) · **Cần trước:** T-011
+
+**Mục tiêu:** mỗi tài khoản có đúng 1 save trên server; bản cũ hơn (tab cũ, máy khác) không thể đè lên bản mới hơn.
+
+**Điều kiện xong:**
+- [ ] Bảng `Save` thêm cột **`revision Int @default(0)`** (migration mới). Mỗi lần lưu thành công `revision` + 1.
+- [ ] `GET /api/save` (cần đăng nhập) → `{ save, revision, updatedAt }`; chưa có save → `{ save: null, revision: 0 }`.
+- [ ] `PUT /api/save` `{ save, baseRevision }`: kiểm bằng **`validateGameSave` của `@bph/shared`** (sai → 400 kèm lý do ngắn); body > **256 KB** → 413 (GDD §12); `baseRevision` = `revision` hiện tại → lưu, trả `{ revision, updatedAt }`; **khác → 409** `{ revision, updatedAt }`, không ghi. Chưa có save + `baseRevision` 0 → tạo mới. Lưu `save` đã qua `validateGameSave` (đã nâng phiên bản) + cột `version`.
+- [ ] Ghi bằng một lệnh "chỉ cập nhật khi `revision` còn khớp" (không đọc-rồi-ghi hai bước) để 2 yêu cầu cùng lúc không cùng thắng.
+- [ ] Giới hạn: tối đa **60 lần lưu / phút / tài khoản** → 429 (game lưu ~2 lần/phút, dư nhiều).
+- [ ] Chưa đăng nhập → 401. Kiểm CSRF như T-011. Lệnh `PUT` gửi bằng `keepalive` lúc đóng tab vẫn là PUT JSON cùng origin → nhận bình thường, không cần đường riêng.
+- [ ] Test: tạo mới; lưu tiếp đúng revision; revision cũ → 409 và dữ liệu không đổi; save sai hình dạng → 400; quá 256 KB → 413; người A không đọc / ghi được save của người B; hai PUT cùng `baseRevision` gửi song song → đúng một cái thắng.
+
+**Thông số / ghi chú:** server không kiểm luật game (đúng GDD §12 "không chống gian lận"). Không có `DELETE` — "Chơi lại từ đầu" chỉ là lưu một save Ngày 1 mới (T-014).
+
+**Bạn thử thế nào:** chưa có gì mới trên màn hình — xem `qa-tester` báo kết quả. Phần thấy được nằm ở T-014.
+
+---
+
+### T-014 — Game tự lưu lên server, mất mạng vẫn chơi tiếp
+
+**Bước:** 3.4 · **Ai làm:** game-dev · **Size:** L (1 ngày) · **Cần trước:** T-012, T-013
+
+**Mục tiêu:** chơi ở máy này, đăng nhập ở máy khác thấy đúng tiến độ; rút mạng vẫn chơi, cắm lại thì tự gửi lên.
+
+**Điều kiện xong (cách xử lý theo D-029):**
+- [ ] **Server là bản chính.** Trên máy chỉ còn **bản đệm theo tài khoản**: localStorage `bph-save:<userId>` gồm `{ save, baseRevision, dirty }` (`dirty` = có thay đổi chưa gửi được lên server).
+- [ ] **Mỗi lần lưu** (đúng các lúc của D-025: 30 s, Esc, mất focus, ẩn tab, đi ngủ, qua đêm, Ngày mới, phím G): ghi bản đệm trước (`dirty: true`), rồi gửi `PUT /api/save` — gom các lần lưu sát nhau, gửi tối đa **1 lần / `cloudSaveDebounceSeconds` (5 s)**; trừ **qua đêm, Ngày mới, đóng tab, đăng xuất** thì gửi ngay. Gửi được → cập nhật `baseRevision`, `dirty: false`.
+- [ ] **Đóng tab / F5**: ghi bản đệm + gửi bằng `fetch(..., { keepalive: true })`. Gửi không kịp cũng không sao: lần mở sau bản đệm `dirty` sẽ được gửi lên.
+- [ ] **Mở game sau khi đăng nhập**: lấy `GET /api/save` rồi so với bản đệm:
+  - bản đệm `dirty` **và** `baseRevision` = `revision` server → dùng bản đệm, gửi lên ngay (trường hợp mất mạng / đóng tab lần trước);
+  - còn lại → **dùng bản server** (ghi đè bản đệm);
+  - server chưa có save → xem mục "save cũ" bên dưới; không có gì → Ngày 1.
+- [ ] **Save cũ trước khi có tài khoản** (khóa `bph-save` của T-008): lần đăng nhập đầu tiên mà **server chưa có save** → đọc `bph-save`, nếu hợp lệ thì **đẩy lên tài khoản này một lần**, đổi tên khóa thành `bph-save-imported` (giữ làm bản sao, không bao giờ đẩy lại cho tài khoản khác). Server **đã có** save → giữ save server, `bph-save` cũng đổi thành `bph-save-imported`, không hỏi. Bong bóng nhỏ "Đã chuyển tiến độ cũ vào tài khoản" khi có chuyển.
+- [ ] **Mất mạng / server lỗi**: game chơi tiếp bình thường; góc HUD hiện icon nhỏ **"Chưa lưu lên mạng"** (chữ + icon, không chỉ màu); thử lại mỗi **`cloudSaveRetrySeconds` (30 s)** và ngay khi trình duyệt báo `online`. Gửi được → icon tắt. Cửa sổ Tạm dừng: "Đã lưu lúc 14:30 · Ngày 2" thêm "· đã lưu lên mạng" / "· chỉ trên máy này".
+- [ ] **409 (có bản mới hơn ở tab / máy khác)**: dừng gửi, tạm dừng game, hộp **"Game đang được chơi ở nơi khác"** — nút **"Tải bản mới nhất"** (tải lại trang, lấy bản server) và **"Dùng bản ở đây"** (gửi lại với `revision` mới — đè bản kia, hỏi xác nhận). Không bao giờ tự đè.
+- [ ] **401 giữa chừng (phiên hết hạn)**: game tạm dừng, hiện màn đăng nhập đè lên; đăng nhập lại **đúng tài khoản cũ** → gửi bản đệm, chơi tiếp; đăng nhập tài khoản khác → tải lại trang (bản đệm của người cũ vẫn giữ cho họ).
+- [ ] **Đăng xuất**: gửi ngay; gửi không được → hỏi "Chưa lưu lên mạng được. Đăng xuất vẫn giữ bản tạm trên máy này cho lần sau." Có / Không. Bản đệm của người đã đồng bộ xong thì **xóa khỏi máy** (máy dùng chung không lộ save).
+- [ ] **"Chơi lại từ đầu"**: xóa bản đệm + lưu save Ngày 1 mới lên server (không cần lệnh xóa).
+- [ ] Logic so bản / chọn bản / chuyển save cũ là **hàm thuần có unit test** (`systems/cloudSave.ts`); e2e: lưu → mở context trình duyệt mới (= máy khác) đăng nhập cùng tài khoản → đúng ngày / tiền / ruộng; chặn mạng (`page.route` trả lỗi) → icon hiện, chơi tiếp, bỏ chặn → icon tắt, server có bản mới; 2 tab → tab cũ thấy hộp 409; có `bph-save` cũ + tài khoản mới → save cũ lên server.
+- [ ] Debug cho QA: `debugState.save.cloud` (`baseRevision`, `dirty`, `lastSyncAt`, `lastError`, `pending`), `debugForceOffline(bool)`.
+
+**Thông số mới (`gameConfig.ts`):** `cloudSaveDebounceSeconds` 5 (s, khoảng 2–15: nhỏ = ít mất tiến độ hơn nhưng gọi server nhiều hơn), `cloudSaveRetrySeconds` 30 (s, 10–60). Giữ `autoSaveIntervalSeconds` 30.
+
+**Bạn thử thế nào:** đăng nhập, chơi tới chiều, gieo vài ô. Mở **một trình duyệt khác** (ví dụ Edge nếu đang dùng Chrome, hoặc cửa sổ ẩn danh), vào http://localhost:5173, đăng nhập cùng tài khoản → thấy đúng ngày, đúng ruộng, đúng tiền. Thử "mất mạng": bấm `stop.bat` lúc đang chơi → góc màn hiện "Chưa lưu lên mạng", game vẫn chơi; bấm `start.bat` lại → chờ chút, dòng đó tắt.
+
+---
+
+### T-015 — Đăng nhập bằng Google
+
+**Người dùng chốt (2026-10-13):** dùng luôn project GCP `hp-ecommerce-v2` (không tạo project mới). Người dùng sẽ **tự thiết lập credential sau** — khi tới T-015, `backend-dev` làm phần code + hướng dẫn trước; nút Google tự ẩn khi `.env` chưa có `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, nên không chặn các task khác. **Địa chỉ đã chốt cho credential local:** Authorized JavaScript origin `http://localhost:5173`; Authorized redirect URI `http://localhost:5173/api/auth/google/callback` (đi qua proxy Vite để cookie cùng origin với game). Domain thật thêm vào client này khi deploy (bước 5.2).
+
+**Bước:** 3.4 · **Ai làm:** backend-dev + bạn · **Size:** L (1 ngày) · **Cần trước:** T-012
+
+**Mục tiêu:** bấm "Đăng nhập bằng Google" là vào game; ai đã đăng ký bằng email đó thì vào đúng tài khoản cũ.
+
+**Điều kiện xong:**
+- [ ] `backend-dev` viết **hướng dẫn từng bước có ảnh/chữ cụ thể** (`docs/setup/google-oauth.md`) để bạn tạo **OAuth client** (loại "Web application") trong Google Cloud Console ở project bạn chọn (xem câu hỏi bên dưới): màn đồng ý (consent screen) chế độ **Testing**, thêm email của bạn làm người thử, `Authorized redirect URI` = `http://localhost:5173/api/auth/google/callback`. Việc này **miễn phí**, không tạo tài nguyên tốn tiền.
+- [ ] **Bạn tự dán** `GOOGLE_CLIENT_ID` và `GOOGLE_CLIENT_SECRET` vào `web/server/.env` (**không dán vào chat**). `.env.example` có 2 dòng trống mẫu.
+- [ ] Server: `/api/auth/google/start` tạo `state` + PKCE (lưu trong cookie ngắn hạn httpOnly) → chuyển sang Google (chỉ xin `openid email profile`); `/callback` kiểm `state`, đổi code lấy token phía server, đọc `sub`, `email`, `email_verified`, `name`.
+- [ ] **Ghép tài khoản (D-029)**: đã có `AuthAccount` google + `sub` → đăng nhập tài khoản đó. Chưa có, mà **email Google đã xác minh** trùng email một `User` → **gắn Google vào User đó** (tài khoản email cũ dùng được cả 2 cách). Không trùng → tạo `User` mới (`displayName` = tên Google). Xong → đặt cookie phiên, chuyển về `/` (game vào thẳng Vườn).
+- [ ] Người dùng bấm "Hủy" ở Google / lỗi → về màn tài khoản với chữ đỏ "Đăng nhập Google không thành công".
+- [ ] Thiếu khóa trong `.env` → `providers.google = false` → nút ẩn, server vẫn chạy.
+- [ ] Test với Google giả (mock HTTP): tạo mới, đăng nhập lại, ghép với tài khoản email, `state` sai → từ chối, `email_verified: false` → không ghép (tạo tài khoản riêng).
+- [ ] Bạn đăng nhập Google thật thành công ở local (bước người dùng).
+
+**Câu hỏi cho bạn (phiên chính hỏi trước khi bắt đầu T-015):** tạo OAuth client ở đâu? (A) **project GCP mới riêng cho game**, ví dụ `bride-price-hustle` — đề xuất; (B) dùng luôn `hp-ecommerce-v2`. Xem báo cáo của `game-planner`.
+
+**Bạn thử thế nào:** làm theo `docs/setup/google-oauth.md` (khoảng 15 phút), dán 2 khóa vào `web/server/.env`, chạy lại `start.bat`. Mở game → thấy nút "Đăng nhập bằng Google" → bấm → chọn tài khoản Google → vào Vườn. Nếu email Google trùng email bạn đã đăng ký ở T-012: thấy đúng tiến độ cũ.
+
+---
+
+### T-016 — Đăng nhập bằng Facebook
+
+**Bước:** 3.4 · **Ai làm:** backend-dev + bạn · **Size:** M (3–4h) · **Cần trước:** T-015
+
+**Mục tiêu:** bấm "Đăng nhập bằng Facebook" là vào game (chạy ở local; mở cho người ngoài cần duyệt app — để bước 5.3).
+
+**Điều kiện xong:**
+- [ ] Hướng dẫn `docs/setup/facebook-login.md`: tạo app trên Facebook Developers (loại Consumer, sản phẩm "Facebook Login"), chế độ **Development** (chỉ bạn và người thử được thêm vào app đăng nhập được), redirect `http://localhost:5173/api/auth/facebook/callback` (`backend-dev` kiểm lúc làm xem Facebook có cho localhost không HTTPS ở chế độ Development; nếu không, ghi cách khác vào hướng dẫn và báo phiên chính).
+- [ ] Bạn tự dán `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET` vào `web/server/.env` (không dán vào chat).
+- [ ] Server dùng chung khung với Google (`state`, đổi code phía server), xin quyền `public_profile`, `email`.
+- [ ] Ghép tài khoản như T-015, **chỉ khi Facebook trả email**; không có email → tạo `User` mới với `email` null (Facebook không cho biết email đã xác minh hay chưa theo cách giống Google — `backend-dev` ghi rõ cách xử lý chọn, Giả định: coi email Facebook trả về là đã xác minh).
+- [ ] Hủy / lỗi → chữ đỏ "Đăng nhập Facebook không thành công". Thiếu khóa → nút ẩn.
+- [ ] Test với Facebook giả (mock HTTP) như T-015. Bạn đăng nhập Facebook thật thành công ở local.
+
+**Thông số / ghi chú:** cắt được nếu trễ hoặc Facebook làm khó (GDD §14 mục cắt 0 (b)): khi đó nút không hiện, mọi thứ khác chạy bình thường.
+
+**Bạn thử thế nào:** làm theo `docs/setup/facebook-login.md` (khoảng 20 phút), dán 2 khóa vào `web/server/.env`, chạy lại `start.bat`, bấm "Đăng nhập bằng Facebook" → vào Vườn.
+
+---
+
+### T-017 — Kiểm toàn bộ luồng tài khoản và lưu game
+
+**Bước:** 3.4 · **Ai làm:** qa-tester · **Size:** M (3–4h) · **Cần trước:** T-014, T-015 (+ T-016 nếu làm)
+
+**Mục tiêu:** chắc chắn điều kiện xong của bước 3.4 đúng: "đăng ký → chơi → F5 → đăng nhập lại vẫn còn tiến độ; Google (và Facebook) chạy được ở local".
+
+**Điều kiện xong:**
+- [ ] Kịch bản Playwright end-to-end (dùng stack Docker): đăng ký → chơi (cuốc, gieo, bán, ngủ) → F5 → đăng xuất → đăng nhập lại → đúng ngày / tiền / ruộng / gùi.
+- [ ] "Hai máy" (2 browser context): chơi ở A → đăng nhập B thấy tiến độ A; A và B mở cùng lúc → bên cũ hơn thấy hộp 409, không mất dữ liệu.
+- [ ] Mất mạng giữa ngày (chặn `/api`) → chơi tiếp, icon "Chưa lưu lên mạng"; đóng tab khi đang mất mạng → mở lại khi có mạng → bản đệm được gửi lên, không mất tiến độ.
+- [ ] Save cũ `bph-save` + tài khoản mới → chuyển lên đúng 1 lần; tài khoản thứ 2 trên cùng máy không nhận save đó.
+- [ ] Bảo mật cơ bản: cookie có `HttpOnly` + `SameSite=Lax`; 6 lần sai mật khẩu → 429; gọi `PUT /api/save` từ Origin khác → 403; người A không đọc được save người B; trong log server không có mật khẩu / session ID.
+- [ ] Google / Facebook: kiểm bằng mock (không đăng nhập thật tự động); ghi rõ phần bạn đã tự thử bằng tài khoản thật.
+- [ ] Bug tìm được ghi vào bảng Lỗi; không còn bug mức "Nặng" thì đánh dấu xong.
+
+**Bạn thử thế nào:** đọc báo cáo của `qa-tester` (có ảnh chụp ở `web/e2e/screenshots/t017-*.png`). Tự làm 1 lần: đăng nhập ở Chrome, chơi một chút, đăng nhập cùng tài khoản ở Edge → thấy tiến độ giống hệt. Đây cũng là điều kiện để đánh dấu xong bước 3.4.
+
 ## Lỗi (bug)
 
 | ID | Mô tả | Mức độ | Trạng thái |
 |---|---|---|---|
 | BUG-001 | (T-001) **Kẹt ở mối nối tường nhà khi đi chéo.** Đứng sát mặt ngoài **bên trái** nhà, giữ **D+W** (ép vào tường và đi lên): nhân vật đứng khựng ở y=650px (mối nối khối tường dưới ↔ tường trái, hàng 10/9) và thỉnh thoảng ở y≈266px (tường trái ↔ tường trên, hàng 4/3); `blocked.up` bật dù phía trên không có vật cản. Chỉ thả D mới đi tiếp. Lần chạy khác lại kẹt ở mặt **phải** nhà khi giữ **A+W** (dừng ở y=266px) — kẹt hay không tùy độ dài frame, nên người chơi sẽ gặp ngẫu nhiên ở mọi mối nối khi đi lên; chiều đi xuống chưa thấy kẹt. Nguyên nhân: tường nhà là nhiều hộp Arcade nằm nối mép ngoài thẳng hàng → va chạm "mép trong" của hộp kế bên. Tái hiện: `node web/e2e/diag-t001.mjs seam3` hoặc test `Q2` trong `web/e2e/tests/qa-t001.spec.ts`; ảnh `web/e2e/screenshots/qa-t001-stuck-1.png`. Gợi ý: dùng lớp va chạm Tilemap (`setCollision`, Phaser tự bỏ mép trong giữa các ô liền nhau); chỉ đổi cách chia hộp thì mối nối sẽ chuyển sang mặt khác. Thêm test trượt chéo cả 4 mặt ngoài nhà. Không đạt điều kiện "trượt dọc theo cạnh (không bị kẹt)". **Đã sửa (2026-10-10):** rào, tường, giường, ao không còn là nhiều hộp Arcade nối nhau mà là một **lớp va chạm Tilemap** ẩn (`buildCollisionLayer` trong `GardenScene.ts`, lưới từ `tileSolidGrid` trong `systems/garden.ts`); Phaser tự tắt mặt chung giữa hai ô chặn liền nhau nên không còn mép trong ở mối nối. Kiểm: e2e `BUG-001: ép chéo dọc cả 4 mặt ngoài nhà (và ao)` (`garden.spec.ts`, 10 ca: trái lên/xuống, phải lên/xuống, trên sang phải/trái, dưới hai bên cửa, ao trái/trên) + `Q2` xanh; unit test vòng tường liền mạch. Ghi chú: Q2 cũ đặt điểm xuất phát cách góc tường 14px (< `cornerNudgePx` 16) nên frame chỉ có một phím bị "nắn" vòng qua góc (đúng thiết kế) — đã dời điểm xuất phát và đổi giới hạn 80 frame thành 4 giây game. | Nhẹ | Đã sửa |
 | BUG-002 | (T-001) **Console báo lỗi 404 `/favicon.ico`** ("Failed to load resource … 404") khi mở game — thấy trên Edge (Playwright kênh msedge), chromium headless không báo. Vi phạm mục "không console error". Tái hiện: `curl http://localhost:5173/favicon.ico` → 404; `node web/e2e/diag-edge.mjs`. Gợi ý: thêm favicon hoặc `<link rel="icon" href="data:,">` trong `web/client/index.html`. **Đã sửa:** thêm `web/client/public/favicon.svg` + `<link rel="icon" type="image/svg+xml" href="/favicon.svg">` trong `web/client/index.html` (kiểm 2026-10-10: `GET /favicon.svg` → 200; e2e không còn lỗi console). | Nhẹ | Đã sửa |
-| BUG-003 | (Môi trường dev) **`web/start.bat` / `npm run up` không bật được server trên máy người dùng**: (1) cổng 5432 bị container Postgres của dự án khác (`hoaphap-postgres`) chiếm → phải chạy tay `POSTGRES_PORT=5433`; (2) volume node_modules mới thì container server thiếu Prisma client (phải `npx prisma generate` tay); (3) thiếu `web/server/.env` (`SESSION_SECRET`) → server dừng, không báo rõ. Game T-001 vẫn chạy vì chỉ cần client. Gợi ý (`backend-dev`): entrypoint tự `prisma generate`; tự tạo `.env` dev từ `.env.example` (sinh secret ngẫu nhiên) hoặc báo lỗi dễ hiểu; cho đổi cổng DB qua `web/.env` và để `start.bat` báo khi cổng bận. Cần sửa trước bước 3.4 (tài khoản). | Vừa | Mở |
+| BUG-003 | (Môi trường dev) **`web/start.bat` / `npm run up` không bật được server trên máy người dùng**: (1) cổng 5432 bị container Postgres của dự án khác (`hoaphap-postgres`) chiếm → phải chạy tay `POSTGRES_PORT=5433`; (2) volume node_modules mới thì container server thiếu Prisma client (phải `npx prisma generate` tay); (3) thiếu `web/server/.env` (`SESSION_SECRET`) → server dừng, không báo rõ. Game T-001 vẫn chạy vì chỉ cần client. Gợi ý (`backend-dev`): entrypoint tự `prisma generate`; tự tạo `.env` dev từ `.env.example` (sinh secret ngẫu nhiên) hoặc báo lỗi dễ hiểu; cho đổi cổng DB qua `web/.env` và để `start.bat` báo khi cổng bận. Cần sửa trước bước 3.4 (tài khoản). **→ Sửa ở T-010.** **Đã sửa (2026-10-13, T-010):** cổng DB trên máy mặc định 5433, đổi được bằng `POSTGRES_PORT` trong `web/.env`; `start.bat`/`npm run up` chạy `web/docker/preflight.ps1` trước (cổng bận → báo rõ ai chiếm + cách sửa, không bật nửa chừng; thiếu `web/server/.env` → tự tạo với SESSION_SECRET ngẫu nhiên); entrypoint tự `prisma generate`; thiếu biến → một dòng `[config] …`. Kiểm: stack sạch tách riêng + stack thật đều healthy, `/api/health` db:true. | Vừa | Đã sửa (chờ QA) |
 | BUG-004 | (T-002) **Mới vào game, chưa rê chuột lên khung game đã có một viền xám ở góc trên-trái màn hình.** `InputController.pointerInside` mặc định `true`, con trỏ Phaser mặc định ở (0,0) → `updatePointer` vẽ viền ô ngoài tầm ở ô góc trên-trái khung nhìn cho tới khi chuột di chuyển lần đầu. Tái hiện: mở http://localhost:5173 mà không đụng chuột (hoặc chuột đang nằm ngoài cửa sổ trình duyệt) → nhìn góc trên-trái; `debugState.hover` = `{ x: 1, y: 7, highlight: 'gray' }`. Test `A10` trong `web/e2e/tests/qa-t002.spec.ts`, ảnh `web/e2e/screenshots/qa-t002-load-no-mouse.png`. Gợi ý: để `pointerInside = false` cho tới sự kiện `GAME_OVER`/`POINTER_MOVE` đầu tiên. | Nh Đã sửa 2026-10-10: `pointerInside` bắt đầu là false, bật khi có `POINTER_MOVE`/`GAME_OVER`. | Nhẹ | Đã sửa |
 | BUG-005 | (T-002) **Rung màn khi cuốc theo chiều dọc chỉ còn ~0.02 ô thay vì 0.05 ô (GDD §8 `screenShakeLight`).** `cam.shake(…, (0.05·T)/cam.width)` truyền một số → Phaser nhân cùng tỷ lệ với bề rộng cho trục X (đúng 0.052 ô) nhưng với **bề cao** cho trục Y → 0.021 ô (màn 16:9 nên dọc chỉ bằng 56%). Thời gian 0.1 s đúng. Tái hiện: test `A9` trong `web/e2e/tests/qa-t002.spec.ts` (in `max ox (ô) 0.052 max oy (ô) 0.021`). Gợi ý: truyền `new Phaser.Math.Vector2(a / cam.width, a / cam.height)`. Ảnh hưởng nhỏ (rung hơi "ngang"), sửa khi tiện — các mức rung vừa/mạnh về sau sẽ dùng chung hàm. | Nh Đã sửa 2026-10-10: truyền `Vector2(amp/width, amp/height)` cho `cam.shake`. | Nhẹ | Đã sửa |
 | BUG-006 | (Test, không phải game) **Vài test e2e đo theo giờ thật nên đỏ ngẫu nhiên khi máy bận / chạy cả bộ** (thấy ở `qa-t002` A1/A2, `garden.spec` BUG-001, `qa-t001` Q4, `farm.spec` đi+cuốc): chạy riêng thì xanh. Chromium headless chạy đồng hồ game chậm hơn giờ thật nên `waitForTimeout(ms)` không đủ. A2 đã nới chờ 600→1500 ms. Gợi ý: đổi các chờ cố định sang chờ theo trạng thái game (`expect.poll`/`waitForFunction` trên `debugState`), hoặc đặt `workers: 1` + retries 1 cho e2e. **QA T-007 (2026-10-12):** chạy cả bộ (142 ca, 1 worker, 58 phút; máy 32 luồng dùng ~24% CPU, chrome-headless ~5,6 lõi, có League Client + OneDrive chạy nền) đỏ 5 ca — chạy lại riêng `--repeat-each 2` thì xanh 10/10, cả 5 file test không bị T-007 sửa → đều do đọc trạng thái "thoáng qua" trễ khi máy chậm (~16 FPS): (1) `crops.spec:219` dòng 259 `dropsActive > 0` — giọt nước đã tắt trước khi đọc; (2) `crops.spec:536` dòng 558 và (3) `qa-t003.spec:642` Q11 dòng 674 — chờ `action.kind` = `plant`/`water` nhưng việc nhanh 0.4 s đã xong trước lần hỏi đầu; (4) `crops.spec:615` dòng 649 tiếng hái `[0, 200, 0]` thay vì `[0, 200, 400]` — giữa hai lần hái quá `harvestPitchResetSeconds` 1.2 s; (5) `economy.spec:186` dòng 260 `moneyFloat` rỗng — chữ "−4 quan" (1.2 s) đã bay xong. Gợi ý: (2)(3) gọi `debugSetTestTuning({ fastActionSeconds: 30 })` trước khi chờ `action.kind` (như Q10b của BUG-014); (1)(5) kiểm bằng bộ đếm/nhật ký (vd `farmJuice.waterDrops` tổng, `money.floatLog`) thay vì "đang hiện"; (4) thêm hook kéo dài `harvestPitchResetSeconds` lúc kiểm, hoặc chỉ đòi các nấc tăng dần khi khoảng cách giữa hai lần hái < ngưỡng. | Nhẹ | Mở |
@@ -287,6 +513,8 @@ Mỗi task được `qa-tester` kiểm (Playwright chụp màn hình + đọc tr
 
 ## Changelog
 
+- 2026-10-13 — T-010 👀 (backend-dev): start.bat/npm run up kiểm trước khi bật (cổng, tự tạo server/.env), cổng DB máy mặc định 5433 (POSTGRES_PORT trong web/.env), entrypoint tự prisma generate; BUG-003 → Đã sửa (chờ QA). Chờ qa-tester.
+- 2026-10-13 — Bước 3.4 (D-029): thêm 8 task T-010 … T-017 (bắt buộc đăng nhập; email + Google, Facebook là task cuối cắt được; server là bản chính, bản đệm trên máy theo tài khoản, save cũ đẩy lên tài khoản đầu tiên một lần; số `revision` chống ghi đè). 4 L + 4 M ≈ 36–48 giờ ≈ 2,5–3 tuần. BUG-003 giao cho T-010.
 - 2026-10-13 — T-009 ✅: bạn tự chơi (PT-000), giữ nguyên mọi thông số, đánh giá "Tạm" (D-028). Mọi task chặng 3 (T-001 … T-009) xong. Còn mở BUG-003 (sửa trước 3.4), BUG-006.
 - 2026-10-13 — T-008 ✅ (người dùng xác nhận ổn).
 

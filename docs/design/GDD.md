@@ -805,12 +805,15 @@ Người chơi không sống một mình giữa mảnh vườn: nhà {ten} nằm
 
 **Scene** (cảnh trong Phaser, mỗi scene là một "màn" chạy độc lập): Boot (tải asset), Auth (đăng nhập), Menu, Game, UI (HUD + cửa sổ, chạy song song trên Game). Mỗi khu là một bản đồ **Tilemap** (lưới ô, vẽ bằng phần mềm Tiled rồi xuất JSON), Game chỉ nạp khu đang đứng. Mọi thứ còn lại là **cửa sổ UI** (đồng hồ dừng trừ mini-game).
 
-**Tài khoản (D-011):**
-- **Must**: đăng ký bằng email + mật khẩu; đăng nhập bằng email, **Google** hoặc **Facebook**; đăng xuất; save lưu trên server.
-- **Should**: **Chơi thử (khách)** — chơi ngay không cần đăng ký, save tạm trên server gắn với trình duyệt đó; khi đăng ký/đăng nhập thì **liên kết** save khách vào tài khoản. Có lời nhắc nhẹ "Đăng ký để không mất save" ở màn tổng kết ngày 1 và ngày 3.
-- **Should**: quên mật khẩu (gửi email đặt lại). Nếu cắt: người chơi email dùng Google/Facebook hoặc liên hệ hỗ trợ.
-- **Could**: liên kết thêm Google/Facebook vào tài khoản email đã có; đổi email; xác minh email.
+**Tài khoản (D-011, sửa bởi D-029):**
+- **Bắt buộc đăng nhập** (D-029): mở game là màn tài khoản; chưa đăng nhập thì không vào được game. Không nối được server lúc mở game → "Không kết nối được máy chủ" + nút Thử lại.
+- **Must**: đăng ký bằng email + mật khẩu; đăng nhập bằng email, **Google** hoặc **Facebook** (Facebook làm sau cùng, cắt được — §14 mục cắt 0); đăng xuất; save lưu trên server. Google/Facebook có email đã xác minh trùng tài khoản email → tự gắn vào tài khoản đó.
+- ~~Should: chơi thử (khách)~~ → **Để sau** (D-029: bắt buộc đăng nhập).
+- **Để sau** (D-029, chưa có dịch vụ gửi mail): quên mật khẩu, xác minh email. Tạm thời màn tài khoản ghi "Quên mật khẩu? Hiện chưa hỗ trợ — hãy tạo tài khoản mới hoặc dùng Google".
+- **Could**: liên kết thêm Google/Facebook vào tài khoản email đã có bằng tay (trong Cài đặt); đổi email.
 - **1 save cho mỗi tài khoản** ở bản đầu (Giả định). "Chơi mới" ghi đè save cũ sau khi hỏi xác nhận 2 lần.
+- **Save trên máy (D-029)**: server là bản chính; máy chỉ giữ **bản đệm theo tài khoản** để mất mạng không mất công. Save cũ của prototype (lưu trong trình duyệt trước khi có tài khoản) được **tự chuyển lên tài khoản đầu tiên đăng nhập trên máy đó, nếu tài khoản chưa có save** — một lần duy nhất.
+- **Prototype (bước 3.4)** chưa có Menu chính: đăng nhập xong vào thẳng Vườn; "Đăng xuất" nằm trong cửa sổ Tạm dừng (Esc). Menu chính làm ở chặng 4.
 
 **Bản đồ làng** (Xóm làng Lầy là trung tâm — prototype chặng 3 thì là Vườn; đi bộ qua cổng / đường mòn ở mép bản đồ):
 
@@ -907,11 +910,9 @@ Vòng mua sắm thường ngày (nhà → cô Tám → lò rèn → về) ≈ 20
 ```mermaid
 flowchart TD
   Boot -->|đã có phiên đăng nhập| Menu
-  Boot -->|chưa đăng nhập| Auth[Màn tài khoản]
+  Boot -->|chưa đăng nhập - bắt buộc, D-029| Auth[Màn tài khoản]
   Auth -->|Email + mật khẩu / Google / Facebook| Menu
-  Auth -.->|Should| DangKy[Đăng ký email] --> Menu
-  Auth -.->|Should| Khach[Chơi thử - khách] --> Menu
-  Auth -.->|Should| QuenMK[Quên mật khẩu] --> Auth
+  Auth --> DangKy[Đăng ký email] --> Menu
   Menu -->|Chơi mới| Intro[Intro 4 khung + đặt tên] --> Vuon
   Menu -->|Chơi tiếp| Vuon
   subgraph Game[Scene Game - đi bộ qua cổng]
@@ -935,7 +936,8 @@ flowchart TD
 - **Không có màn Game Over.** Vòng kết thúc mỗi ngày là màn Tổng kết ngày.
 - Mở game lần sau: vào trang web → (phiên đăng nhập còn hạn thì bỏ qua màn tài khoản) → Menu → "Chơi tiếp" → đúng khu, đúng chỗ, đúng giờ đã lưu (2 lần click để vào chơi). Phiên đăng nhập nhớ khoảng 30 ngày (Giả định).
 - Tab mất focus (chuyển tab, Alt+Tab, thu nhỏ) → tự mở Tạm dừng + lưu (`pauseOnFocusLost`).
-- Mất mạng giữa chừng → vẫn chơi tiếp, save ghi tạm vào máy, hiện icon "chưa đồng bộ" nhỏ ở góc; có mạng lại thì tự gửi lên server (§12).
+- Mất mạng giữa chừng → vẫn chơi tiếp, save ghi vào bản đệm trên máy, hiện icon + chữ "Chưa lưu lên mạng" nhỏ ở góc; có mạng lại thì tự gửi lên server (§12). Phiên hết hạn giữa chừng → tạm dừng, hiện màn đăng nhập đè lên, đăng nhập lại thì chơi tiếp (D-029).
+- Cùng tài khoản mở ở 2 tab / 2 máy → bên có bản cũ hơn thấy hộp "Game đang được chơi ở nơi khác": "Tải bản mới nhất" / "Dùng bản ở đây" (hỏi xác nhận). Không bao giờ tự đè (D-029).
 
 ## 6. Nội dung & độ khó
 
@@ -1107,8 +1109,8 @@ Juice = các hiệu ứng nhỏ làm hành động "đã tay". Trên PC không c
 
 | Cửa sổ | Nội dung chính |
 |---|---|
-| Màn tài khoản | Logo + ảnh nền làng. Nút to **"Đăng nhập bằng Google"**, **"Đăng nhập bằng Facebook"**; khung email + mật khẩu + nút "Đăng nhập"; link "Đăng ký" (email, mật khẩu ≥ 8 ký tự, nhập lại mật khẩu); link "Quên mật khẩu?" (Should); nút "Chơi thử không cần tài khoản" (Should). Dòng nhỏ dẫn tới **Chính sách quyền riêng tư** và **Điều khoản**. Lỗi hiện bằng chữ đỏ dưới ô ("Sai mật khẩu", "Email đã có người dùng"). Màn này là trang HTML thường (không vẽ trong Phaser) để trình duyệt tự điền mật khẩu (Giả định) |
-| Menu chính | Logo, "Chơi tiếp" (chỉ hiện khi có save), "Chơi mới" (hỏi xác nhận nếu ghi đè), Cài đặt, góc trên phải: tên tài khoản + "Đăng xuất". Khách: hiện "Khách · Đăng ký để giữ save". Không có nút "Thoát" (trên web người chơi đóng tab) |
+| Màn tài khoản | Logo + ảnh nền làng. Nút to **"Đăng nhập bằng Google"**, **"Đăng nhập bằng Facebook"**; khung email + mật khẩu + nút "Đăng nhập"; thẻ "Đăng ký" (email, mật khẩu 8–128 ký tự, nhập lại mật khẩu); dòng "Quên mật khẩu? Hiện chưa hỗ trợ…" (quên mật khẩu Để sau — D-029); **không có** chơi khách (bắt buộc đăng nhập — D-029). Nút Google/Facebook chỉ hiện khi server đã cấu hình. Không nối được server → "Không kết nối được máy chủ" + Thử lại. Dòng nhỏ dẫn tới **Chính sách quyền riêng tư** và **Điều khoản**. Lỗi hiện bằng chữ đỏ dưới ô ("Sai mật khẩu", "Email đã có người dùng"). Màn này là trang HTML thường (không vẽ trong Phaser) để trình duyệt tự điền mật khẩu (Giả định) |
+| Menu chính | Logo, "Chơi tiếp" (chỉ hiện khi có save), "Chơi mới" (hỏi xác nhận nếu ghi đè), Cài đặt, góc trên phải: tên tài khoản + "Đăng xuất" (prototype 3.4 chưa có Menu: tài khoản + "Đăng xuất" nằm trong cửa sổ Tạm dừng). Không có nút "Thoát" (trên web người chơi đóng tab) |
 | Intro | 4 khung hình kể chuyện (story bible §5.1), click/Space để qua, có nút "Bỏ qua" |
 | Đặt tên | Hiện sau khung intro 1: "Còn anh, anh tên gì?", ô nhập (mặc định "Tý", tối đa 10 ký tự, có dấu), nút "Ngẫu nhiên", Enter để xác nhận. Tên lưu trong save, thoại thay `{ten}`. Ô nhập là thẻ `<input>` HTML đè lên game để gõ được tiếng Việt bằng Unikey/EVKey (Giả định) |
 | Túi đồ (E) | Lưới 9 × 2 (gùi to: 9 × 3), hàng đầu là hotbar. Kéo thả để xếp, chuột phải để ăn, rê chuột xem tooltip (tên, giá bán, hồi Sức, giá trị lễ vật). Bên cạnh: ô nông cụ + độ bền |
@@ -1139,8 +1141,8 @@ Juice = các hiệu ứng nhỏ làm hành động "đã tay". Trên PC không c
 | Client | **Phaser 3 + TypeScript + Vite** (Vite = công cụ chạy thử và đóng gói web). Renderer WebGL (tự lùi về Canvas nếu máy không hỗ trợ) |
 | Trình duyệt hỗ trợ | Chrome, Edge, Firefox bản mới trên máy tính (Windows/macOS). Safari: thử nhưng không cam kết. Web trên điện thoại: để sau |
 | Server | **Node.js + TypeScript + Fastify** (khung viết API). CSDL **PostgreSQL** qua **Prisma** (thư viện đọc/ghi CSDL bằng TypeScript). Chạy local bằng **Docker** (Postgres + server). Triển khai về sau: **Cloud Run** (chạy server) + **Cloud SQL** (Postgres) trên GCP; client là file tĩnh, server phục vụ luôn hoặc để trên Cloud Storage/CDN |
-| Tài khoản | Email + mật khẩu (băm bằng argon2 hoặc bcrypt, không lưu mật khẩu gốc). **OAuth Google và Facebook làm phía server** (OAuth = cơ chế "đăng nhập bằng tài khoản khác", server nhận xác nhận từ Google/Facebook). **Phiên đăng nhập bằng cookie httpOnly** (JavaScript của trang không đọc được cookie, an toàn hơn) + SameSite, chống CSRF cho các lệnh ghi. Giới hạn số lần đăng nhập sai (rate limit). Khách (Should): server tạo tài khoản ẩn danh gắn cookie, liên kết khi đăng ký |
-| Dữ liệu trên server | Bảng gợi ý: `User` (email, mật khẩu băm, tên hiển thị), `OAuthAccount` (google/facebook + id), `Session`, `SaveGame` (1 bản/tài khoản: `data` JSON, `version` số phiên bản save, `updatedAt`). Gửi email (quên mật khẩu, Should) qua một dịch vụ gửi mail (chọn ở chặng 3) |
+| Tài khoản | Email + mật khẩu (băm bằng argon2 hoặc bcrypt, không lưu mật khẩu gốc). **OAuth Google và Facebook làm phía server** (OAuth = cơ chế "đăng nhập bằng tài khoản khác", server nhận xác nhận từ Google/Facebook). **Phiên đăng nhập bằng cookie httpOnly** (JavaScript của trang không đọc được cookie, an toàn hơn) + SameSite, chống CSRF cho các lệnh ghi. Giới hạn số lần đăng nhập sai (rate limit: 5 lần sai / 15 phút / email, 20 / 15 phút / IP). Phiên nhớ 30 ngày. **Bắt buộc đăng nhập, không có khách** (D-029). Chi tiết API: `docs/tasks.md` bước 3.4 |
+| Dữ liệu trên server | Bảng thật (Prisma): `User` (email, tên hiển thị), `AuthAccount` (email + mật khẩu băm argon2id / google / facebook + id), `Session` (chỉ lưu hash của session ID), `Save` (1 bản/tài khoản: `data` JSON, `version` số phiên bản save, **`revision`** số lần lưu để chống ghi đè, `updatedAt`). Gửi email (quên mật khẩu, xác minh email): **Để sau** (D-029) |
 | Độ phân giải tham chiếu | **1920×1080 ngang 16:9**; co theo cửa sổ trình duyệt (FIT), từ 1366×768 tới 2560×1440; nút toàn màn hình (Fullscreen API) |
 | Bản đồ | **Tilemap của Phaser**, bản đồ vẽ bằng **Tiled** (phần mềm vẽ bản đồ ô miễn phí) xuất JSON. Mỗi khu có lớp Nền (đất, cỏ, nước), lớp Vật cản (ô có thuộc tính `collides`), lớp Trang trí vẽ phía trên nhân vật (tán cây, mái nhà). Viền đất/nước tự nối bằng tính năng Terrain/Wang của Tiled. Ruộng là lưới logic riêng khớp với Tilemap. Điểm đặt (cổng, NPC, chỗ mọc nấm…) là lớp Object trong Tiled |
 | Kích thước ô | **1 ô = 64×64 px**. Camera thấy 30 × 16.9 ô ở 1080p, mỗi ô hiện đúng 64px. Nhân vật khoảng 64×96 px. (Giả định: nếu bước 2.1 chọn pixel art 32px thì vẽ ô 32px và phóng camera ×2, bật `pixelArt: true` để không nhòe) |
@@ -1150,7 +1152,7 @@ Juice = các hiệu ứng nhỏ làm hành động "đã tay". Trên PC không c
 | Cấu hình và dữ liệu | Tham số `camelCase` trong `src/config/gameConfig.ts`; dữ liệu nội dung trong `src/data/*.json` (crops, fish, items, tools, quests, brides, dialogue). Chỉnh số không cần sửa code gameplay. Thoại thay `{ten}` lúc hiển thị |
 | Máy mục tiêu | Laptop/PC phổ thông, card đồ họa tích hợp (Intel Iris Xe / AMD Vega), trình duyệt Chrome/Edge mới |
 | Ngân sách hiệu năng | 60 FPS ở 1080p; tải lần đầu < 30 MB (ảnh nén WebP/PNG, nhạc OGG/MP3 tải dần theo khu), vào được Menu trong < 10 giây với mạng thường; RAM tab < 700 MB |
-| Lưu dữ liệu | **Save JSON lưu trên server** (1 bản/tài khoản), kèm **bản sao trong localStorage** của trình duyệt. Nội dung: tên nhân vật, giờ trong game, Sức, khu + tọa độ, ruộng, gùi + hotbar, độ bền nông cụ, tiền, level, nhiệm vụ, gia đình. Tự lưu khi qua cổng, mỗi `autoSaveIntervalSeconds`, khi tab mất focus và khi đóng tab (dùng `sendBeacon` / `visibilitychange`). **Luôn ghi localStorage trước, rồi gửi server**; gửi lỗi (mất mạng) thì giữ cờ "chưa đồng bộ", thử lại mỗi 30 giây. Lúc vào game: lấy bản mới hơn theo `updatedAt` (Giả định: một người chơi một máy cùng lúc; mở 2 tab thì tab sau ghi đè, hiện cảnh báo "game đang mở ở tab khác"). Save có số `version` để nâng cấp định dạng về sau |
+| Lưu dữ liệu | **Save JSON lưu trên server** (1 bản/tài khoản), kèm **bản sao trong localStorage** của trình duyệt. Nội dung: tên nhân vật, giờ trong game, Sức, khu + tọa độ, ruộng, gùi + hotbar, độ bền nông cụ, tiền, level, nhiệm vụ, gia đình. Tự lưu khi qua cổng, mỗi `autoSaveIntervalSeconds`, khi tab mất focus và khi đóng tab (dùng `sendBeacon` / `visibilitychange`). **Server là bản chính (D-029).** Luôn ghi **bản đệm trên máy** trước (localStorage `bph-save:<userId>`, kèm `revision` đã biết + cờ "chưa gửi"), rồi gửi server (gom `cloudSaveDebounceSeconds` 5 s; qua đêm / Ngày mới / đóng tab / đăng xuất gửi ngay, đóng tab dùng `fetch keepalive`); gửi lỗi (mất mạng) thì giữ cờ, thử lại mỗi `cloudSaveRetrySeconds` 30 s. **Chống ghi đè bằng `revision`** (không so giờ máy): server chỉ nhận bản lưu dựa trên đúng `revision` hiện tại, lệch → 409, game hỏi người chơi. Lúc vào game: bản đệm "chưa gửi" mà `revision` còn khớp server → dùng bản đệm và gửi lên; còn lại dùng bản server. Save cũ trước khi có tài khoản (`bph-save`) chuyển lên tài khoản đầu tiên chưa có save, một lần (đổi tên thành `bph-save-imported`). Save có số `version` để nâng cấp định dạng về sau |
 | Chống gian lận | **Không làm ở bản đầu.** Game một người, không bảng xếp hạng, không mua bán: người chơi tự sửa save chỉ thiệt cho chính họ. Server chỉ kiểm save đúng định dạng và không quá lớn (< 256 KB). Nếu sau này có bảng xếp hạng thì xem lại |
 | Bảo mật và quyền riêng tư | HTTPS bắt buộc khi triển khai. Chỉ lưu email, tên hiển thị, id Google/Facebook, save. Có trang **Chính sách quyền riêng tư**, **Điều khoản**, và cách **xóa tài khoản + dữ liệu** (Google và Facebook đều yêu cầu khi dùng đăng nhập của họ) |
 
@@ -1166,7 +1168,7 @@ Không có cho bản đầu tay (giả định). Chơi miễn phí trên web, kh
 
 | Chặng | Việc chính | Ước lượng | Gate dự kiến (Giả định: không nghỉ dài) |
 |---|---|---|---|
-| 3 — Prototype | 3.3 prototype "một ngày ở Vườn" (T-001…T-009, 40–46 giờ ≈ 3 tuần); 3.4 tài khoản + lưu server (25–35 giờ ≈ 2 tuần); 3.5 cho người khác chơi thử (≈ 0,5 tuần) | ≈ 6 tuần | **Xong 3.3: ~30/10/2026** · xong 3.4: ~13/11/2026 · **gate chặng 3: ~20/11/2026** (chậm nhất ~27/11) |
+| 3 — Prototype | 3.3 prototype "một ngày ở Vườn" (T-001…T-009, 40–46 giờ ≈ 3 tuần); 3.4 tài khoản + lưu server (T-010…T-017, 36–48 giờ ≈ 2,5–3 tuần — D-029; 3.3 xong sớm 13/10 nên vẫn kịp mốc); 3.5 cho người khác chơi thử (≈ 0,5 tuần) | ≈ 6 tuần | **Xong 3.3: ~30/10/2026** · xong 3.4: ~13/11/2026 · **gate chặng 3: ~20/11/2026** (chậm nhất ~27/11) |
 | 4 — Làm game đầy đủ | Art/âm thanh thật, **Xóm làng Lầy + dân làng + hồ câu (D-021, D-027)**, Núi và làng Sung, nhiệm vụ, mặc cả, gia đình, bậc ngoại hình, meme, juice | ≈ 9,5–12 tuần | ~05/02–19/02/2027. **Mốc giữa chặng 4 (~28/12/2026)**: quyết định có lùi về phạm vi A không (mục cắt 9) |
 | 5 — Hoàn thiện & phát hành | Sửa lỗi, cân bằng, trang quyền riêng tư, triển khai Cloud Run | ≈ 2–3 tuần | ~giữa 03/2027 (Tết Nguyên đán 06/02/2027 có thể đẩy lùi 1–2 tuần) |
 
@@ -1243,7 +1245,7 @@ Không có cho bản đầu tay (giả định). Chơi miễn phí trên web, kh
     - Núi sau nhà: hái lượm, chặt củi, săn gà bằng nỏ.
     - Chợ làng Sung: bán giá cao, lễ vật, nhà bố vợ.
   - Bản web (Chrome/Edge/Firefox máy tính): WASD + chuột, hotbar 9 ô, cửa sổ túi đồ, co theo cửa sổ + nút toàn màn hình (§4, §11).
-  - **Tài khoản và cloud save** (D-011): đăng ký/đăng nhập email + mật khẩu, đăng nhập Google, đăng nhập Facebook, đăng xuất, xóa tài khoản; 1 save/tài khoản trên server + bản sao localStorage khi mất mạng; trang quyền riêng tư (§5, §12).
+  - **Tài khoản và cloud save** (D-011, D-029): **bắt buộc đăng nhập**; đăng ký/đăng nhập email + mật khẩu, đăng nhập Google, đăng nhập Facebook, đăng xuất, xóa tài khoản; 1 save/tài khoản trên server + bản đệm trên máy khi mất mạng; trang quyền riêng tư (§5, §12).
   - Đồng hồ ngày (10 phút/ngày, trời đổi màu theo giờ), thanh Sức + ăn uống + nấu ở bếp, mùa nắng/mưa, mưa tự tưới.
   - Click làm việc trong tầm với, giữ chuột rê để làm liên tục, nông cụ tự chọn (§3.3); 2 mini-game (câu cá giữ chuột §3.6, bắn nỏ click §3.7).
   - Cây héo sau 2 ngày không tưới (§3.4); ngủ gục sau 24h còn 70% Sức (§3.1).
@@ -1268,18 +1270,18 @@ Không có cho bản đầu tay (giả định). Chơi miễn phí trên web, kh
   - Trâu (gia súc thứ 3) và sự kiện gia đình 5–8 (§3.11).
   - Rương ở nhà (§3.9).
   - Cỡ giao diện 90/100/125% (§11).
-  - **Chơi thử bằng tài khoản khách** rồi liên kết vào tài khoản thật; **quên mật khẩu** qua email (§5).
+  - ~~Chơi thử bằng tài khoản khách; quên mật khẩu qua email~~ → chuyển xuống **Để sau** (D-029).
   - **5 meme nhái Should** (§3.15): ổn mà, chọn / không chọn, cụ Bá Kẹo cười giấu đau, đỉnh nóc kịch trần, vỗ tay chậm "khá khen".
   - **Dân làng — phần Should** (D-021, §3.16): dân làng tự nói khi đi ngang (bark); NPC đi bộ theo đường đặt sẵn khi đổi giờ, trẻ trâu chạy vòng; chào hỏi mỗi ngày +1 tiếng tăm (tối đa 5/ngày); câu chê của dân làng kích hoạt meme "trừ sĩ diện".
 - **Could (có thì vui):**
   - **Dân làng — phần Could** (D-021): tặng quà một chạm (1 câu phản ứng + 2 tiếng tăm, không thanh thân thiện); bà Chém bán bát chè xanh hồi Sức; ông Mõ gõ mõ rao ngày đầu mùa; mèo Mướp ngồi trên mái nhà ông Gật; dân làng trú mưa.
-  - Liên kết thêm Google/Facebook vào tài khoản email; xác minh email; đổi email.
+  - Liên kết thêm Google/Facebook vào tài khoản email bằng tay; đổi email. (Xác minh email → Để sau, D-029.)
   - Nấu món ăn từ nhiều nguyên liệu.
   - Nhiệm vụ hằng ngày lặp lại.
   - Mặc cả nhỏ với thợ rèn, thợ mộc.
   - **Gamepad** (tay cầm) + rung tay cầm; bản đồ nhỏ góc màn (minimap).
   - **2 meme nhái Could** (§3.15): ét o ét, gét gô. Cài đặt "Meme: Đầy đủ / Ít / Tắt".
-- **Để sau (sau bản web đầu):** web trên điện thoại (màn ngang, cần thêm điều khiển cảm ứng); đóng gói bản cài đặt PC / Steam (vd. bọc bằng Electron); nhiều slot save; đăng nhập bằng tài khoản khác (Apple…); bảng xếp hạng (khi đó mới cần chống gian lận).
+- **Để sau (sau bản web đầu):** web trên điện thoại (màn ngang, cần thêm điều khiển cảm ứng); đóng gói bản cài đặt PC / Steam (vd. bọc bằng Electron); nhiều slot save; đăng nhập bằng tài khoản khác (Apple…); **chơi khách, quên mật khẩu, xác minh email** (D-029 — cần dịch vụ gửi mail; chơi khách mâu thuẫn với "bắt buộc đăng nhập"); chơi offline khi mở game không nối được server; bảng xếp hạng (khi đó mới cần chống gian lận).
 - **Bản 1.1 (làm ngay sau khi bản đầu chạy trọn vẹn):**
   - **Nhiều vợ** (tối đa 3): vợ thứ n cần n căn nhà, sính lễ tăng dần, mỗi cô có điều kiện và bonus riêng, vợ cả cầm chổi đứng cổng. Chi tiết §3.13.
 - **Won't (không làm ở bản này, "Để sau"):**
@@ -1287,7 +1289,7 @@ Không có cho bản đầu tay (giả định). Chơi miễn phí trên web, kh
   - Trang trí nhà; quan hệ NPC có thanh thân thiện, quà yêu thích, sự kiện theo mức thân; lịch NPC theo thứ trong tuần; dân làng phụ giao nhiệm vụ; hội làng có mini-game (D-021: chỉ giữ chào hỏi Should + tặng quà một chạm Could); săn thú lớn; đa ngôn ngữ; đổi phím; cam kết chạy trên Safari; app iOS/Android.
 
 **Cắt được nếu trễ (theo thứ tự cắt):**
-0. **Phần tài khoản (cắt trước, không ảnh hưởng cách chơi):** (a) bỏ chơi khách và quên mật khẩu (Should); (b) hoãn **đăng nhập Facebook** nếu app review chậm, phát hành với email + Google; (c) nếu backend trễ nặng: phát hành bản chỉ lưu localStorage, thêm tài khoản ở bản cập nhật sau (save có `version` nên chuyển lên server được).
+0. **Phần tài khoản (cắt trước, không ảnh hưởng cách chơi):** (a) ~~bỏ chơi khách và quên mật khẩu~~ — đã chuyển Để sau (D-029); (b) hoãn **đăng nhập Facebook** nếu app review chậm, phát hành với email + Google; (c) nếu backend trễ nặng: phát hành bản chỉ lưu localStorage, thêm tài khoản ở bản cập nhật sau (save có `version` nên chuyển lên server được).
 0b. **Bậc ngoại hình rút gọn (D-015)**, cắt dần: (a) bỏ chân dung theo bậc (mọi bậc dùng chân dung bậc 1); (b) bỏ phản ứng NPC, chỉ giữ bong bóng khoe của {ten}; (c) gộp còn **3 bậc**: bỏ bậc 2 "Người bình thường" (Nghèo kiết xác → Khá giả ở level 5, 200 quan → Phú ông), tiết kiệm ~1/3 công sprite; (d) bậc 4 chỉ có khung đứng + đi, khi làm việc dùng khung bậc 3 kèm khăn xếp vẽ đè (Giả định: chấp nhận lệch nhẹ).
 0c. **Meme rút gọn (D-017)**, cắt dần: (a) bỏ hết Should/Could; (b) giữ 4 meme chỉ cần code + chữ: zoom giật, ối dồi ôi, trừ sĩ diện, còn cái nịt (dùng icon túi tiền có sẵn) — bỏ mèo Mướp, mũi tên, cụ nhướng mày, khóc thành suối (tiết kiệm ≈ 5–7 giờ).
 0d. **Xóm làng rút gọn (D-021)**, cắt dần: (a) bỏ hết Could (tặng quà, bát chè, ông Mõ, trú mưa); (b) bỏ Should: NPC không đi bộ, không bark, không chào hỏi +XP; (c) dân làng phụ còn 3: **ông Khướt** (nằm yên, rẻ nhất), **cô Ngóng**, **trẻ trâu** chỉ đứng tại giếng — bỏ bà Chém (quán chè thành đồ trang trí, NPC buổi tối đứng trước lò rèn/quầy hạt) và anh Tráng (tiết kiệm ≈ 3–4 giờ); (d) lịch trình còn 2 khung: ngày ở chỗ làm, tối về nhà; (e) thu bản đồ Xóm về 52×36 (D-027: bỏ hàng nhà thứ 2 của lưới giữa — 4 nhà trang trí; chợ cóc chỉ còn quán chè; hồ thu còn ~20×6 với 1 bến câu; đình sát đường cái); (f) đường lùi cuối: tách 2 bản đồ — Nhà + Vườn (giữ đúng bản đồ prototype 48×32) và Xóm 48×30 (có hồ) nối qua cổng ngõ.
@@ -1349,3 +1351,4 @@ Không có cho bản đầu tay (giả định). Chơi miễn phí trên web, kh
 - 2026-10-13 — D-026: v0.13, **cuốc là món trong hotbar, phải chọn trước mới cuốc** (người dùng chọn, T-009). Sửa §3.3 (cách chọn công cụ, bảng click), §3.3a luật 1–2 (cầm cuốc; hoạt ảnh cuốc thật thay nhún), §3.8, §3.9 (cuốc chiếm 1 ô gùi), §11 ghi chú HUD nông cụ.
 - 2026-10-13 — D-027: v0.14, **bố cục Xóm theo phác thảo người dùng** (`docs/design/sketches/xom-layout-nguoi-dung-2026-10-13.png`). §5 viết lại: Xóm **60×42**, nhà {ten} + ruộng góc tây-bắc, 11 nhà hàng xóm kiểu Bắc Bộ (bảng "Ai ở nhà nào"), chợ cóc đầu xóm (chỉ trang trí), giếng, **hồ làng + 2 bến câu**, cây đa, đình; còn 2 cổng (Núi, làng Sung); bảng thời gian đi bộ; bỏ cụm "Đầu ngõ" và ao đình. **Bỏ khu Suối**: câu cá ở hồ làng từ Lv 4 (bến câu gãy, chú Đục sửa) — sửa §1 logline + pillar 2, §2 vòng ngày + level 1/4, §3.3 bảng click, §3.3a, §3.6 (luật 0 "chỗ câu"), §3.11, §3.15 gét gô, §6 (3 bản đồ), §14 (Must 3 khu, khối lượng D-027 ròng +3–8 giờ, mục cắt 0d/8/9), mermaid §5. **Đổi tên**: chị Thóc → cô Tám Thóc, ông Bễ → ông Hai Bễ (thay toàn file, kể cả dòng changelog cũ). §3.9: phân biệt **chợ cóc đầu xóm** (không mua bán) và **chợ làng Sung**. §3.16 lịch NPC theo chỗ mới, mỗi NPC về đúng nhà. `villageMapSize` 60,42. §15: câu 11 cập nhật, câu 13 đánh dấu đã chốt bởi D-026 (sửa chỗ lệch), câu 21 trỏ D-027, thêm câu 23.
 - 2026-10-13 — D-028: kết thúc T-009, **giữ nguyên mọi thông số** (ghi chú ở §3.3a và §6 "Nút chỉnh độ khó"); làm nông "Tạm", hướng xử lý ở `docs/playtests.md` PT-000.
+- 2026-10-13 — D-029 (bước 3.4): **bắt buộc đăng nhập**, email + Google trước, Facebook cuối; chơi khách, quên mật khẩu, xác minh email → Để sau. §5 mục Tài khoản viết lại (bản đệm theo tài khoản, chuyển save cũ lên một lần, prototype chưa có Menu → Đăng xuất trong Tạm dừng), sơ đồ bỏ nhánh khách/quên mật khẩu, thêm phiên hết hạn + hộp "đang chơi ở nơi khác". §11 màn tài khoản + Menu. §12 bảng dữ liệu thật (`AuthAccount`, `Save.revision`), lưu dữ liệu theo `revision`, thông số `cloudSaveDebounceSeconds` 5, `cloudSaveRetrySeconds` 30. §14 lộ trình 3.4 (36–48 giờ), Must/Should/Could/Để sau, mục cắt 0.
