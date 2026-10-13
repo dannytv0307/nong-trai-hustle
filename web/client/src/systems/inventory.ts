@@ -1,6 +1,6 @@
 // Gùi + hotbar (T-003, GDD §3.3 "hotbar", §3.9 "gùi"). Thuần TS → unit test được, save chỉ việc ghi object ra JSON.
 // Gùi là một dãy ô; HÀNG ĐẦU (hotbarSize ô đầu tiên) chính là hotbar (giống Stardew). Mỗi ô chứa một chồng
-// đồ cùng loại, tối đa `stackMax` món. Nông cụ không nằm trong gùi.
+// đồ cùng loại, tối đa `stackMax` món. T-009 (D-026): nông cụ (cuốc) cũng là một món trong gùi, chồng 1 cái.
 
 /** Một chồng đồ trong một ô. */
 export interface ItemStack {

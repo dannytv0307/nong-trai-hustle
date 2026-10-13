@@ -22,7 +22,7 @@
 // thì nạp lại (create). Cửa sổ Tạm dừng có "Đã lưu lúc…" + nút "Chơi lại từ đầu" (hỏi Có/Không → xóa save, dựng lại scene mới).
 // Nhà, cây, ao, rào, thùng bán, sạp hạt là hình khối màu theo palette (chưa có asset thật).
 import Phaser from 'phaser';
-import { heroTextureKey, heroTurnKey, heroWalkKey } from '../config/assets';
+import { HERO_ACTION_FRAME, HERO_FRAME, heroHoeKey, heroTextureKey, heroTurnKey, heroWalkKey } from '../config/assets';
 import { gameConfig } from '../config/gameConfig';
 import { cssColor, palette } from '../config/palette';
 import { textStyles, uiFontFamily } from '../config/theme';
@@ -61,7 +61,21 @@ import {
 import { CROPS, cropById, growDaysOf } from '../systems/crops';
 import { createPitchLadder, nextLadderStep, tickPitchLadder } from '../systems/pitchLadder';
 import { addItem, canAdd, countOf, createInventory, moveFromSlot, removeFromSlot, scrollSelect, selectSlot, setSlot, type Inventory } from '../systems/inventory';
-import { cropItemId, cropOfSeed, createStartInventory, isSeedItem, itemInfo, pickSeedSlot, seedItemId, staminaRestoreOf } from '../systems/items';
+import {
+  canTillWithSelected,
+  cropItemId,
+  cropOfSeed,
+  createStartInventory,
+  isSeedItem,
+  isToolItem,
+  itemInfo,
+  pickSeedSlot,
+  seedItemId,
+  selectedToolUse,
+  staminaRestoreOf,
+  toolOf,
+} from '../systems/items';
+import { hoeFrameAt } from '../systems/toolAnim';
 import {
   buySeeds,
   canSellItem,
@@ -299,7 +313,13 @@ const SAVE_RULES: SaveRules = {
   areaHeight: L.rows * T,
   isKnownItem: (id) => itemInfo(id) !== null,
   isKnownCrop: (cropId) => cropById(cropId) !== undefined,
+  // T-009: save trước khi có cuốc → nạp xong tự thêm cuốc vào ô trống đầu tiên.
+  requiredItems: gameConfig.startTools,
 };
+
+/** Origin Y của sprite nhân vật: khung đi/đứng 64×96 chân sát đáy (1); khung động tác 128×128 chân ở hàng footY. */
+const HERO_ORIGIN_Y_WALK = 1;
+const HERO_ORIGIN_Y_ACTION = HERO_ACTION_FRAME.footY / HERO_ACTION_FRAME.height;
 
 /** Cửa sổ "cửa hàng" đang mở: thùng bán hoặc sạp hạt (trùng tên lý do dừng trong systems/pause.ts). Giường không phải cửa hàng. */
 export type ShopWindow = Exclude<InteractTarget, 'bed'>;
@@ -376,6 +396,10 @@ export interface GardenDebugState {
   anim: { key: string | null; frame: number; playing: boolean; timeScale: number };
   /** Khung xoay chéo đang hiện (null = không xoay). */
   turnFrame: TurnDiagonal | null;
+  /** T-009: khung hoạt ảnh cuốc đang hiện (0 chuẩn bị, 1 giơ, 2 chạm, 3 hồi; -1 = không cuốc). */
+  hoeFrame: number;
+  /** Origin Y của sprite (1 = khung đi; 111/128 = khung cuốc) — QA kiểm chân không nhảy. */
+  heroOriginY: number;
   /** Vùng thế giới camera đang thấy (px). */
   view: { x: number; y: number; w: number; h: number };
   zoom: number;
@@ -433,6 +457,10 @@ export interface GardenDebugState {
     slots: ({ id: string; count: number; name: string } | null)[];
     selected: number;
     selectedItem: string | null;
+    /** T-009: việc của nông cụ đang cầm ('till' = cuốc; null = không cầm nông cụ). */
+    heldToolUse: string | null;
+    /** Số lần bấm ô cỏ / cuốc dở mà không cầm cuốc (bong bóng nhắc "cầm cuốc đã"). */
+    noHoePrompts: number;
     lastSeedId: string | null;
     hotbarSize: number;
     stackMax: number;
@@ -538,6 +566,8 @@ export interface GardenDebugState {
     loadedFromSave: boolean;
     loadStatus: 'none' | 'ok' | 'corrupt';
     loadReason: string | null;
+    /** T-009: món bắt buộc được tự thêm lúc nạp (save cũ chưa có cuốc → ['cuoc-go']). */
+    loadAddedItems: string[];
     /** Giây đồng hồ trong ngày ngay lúc nạp save (null = không nạp) — QA đo giờ lệch sau F5. */
     loadedElapsedSeconds: number | null;
     suppressed: boolean;
@@ -746,6 +776,7 @@ export class GardenScene extends Phaser.Scene {
     gameConfig.bagSlotsStart,
     gameConfig.hotbarSlots,
     gameConfig.stackMax,
+    gameConfig.startTools,
   );
   /** Tăng mỗi khi gùi / ô chọn đổi → HUD biết lúc nào cần vẽ lại (không vẽ lại mỗi frame). */
   inventoryRevision = 0;
@@ -899,6 +930,11 @@ export class GardenScene extends Phaser.Scene {
   /** Kết quả đọc save lúc mở game. */
   private loadStatus: 'none' | 'ok' | 'corrupt' = 'none';
   private loadReason: string | null = null;
+  private loadAddedItems: string[] = [];
+  /** Số lần bấm ô cần cuốc mà không cầm cuốc (QA). */
+  private noHoePrompts = 0;
+  /** Khung cuốc đang hiện (-1 = không cuốc) — QA. */
+  private hoeFrame = -1;
   /** Toạ độ px chân lấy từ save (null = đứng ở chỗ xuất phát L.spawn). */
   private loadedFoot: { x: number; y: number } | null = null;
   private loadedElapsed: number | null = null;
@@ -1439,13 +1475,16 @@ export class GardenScene extends Phaser.Scene {
     const pose = this.walk.pose;
     const footBottom = this.feetBody.bottom;
 
-    // Nhún mỗi nhát cuốc (squash & stretch) nhân với nhịp thở.
+    // Nhún mỗi động tác NHANH (squash & stretch) nhân với nhịp thở. Cuốc (T-009) đã có hoạt ảnh thật (updateHeroAnim)
+    // → không nhún nữa (nhún thêm làm thân méo, cán cuốc co giãn theo).
     const params = this.paramsFor(this.action.kind);
-    const progress = busy ? this.action.elapsed / params.duration : 0;
+    const progress = busy && !this.isTilling() ? this.action.elapsed / params.duration : 0;
     actionPose(progress, params.impactAt, gameConfig.actionSquash, gameConfig.actionStretch, this.pose);
+    // Đang cuốc: hình cuốc vẽ sẵn đủ động tác → không thở / nhún (co giãn làm cán cuốc méo, pixel nhòe).
+    const tilling = this.isTilling();
     this.hero
-      .setPosition(fx, footBottom + pose.offsetY)
-      .setScale(this.pose.scaleX, pose.scaleY * this.pose.scaleY)
+      .setPosition(fx, footBottom + (tilling ? 0 : pose.offsetY))
+      .setScale(tilling ? 1 : this.pose.scaleX, tilling ? 1 : pose.scaleY * this.pose.scaleY)
       .setDepth(footBottom);
     this.heroShadow.setPosition(fx, footBottom - 2);
 
@@ -1622,6 +1661,16 @@ export class GardenScene extends Phaser.Scene {
     // Ngoài tầm: click không làm gì (GDD §3.3).
     if (!(pressed || held) || this.dragKind === null || this.dragBlocked || !h.inReach || h.job !== this.dragKind) return;
     if (this.dragKind === 'till') {
+      // T-009 (D-026): phải CẦM CUỐC (ô hotbar đang chọn là cuốc) mới cuốc. Cầm hạt / ô trống mà bấm ô cỏ → không cuốc,
+      // bong bóng nhắc (chỉ lúc bấm, giữ chuột rê không nhắc lại mỗi frame). Ô đã vào hàng chờ thì vẫn cuốc tiếp dù
+      // sau đó đổi ô hotbar — giống bấm xong rồi mới đổi ý.
+      if (!canTillWithSelected(this.inventory)) {
+        if (pressed) {
+          this.noHoePrompts++;
+          this.showBubble(bubbles.noHoe);
+        }
+        return;
+      }
       // Click ô đang cuốc / đã trong hàng chờ, hoặc hàng chờ đầy → requestTile tự bỏ qua.
       // T-004 (D-022): đang rảnh mà thiếu Sức (< staminaCostTill) → không cuốc, "đuối rồi…". Đang cuốc thì vẫn cho
       // xếp hàng — tới lượt ô nào mà thiếu Sức thì dừng, xóa hàng chờ (updateTileAction).
@@ -1816,7 +1865,8 @@ export class GardenScene extends Phaser.Scene {
     const stack = from.slots[index];
     if (!stack) return;
     if (side === 'bag' && !canSellItem(stack.id)) {
-      this.setShopNotice(isSeedItem(stack.id) ? 'Hạt giống không bán được' : 'Món này không bán được', true);
+      const why = isSeedItem(stack.id) ? 'Hạt giống không bán được' : isToolItem(stack.id) ? 'Nông cụ không bán được' : 'Món này không bán được';
+      this.setShopNotice(why, true);
       return;
     }
     const r = moveFromSlot(from, index, to, all ? stack.count : 1);
@@ -2024,7 +2074,7 @@ export class GardenScene extends Phaser.Scene {
     if (i < 0) i = this.floatLife.indexOf(Math.min(...this.floatLife)); // hết pool → dùng lại chữ sắp tắt nhất
     // Bắt đầu ngang ngực, lệch sang phải, bay lên tới ngang đầu — không chui vào bong bóng (bong bóng nằm trên đầu).
     const x = this.hero.x + T * 0.75;
-    let y = this.hero.y - this.hero.displayHeight * 0.4;
+    let y = this.hero.y - this.heroBodyHeight * 0.4;
     // Chữ khác loại đang bay gần chỗ xuất phát → đặt chữ mới lệch lên trên chữ đó, không đè.
     const gap = gameConfig.staminaFloatStackOffset * T;
     for (let k = 0; k < this.floats.length; k++) {
@@ -2134,8 +2184,8 @@ export class GardenScene extends Phaser.Scene {
     const cam = this.cameras.main;
     const lying = Math.abs(this.hero.angle) > 45;
     const side = this.hero.angle < 0 ? -1 : 1;
-    const wx = this.hero.x + (lying ? side * this.hero.displayHeight * 0.8 : 0);
-    const wy = this.hero.y - (lying ? T * 0.5 : this.hero.displayHeight);
+    const wx = this.hero.x + (lying ? side * this.heroBodyHeight * 0.8 : 0);
+    const wy = this.hero.y - (lying ? T * 0.5 : this.heroBodyHeight);
     return { x: cam.x + (wx - cam.worldView.x) * cam.zoom, y: cam.y + (wy - cam.worldView.y) * cam.zoom };
   }
 
@@ -2791,7 +2841,7 @@ export class GardenScene extends Phaser.Scene {
     // Hiện ra thì nảy nhẹ (to lên rồi về), sắp tắt thì mờ dần.
     const pop = 1 + 0.25 * (this.bubblePopT / BUBBLE_POP_SECONDS);
     this.bubble
-      .setPosition(this.hero.x + this.bubbleShakeX, this.hero.y - this.hero.height - 6)
+      .setPosition(this.hero.x + this.bubbleShakeX, this.hero.y - HERO_FRAME.height - 6)
       .setScale(pop)
       .setAlpha(Math.min(1, this.bubbleT / 0.25));
   }
@@ -2860,7 +2910,7 @@ export class GardenScene extends Phaser.Scene {
   /** Vài giọt mồ hôi bắn ra từ đầu {ten}, bay chéo lên rồi rơi (hình tròn xanh nhạt, chưa có hình thật). */
   private spawnSweat(): void {
     const headX = this.hero.x;
-    const headY = this.hero.y - this.hero.displayHeight * 0.82;
+    const headY = this.hero.y - this.heroBodyHeight * 0.82;
     const speed = gameConfig.tillSweatSpeed * T;
     let spawned = 0;
     for (let i = 0; i < this.sweat.length && spawned < gameConfig.tillSweatCount; i++) {
@@ -3071,12 +3121,23 @@ export class GardenScene extends Phaser.Scene {
 
   /**
    * Chọn hình cho nhân vật, theo thứ tự ưu tiên:
+   * 0. Đang cuốc (T-009) → khung cuốc theo tiến độ nhát (systems/toolAnim.ts), hướng = hướng đang quay về ô. Bỏ qua khung
+   *    xoay chéo: nhát đầu bắt đầu bằng khung "chuẩn bị" đúng hướng mới luôn.
    * 1. Đang xoay → khung chéo (anim đi tạm dừng; vật lý vẫn chạy bình thường — chỉ đổi hình).
    * 2. Đang đi → anim bước đúng hướng, tốc độ khung theo tốc độ thật; xoay xong thì vào khung đầu.
    * 3. Đứng → ảnh chống nạnh.
    */
   private updateHeroAnim(timeScale: number): void {
     const anims = this.hero.anims;
+    if (this.isTilling()) {
+      if (anims.isPlaying) anims.stop();
+      clearWalkBob(this.walk);
+      const progress = this.action.elapsed / this.tillParams.duration;
+      this.hoeFrame = hoeFrameAt(progress, this.tillParams.impactAt, gameConfig.tillAnimWindupShare, gameConfig.tillAnimImpactShare);
+      this.showStill(heroHoeKey(1, this.facing), this.hoeFrame);
+      return;
+    }
+    this.hoeFrame = -1;
     const diagonal = this.turn.frame;
     if (diagonal) {
       if (anims.isPlaying) anims.stop();
@@ -3087,6 +3148,7 @@ export class GardenScene extends Phaser.Scene {
       if (!anims.isPlaying || anims.currentAnim?.key !== key) {
         // Luôn vào khung đầu (chạm gót) của chu trình — nối tiếp khung xoay vừa hiện.
         this.hero.play({ key, startFrame: 0 });
+        this.syncHeroOrigin(); // vừa cuốc xong mà đi luôn → về origin khung đi
       }
       anims.timeScale = timeScale;
     } else {
@@ -3100,6 +3162,21 @@ export class GardenScene extends Phaser.Scene {
     const frameName = frame === undefined ? '__BASE' : String(frame);
     if (this.hero.texture.key === key && String(this.hero.frame.name) === frameName) return;
     this.hero.setTexture(key, frame);
+    this.syncHeroOrigin();
+  }
+
+  /**
+   * Khung động tác (128×128, chân ở hàng 111) và khung đi/đứng (64×96, chân sát đáy) có điểm chân khác nhau → đổi
+   * texture thì đổi origin CÙNG LÚC để bàn chân đứng yên một chỗ (không nhảy lên/xuống khi bắt đầu / thôi cuốc).
+   */
+  private syncHeroOrigin(): void {
+    const y = this.hero.texture.key.includes('-hoe-') ? HERO_ORIGIN_Y_ACTION : HERO_ORIGIN_Y_WALK;
+    if (this.hero.originY !== y) this.hero.setOrigin(0.5, y);
+  }
+
+  /** Chiều cao THÂN nhân vật (px, theo khung đi 64×96) — bong bóng / mồ hôi bám theo đầu, không nhảy khi đổi sang khung cuốc 128. */
+  private get heroBodyHeight(): number {
+    return HERO_FRAME.height * Math.abs(this.hero.scaleY);
   }
 
   /**
@@ -3307,6 +3384,7 @@ export class GardenScene extends Phaser.Scene {
     this.loadReason = r.status === 'corrupt' ? r.reason : null;
     if (r.status !== 'ok') return;
     const applied = applySave(r.save, this.saveWorld(), SAVE_RULES);
+    this.loadAddedItems = applied.addedItems;
     this.playerName = applied.playerName;
     this.loadedFoot = applied.position;
     this.facing = applied.facing;
@@ -3438,6 +3516,8 @@ export class GardenScene extends Phaser.Scene {
         timeScale: this.hero?.anims.timeScale ?? 0,
       },
       turnFrame: this.turn.frame,
+      hoeFrame: this.hoeFrame,
+      heroOriginY: this.hero?.originY ?? 1,
       view: { x: cam.worldView.x, y: cam.worldView.y, w: cam.worldView.width, h: cam.worldView.height },
       zoom: cam.zoom,
       mapPx: { w: L.cols * T, h: L.rows * T },
@@ -3488,6 +3568,8 @@ export class GardenScene extends Phaser.Scene {
         slots: this.inventory.slots.map((st) => (st ? { id: st.id, count: st.count, name: itemInfo(st.id)?.name ?? st.id } : null)),
         selected: this.inventory.selected,
         selectedItem: this.inventory.slots[this.inventory.selected]?.id ?? null,
+        heldToolUse: selectedToolUse(this.inventory),
+        noHoePrompts: this.noHoePrompts,
         lastSeedId: this.inventory.lastSeedId,
         hotbarSize: this.inventory.hotbarSize,
         stackMax: this.inventory.stackMax,
@@ -3568,6 +3650,7 @@ export class GardenScene extends Phaser.Scene {
         loadedFromSave: this.loadStatus === 'ok',
         loadStatus: this.loadStatus,
         loadReason: this.loadReason,
+        loadAddedItems: [...this.loadAddedItems],
         loadedElapsedSeconds: this.loadedElapsed,
         suppressed: this.saveSuppressed,
         autoSaveIntervalSeconds: this.autoSaveInterval,
@@ -3692,6 +3775,16 @@ export class GardenScene extends Phaser.Scene {
   debugHudSlotCenter(kind: 'hotbar' | 'bag', i: number): { x: number; y: number } {
     const r = kind === 'hotbar' ? hotbarSlotRect(i) : bagSlotRect(i, this.inventory.slots.length);
     return { x: r.x + r.w / 2, y: r.y + r.h / 2 };
+  }
+
+  /**
+   * T-009 (QA/test): cầm cuốc — chọn ô hotbar đang có cuốc (như người chơi bấm số ô đó). Trả về ô đã chọn, -1 nếu cuốc
+   * không nằm trên hotbar.
+   */
+  debugHoldHoe(): number {
+    const i = this.inventory.slots.findIndex((st, k) => k < this.inventory.hotbarSize && st !== null && toolOf(st.id)?.use === 'till');
+    if (i >= 0) this.selectHotbar(i);
+    return i;
   }
 
   /** Ghi đè một ô gùi (QA/test: làm gùi đầy, hết hạt…). id null hoặc count ≤ 0 = ô trống. */

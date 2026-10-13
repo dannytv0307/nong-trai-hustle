@@ -308,8 +308,9 @@ test('THÔNG SỐ THẬT: click 1 lần rồi buông → tự bổ 6 nhát × 0.
   expect(s.juice.lastSfx).toMatch(/^sfx-cuoc-dat-[12]$/);
   expect(Math.abs(s.juice.lastSfxDetune)).toBeLessThanOrEqual(100); // ±1 nửa cung
   expect(s.juice.dustActive).toBeGreaterThan(0);
-  // Nhún (bẹp) lúc chạm. Máy test bận thì frame dài → đã hồi một phần (BUG-008) nên chỉ đòi "còn bẹp rõ".
-  expect(s.juice.heroScale.y).toBeLessThan(0.98);
+  // T-009: hoạt ảnh cuốc thật thay nhún — lúc chạm hiện khung "chạm đất" (2), thân không co giãn.
+  expect((s as unknown as { hoeFrame: number }).hoeFrame).toBe(2);
+  expect(s.juice.heroScale).toEqual({ x: 1, y: 1 });
   expect(s.till.sweatActive).toBe(0); // chưa tới nhát 3
   await setPaused(page, false);
 

@@ -161,6 +161,7 @@ const plotOf = (s: GState, x: number, y: number) => s.farm.plots.find((p) => p.x
 /** Cuốc nhanh rồi gieo cải các ô; `water` = tưới luôn. */
 async function plantTiles(page: Page, tiles: [number, number][], water: boolean): Promise<void> {
   await call(page, 'debugSetTillTuning', { strikeSeconds: 0.08 });
+  await call(page, 'debugHoldHoe'); // T-009: cầm cuốc (gieo vẫn lấy hạt đầu tiên trong gùi)
   for (const [x, y] of tiles) {
     await clickTile(page, x, y);
     await expect.poll(async () => plotOf(await st(page), x, y).soil, { timeout: 20_000 }).toBe('tilled');

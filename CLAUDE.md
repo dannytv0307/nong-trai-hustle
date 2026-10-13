@@ -19,6 +19,8 @@ Người dùng là **người mới hoàn toàn** với làm game: họ có ý t
 | `/idea <ý tưởng>` | Ý tưởng mới nảy ra giữa chừng |
 | `/gen-art <asset>` | Gen hình ảnh ngay |
 | `/gen-audio <âm thanh>` | Gen nhạc / SFX ngay |
+| `/git-commit [nội dung] [push]` | Lưu commit cục bộ (tác giả vudzai, không Co-Authored-By); kèm `push` mới đẩy lên GitHub |
+| `/git-pull [nhánh]` | Kéo code mới từ GitHub về an toàn, không làm mất việc đang dở |
 
 ## Đội agent (`.claude/agents/`)
 
@@ -72,6 +74,7 @@ Tài liệu viết **tiếng Việt có dấu**; prompt gen ảnh/nhạc viết 
   - Thông số gameplay: `src/config/gameConfig.ts` · bảng màu: `src/config/palette.ts` · danh sách asset: `src/config/assets.ts` · dữ liệu nội dung: `src/data/*.json` (+ kiểu ở `src/data/types.ts`) · logic thuần TS + test: `src/systems/` · phím: `src/input/InputController.ts` · gọi server: `src/net/api.ts` (type API từ `@bph/shared`)
   - Scene: `Boot → Preload → Garden` (+ `GardenHud` chạy song song: Sức, tiền, đồng hồ, hotbar, gùi, các cửa sổ); `?scene=sandbox` mở màn thử cũ. Debug hook QA: `window.__game` (Phaser.Game); Garden đặt `registry.gardenReady = true`, đọc trạng thái qua `getScene('Garden').debugState` và các hàm `debug*` trong `GardenScene.ts`. Cửa sổ/tạm dừng dùng `PauseReasons` (`src/systems/pause.ts`); phím thử G/F8/F9 chỉ có ở bản dev (`devCheatsEnabled`)
   - Lưu game (T-008, D-025): localStorage key `bph-save` (bản hỏng → `bph-save-corrupt`); type + kiểm tra ở `@bph/shared` (`src/save/gameSave.ts`), client `src/systems/save.ts` + `src/net/saveLocal.ts`. E2E muốn `page.reload()` vào Ngày 1 sạch thì gọi `debugClearSave()` trước
+  - Nông cụ (T-009, D-026): `src/data/tools.json` — cuốc `cuoc-go` là món trong gùi, game mới ở **ô 1** (đang chọn), hạt từ ô 2; chỉ cuốc khi ô đang chọn là cuốc (`canTillWithSelected` ở `systems/items.ts`); save thiếu cuốc tự thêm khi nạp (`SaveRules.requiredItems`). Hoạt ảnh động tác: spritesheet khung 128×128 (`actionSpritesheets`, `HERO_ACTION_FRAME`, origin chân 111/128) — khung tính từ tiến độ nhát (`systems/toolAnim.ts`), không dùng anim Phaser. E2E muốn cuốc thì giữ ô 1 (hoặc `page.keyboard.press('1')`); `debugState.hoeFrame`, `inventory.heldToolUse`
   - E2E chạy `workers: 1`; test chờ theo trạng thái game (`expect.poll` / đếm frame), tránh `waitForTimeout` cố định (BUG-006)
 - `web/e2e/` (`@bph/e2e`) — Playwright (chromium), smoke test ở `tests/smoke.spec.ts`
 - `web/server/` (`@bph/server`) — Node 24 + TS strict + Fastify 5 + Prisma 7 (adapter `pg`) + Vitest. `src/app.ts` dựng app (test bằng `app.inject`), `src/server.ts` mở cổng, `src/config.ts` đọc `.env` có kiểm tra, `src/routes/`, sơ đồ CSDL `prisma/schema.prisma`, migration `prisma/migrations/`

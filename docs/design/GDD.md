@@ -2,7 +2,7 @@
 
 > Phụ đề tiếng Việt: *Làng Lầy Cưới Vợ*
 >
-> Chủ sở hữu: `game-planner` · Phiên bản: v0.12 (concept B, bản web trình duyệt PC — xem D-004 … D-022) · Tiến độ: xem [journey.md](../journey.md)
+> Chủ sở hữu: `game-planner` · Phiên bản: v0.13 (concept B, bản web trình duyệt PC — xem D-004 … D-026) · Tiến độ: xem [journey.md](../journey.md)
 
 ## 1. Tổng quan
 
@@ -165,15 +165,17 @@ Phải đủ **cả** các điều kiện sau thì bà mối mới chịu đến
 - Ô dưới con trỏ được **viền sáng** nếu nằm trong tầm `interactRange` quanh nhân vật; ngoài tầm thì viền xám và click không làm gì.
 - **Giữ chuột trái và rê** qua các ô liền nhau → làm lần lượt từng ô (mỗi `actionDuration` một ô). Gieo, tưới, hái cả luống chỉ cần giữ chuột và đi dọc luống. **Riêng cuốc** thì khác: nhân vật đứng yên cuốc từng ô, rê chuột chỉ xếp hàng tối đa `tillQueueMax` ô (§3.3a, D-022).
 - Một lần giữ chuột rê chỉ làm **một loại việc**, theo ô bấm đầu tiên (bấm vào ô chưa cuốc → chỉ nhận ô chưa cuốc; bấm vào ô đã cuốc → chỉ gieo). Tránh rê qua luống lẫn lộn mà làm nhầm việc.
-- **Cách chọn công cụ (đề xuất, giả định): hành động tự động theo ô, hotbar chỉ cho đồ tiêu hao.**
-  - Nhân vật **tự chọn đúng nông cụ** theo thứ được click (giữ logic "việc hợp lý" của D-008). Người chơi không bao giờ phải đổi cuốc sang bình tưới, nên không có lỗi "cầm nhầm đồ".
-  - **Hotbar** (thanh 9 ô dưới màn, phím 1–9 hoặc cuộn chuột) chứa **hạt giống, đồ ăn, lễ vật** — những thứ người chơi thật sự phải chọn. Ô đang chọn quyết định gieo hạt gì, chuột phải thì ăn món gì.
-  - Nông cụ (cuốc, rìu, cần, nỏ) hiện ở góc HUD kèm độ bền, không chiếm hotbar.
-  - Lý do: ít phím, ít lỗi, ít code hơn kiểu Stardew (mỗi công cụ một ô). Nếu người dùng muốn kiểu Stardew thì vẫn đổi được về sau.
+- **Cách chọn công cụ (D-026, người dùng chọn 2026-10-13 — thay đề xuất "tự chọn nông cụ" cũ): cuốc là một món trong hotbar, phải chọn trước mới cuốc (kiểu Stardew).**
+  - **Cái cuốc** (`cuoc-go`, dữ liệu `tools.json`) nằm trong gùi/hotbar như món khác; game mới nằm ở **ô 1** và đang được chọn (vào game là cuốc được ngay). Save cũ chưa có cuốc → nạp xong tự thêm vào ô trống đầu tiên.
+  - Chỉ khi **ô hotbar đang chọn là cuốc** thì click / giữ chuột lên ô chưa cuốc hoặc cuốc dở mới cuốc. Đang cầm hạt / đồ ăn / ô trống mà bấm ô đó → không cuốc, bong bóng nhắc "Tay không mà đòi cuốc à? Cầm cuốc đã!". Ô đã vào hàng chờ vẫn cuốc tiếp nếu đổi ô giữa chừng.
+  - Việc khác **giữ như cũ**: gieo (hạt đang chọn; không phải hạt → hạt gieo lần trước), tưới, hái, dọn không cần cầm gì (chưa có bình tưới trong hotbar).
+  - Cuốc **không tiêu hao, không bán được, không ăn được**, không mất; đổi chỗ / chuyển qua lại như món khác.
+  - **Hotbar** (thanh 9 ô dưới màn, phím 1–9 hoặc cuộn chuột) chứa cuốc + **hạt giống, đồ ăn, lễ vật**. Ô đang chọn quyết định cầm cuốc hay gieo hạt gì, chuột phải thì ăn món gì.
+  - Nông cụ khác (rìu, cần, nỏ, bình tưới) dự kiến theo cùng cách khi làm tới (chốt lúc đó). Độ bền nông cụ: chưa làm.
 
 | Click vào | Nhân vật làm |
 |---|---|
-| Ô đất chưa cuốc, hoặc cuốc dở | Cuốc nhiều nhát (≈ 5 giây, §3.3a); ô cuốc dở thì làm tiếp phần còn lại |
+| Ô đất chưa cuốc, hoặc cuốc dở | **Đang cầm cuốc** (D-026): cuốc nhiều nhát (≈ 5 giây, §3.3a); ô cuốc dở thì làm tiếp phần còn lại. Không cầm cuốc: không làm, bong bóng nhắc |
 | Ô đã cuốc, trống | Gieo **hạt đang chọn trên hotbar**. Ô hotbar đang chọn không phải hạt → dùng hạt gieo lần trước. Hết hạt: bong bóng "hết hạt rồi" |
 | Ô đã gieo, chưa tưới hôm nay | Tưới |
 | Ô cây chín | Hái (đồ vào gùi) |
@@ -203,8 +205,8 @@ Phải đủ **cả** các điều kiện sau thì bà mối mới chịu đến
 Ý đồ: làm nông **cực nhọc mà đáng công**. Mỗi ô cuốc xong là một thành quả nhỏ nhìn thấy được (pillar "Làm giàu từ hai bàn tay"). Chỉ một click, không bắt bấm liên tục nên không mỏi tay; cái "nặng" nằm ở thời gian và Sức.
 
 **Luật:**
-1. **Click ô chưa cuốc trong tầm** → {ten} quay mặt về ô, đứng tại chỗ và tự bổ `tillStrikesPerPlot` nhát liên tiếp, mỗi nhát `tillStrikeSeconds` giây (6 × 0.85 ≈ **5,1 giây**). Thả chuột ra vẫn cuốc tiếp.
-2. **Mỗi nhát**: giơ cuốc → bổ xuống ở `actionImpactAt` → tiếng "bộp" + bụi đất + nhún. Thanh tiến độ trên ô đầy thêm 1 đốt.
+1. **Cầm cuốc (ô hotbar đang chọn — D-026), click ô chưa cuốc trong tầm** → {ten} quay mặt về ô, đứng tại chỗ và tự bổ `tillStrikesPerPlot` nhát liên tiếp, mỗi nhát `tillStrikeSeconds` giây (6 × 0.85 ≈ **5,1 giây**). Thả chuột ra vẫn cuốc tiếp.
+2. **Mỗi nhát**: hoạt ảnh cuốc 4 khung (ART-CHR-007: chuẩn bị → giơ cao → chạm đất → hồi; T-009), khung "chạm đất" đúng lúc `actionImpactAt` → tiếng "bộp" + bụi đất. Thanh tiến độ trên ô đầy thêm 1 đốt. (Trước T-009 dùng nhún thân bằng code; nay chỉ việc nhanh còn nhún.)
 3. **Đất đổi dần** theo `tillVisualStages` nấc (3): sau nhát 2 "vỡ cỏ", sau nhát 4 "lổn nhổn", nhát 6 "đất tơi" = đã cuốc.
 4. **Nhát cuối** (xong ô): bụi nhiều gấp `tillFinishDustMultiplier`, khựng hình `tillFinishHitStopSeconds`, ô nảy nhẹ, tiếng chốt khác các nhát thường. Trừ Sức (chữ "−4 Sức" bay lên — từ T-004), cuốc −1 độ bền (khi có hệ nông cụ).
 5. **Bỏ dở**: bấm bất kỳ phím đi (WASD / mũi tên) → dừng ngay, nhân vật đi được luôn (nhát đang giơ mà chưa chạm thì không tính), **hàng chờ bị xóa**. Ô giữ số nhát đã cuốc (thanh tiến độ còn, mờ đi). Không mất Sức, không mất bền.
@@ -367,7 +369,7 @@ Gà rừng: bán 80 quan, nướng hồi 70 Sức, lễ vật giá trị 120, XP
 
 ### 3.8 Nông cụ: chế đồ, nâng cấp, bảo dưỡng (D-008)
 
-- **Không cần chọn công cụ**: nhân vật tự dùng đúng đồ theo thứ được click (§3.3). Nông cụ không chiếm hotbar.
+- **Cuốc phải chọn trên hotbar** (D-026, §3.3): cuốc là một món trong gùi/hotbar, không tiêu hao, không bán. Nông cụ khác dự kiến theo cùng cách (chốt khi làm tới).
 - **Chế đồ** ở Đầu ngõ (thợ rèn, thợ mộc) hoặc bếp. Mỗi công thức tối đa **2 loại vật liệu + tiền công**. Chế xong có ngay (không chờ ngày). Thợ luôn "chê khó" một câu cho vui nhưng giá cố định. (Mặc cả với thợ: Để sau.)
 
 **Độ bền** (ý gốc của người dùng): cuốc, rìu, cần câu, nỏ có điểm bền. Mỗi lần dùng −1.
@@ -414,7 +416,7 @@ Gà rừng: bán 80 quan, nướng hồi 70 Sức, lễ vật giá trị 120, XP
 - **Bán ở chợ** (level 6): bán **ngay** với giá × `marketPriceMultiplier`. Đáng đi chợ khi có nhiều hàng.
 - **Mua**: hạt (Đầu ngõ), gạo (tự trừ khi nấu cơm), lễ vật và gia súc (chợ), **bộ đồ sắm sửa** (tab "Sắm sửa" ở quán chị Thóc và sạp bà Cân — §3.14).
 - **Giảm giá theo bậc ngoại hình** (§3.14): bậc 3 giảm 5%, bậc 4 giảm 10% mọi giá mua bằng tiền (hạt, gạo, tiền công chế đồ, sửa nông cụ, mở ruộng, hàng chợ). Không áp dụng cho sính lễ. Làm tròn lên tới quan.
-- **Gùi**: `bagSlotsStart` ô, mỗi ô chồng tối đa `stackMax` món cùng loại. **Hàng đầu tiên (9 ô) của gùi chính là hotbar** (giống Stardew): kéo thả đồ trong cửa sổ túi đồ (phím E) để xếp lên hotbar. Gùi đầy → không nhặt thêm, bong bóng "gùi đầy". Nông cụ **không** chiếm gùi.
+- **Gùi**: `bagSlotsStart` ô, mỗi ô chồng tối đa `stackMax` món cùng loại. **Hàng đầu tiên (9 ô) của gùi chính là hotbar** (giống Stardew): kéo thả đồ trong cửa sổ túi đồ (phím E) để xếp lên hotbar. Gùi đầy → không nhặt thêm, bong bóng "gùi đầy". **Cái cuốc chiếm 1 ô gùi** (D-026; game mới ở ô 1), không bán được.
 - **Rương** ở nhà (Should): `chestSlots` ô, cất đồ chưa bán (ví dụ lễ vật dành cho đám cưới).
 
 **Hàng ở chợ** (level 6):
@@ -1055,7 +1057,7 @@ Juice = các hiệu ứng nhỏ làm hành động "đã tay". Trên PC không c
 | Góc trên phải | Đồng hồ | "14:30" + icon mặt trời/trăng; nhấp nháy đỏ từ 23h |
 | | Ngày + mùa + thời tiết | "Ngày 6 · Mùa mưa" + icon mưa |
 | | Nhiệm vụ đang theo | 1 dòng tên + tiến độ "Câu cá 1/3" |
-| Góc dưới trái | Nông cụ | 4 icon nhỏ cuốc/rìu/cần/nỏ + thanh độ bền, đổi màu khi sắp cùn |
+| Góc dưới trái | Nông cụ | 4 icon nhỏ cuốc/rìu/cần/nỏ + thanh độ bền, đổi màu khi sắp cùn (D-026: cuốc nay nằm trên hotbar — chỗ này xem lại khi làm độ bền) |
 | Giữa dưới | **Hotbar** | 9 ô (phím 1–9), ô đang chọn viền vàng, số lượng ở góc |
 | Góc dưới phải | Gợi ý phím | "E Túi đồ · Q Nhiệm vụ · Esc Menu" (tắt được trong Cài đặt) |
 | Trên đầu nhân vật | Bong bóng | Thoại ngắn, chửi thề, "gùi đầy", "hết hạt" |
@@ -1300,3 +1302,4 @@ Không có cho bản đầu tay (giả định). Chơi miễn phí trên web, kh
 - 2026-10-10 — Người dùng duyệt D-021: đầy đủ Must, một bản đồ Xóm liền, cửa hàng 6–19h (§15 câu 21).
 - 2026-10-10 — D-022: v0.12, **cuốc là "việc nặng" ≈ 5 giây/ô**. Thêm §3.3a (6 nhát × 0.85 s, thanh tiến độ, đất đổi 3 nấc, WASD bỏ dở giữ tiến độ, click lại làm tiếp, giữ qua đêm, hàng chờ 3 ô, một lần rê một loại việc, bảng "một ngày cuốc được bao nhiêu", lộ trình cuốc sắt 4 nhát, cách chống nhàm, bảng tham số `tillStrikesPerPlot`, `tillStrikeSeconds`, `tillVisualStages`, `tillQueueMax`, `tillFinish*`, `tillSweatFromStrike`, `tillDoneBark*`, `tillProgressKeepsOvernight`, `tillScreenShake`). §2 core loop, §3.2 `staminaCostTill` 2 → 4 Sức/ô (trừ khi xong ô), §3.3 (rê chuột, bảng click, `actionDuration` chỉ cho việc nhanh, thêm `actionImpactAt`, `actionQueueMax`), §3.4 vòng đời có "cuốc dở", §3.8 cuốc sắt, §4 phím, §8 juice cuốc (3 dòng, bỏ rung), §15 câu 22. Giữ `dayLengthSeconds` 600.
 - 2026-10-10 — D-022: người dùng chọn **C cho cuốc sắt** (5 nhát ≈ 4,2 s/ô, 2 Sức/ô). Sửa §3.2, §3.3a (bảng "một ngày cuốc được bao nhiêu": cuốc sắt 9/12/24 ô = 38/51/102 s; lộ trình cuốc), §3.8, §15 câu 22 (đã chốt).
+- 2026-10-13 — D-026: v0.13, **cuốc là món trong hotbar, phải chọn trước mới cuốc** (người dùng chọn, T-009). Sửa §3.3 (cách chọn công cụ, bảng click), §3.3a luật 1–2 (cầm cuốc; hoạt ảnh cuốc thật thay nhún), §3.8, §3.9 (cuốc chiếm 1 ô gùi), §11 ghi chú HUD nông cụ.

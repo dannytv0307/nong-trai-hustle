@@ -17,6 +17,15 @@ export const heroWalkKey = (tier: number, facing: Facing): string => `hero-t${ti
 /** Khóa spritesheet khung xoay chéo (ART-CHR-006): 0 xuống-phải, 1 xuống-trái, 2 lên-phải, 3 lên-trái. */
 export const heroTurnKey = (tier: number): string => `hero-t${tier}-turn`;
 
+/**
+ * Khóa spritesheet động tác CUỐC (ART-CHR-007), vd `hero-t1-hoe-down`: dải 512×128 = 4 khung HERO_ACTION_FRAME —
+ * 0 chuẩn bị, 1 giơ cao, 2 chạm đất, 3 hồi (systems/toolAnim.ts).
+ */
+export const heroHoeKey = (tier: number, facing: Facing): string => `hero-t${tier}-hoe-${facing}`;
+
+/** Khóa icon nông cụ cái cuốc (ART-ITM-001) — data/tools.json `icon`. */
+export const ITEM_HOE_ICON = 'item-hoe';
+
 const facings: Facing[] = ['down', 'up', 'left', 'right'];
 
 export const images: Record<string, string> = {
@@ -40,15 +49,30 @@ export const images: Record<string, string> = {
   // Tile thử (ART-TIL-001/002): ảnh 256×256 = 4×4 ô 64px, nối liền khi lặp
   'tile-grass-test': `${ART}/tiles/tile-grass-test.png`,
   'tile-dirt-test': `${ART}/tiles/tile-dirt-test.png`,
+  // Icon cái cuốc (ART-ITM-001): 128×128 nền trong suốt, hiện ~72 px trong ô hotbar
+  [ITEM_HOE_ICON]: `${ART}/items/item-hoe.png`,
 };
 
 /** Kích thước một khung trong mọi spritesheet nhân vật (px). */
 export const HERO_FRAME = { width: 64, height: 96 } as const;
 
+/**
+ * Khung động tác cầm nông cụ (ART-CHR-007 cuốc; sau này tưới/cúi): 128×128, rộng hơn khung đi vì cán cuốc giơ quá nón.
+ * Cùng tỷ lệ pixel với khung đi (KHÔNG co giãn). Bàn chân: giữa ngang (x 64), đáy chân hàng 110 → `footY` 111 = mép dưới
+ * bàn chân → origin Y = footY / height (khung đi 64×96 dùng origin Y = 1, chân sát đáy). Đổi texture thì đổi origin cùng
+ * lúc để chân không nhảy.
+ */
+export const HERO_ACTION_FRAME = { width: 128, height: 128, footY: 111 } as const;
+
 /** Spritesheet: dải ngang nhiều khung 64×96 bằng nhau. Bậc 1: đi 4 hướng + khung xoay. */
 export const spritesheets: Record<string, string> = {
   ...Object.fromEntries(facings.map((d) => [heroWalkKey(1, d), `${ART}/characters/hero-t1-walk-${d}.png`])),
   [heroTurnKey(1)]: `${ART}/characters/hero-t1-turn.png`,
+};
+
+/** Spritesheet động tác (khung HERO_ACTION_FRAME 128×128). Bậc 1: cuốc 4 hướng (ART-CHR-007). */
+export const actionSpritesheets: Record<string, string> = {
+  ...Object.fromEntries(facings.map((d) => [heroHoeKey(1, d), `${ART}/characters/hero-t1-hoe-${d}.png`])),
 };
 
 /** Âm thanh: ghi đường dẫn không đuôi; Preload tự thêm .ogg (ưu tiên) và .mp3 (Safari). */

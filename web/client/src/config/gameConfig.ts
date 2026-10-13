@@ -152,9 +152,12 @@ export const gameConfig = {
   actionImpactAt: 0.5,
   /** Giữ chuột rê việc NHANH (T-003): nhớ tối đa bấy nhiêu ô chờ làm. Cuốc dùng `tillQueueMax`. */
   actionQueueMax: 4,
-  /** Nhún khi bổ cuốc: độ bẹp scale Y lúc chạm (0.12 = bẹp 12%, phình ngang tương ứng). */
+  /**
+   * Nhún bằng code lúc làm việc NHANH (gieo, tưới, hái, dọn — chưa có hình riêng): độ bẹp scale Y lúc chạm (0.12 = bẹp
+   * 12%). Cuốc KHÔNG nhún nữa từ T-009 (đã có hoạt ảnh cuốc thật — nhún thêm làm méo thân).
+   */
   actionSquash: 0.12,
-  /** Giơ cuốc: nhân vật vươn cao thêm bấy nhiêu (tỷ lệ scale Y) trước khi bổ xuống. */
+  /** Việc nhanh: nhân vật vươn cao thêm bấy nhiêu (tỷ lệ scale Y) trước lúc chạm. */
   actionStretch: 0.05,
   /** Số hạt bụi đất văng ra mỗi nhát cuốc. (7 → 9 sau góp ý T-002: bỏ rung nên cho đất văng rõ hơn.) */
   tillDustCount: 9,
@@ -174,6 +177,14 @@ export const gameConfig = {
   tillVisualStages: 3,
   /** Đang cuốc thì nhớ thêm tối đa mấy ô chờ (có số 1/2/3 trên ô). 0 = tắt hàng chờ. */
   tillQueueMax: 3,
+  /**
+   * Hoạt ảnh cuốc thật (T-009, ART-CHR-007: 4 khung — 0 chuẩn bị, 1 giơ cao, 2 CHẠM ĐẤT, 3 hồi) chạy trọn 4 khung mỗi
+   * nhát, khung 2 hiện ĐÚNG lúc chạm (`actionImpactAt`). Phần trước lúc chạm chia cho khung 0 / khung 1: khung 0 chiếm
+   * bấy nhiêu phần (0.4 → 0.85 s × 0.5 × 0.4 ≈ 0.17 s chuẩn bị, 0.26 s giơ cao — giữ lâu ở đỉnh cho "nặng").
+   */
+  tillAnimWindupShare: 0.4,
+  /** Phần sau lúc chạm chia cho khung 2 (lưỡi cắm đất) / khung 3 (hồi): khung 2 chiếm bấy nhiêu phần (≈ 0.21 s). */
+  tillAnimImpactShare: 0.5,
   /** Nhát cuối (xong ô): bụi đất nhiều gấp mấy lần nhát thường. */
   tillFinishDustMultiplier: 2,
   /** Nhát cuối: khựng hình bao lâu (giây) — cảm giác "chốt". */
@@ -323,6 +334,11 @@ export const gameConfig = {
   stackMax: 20,
   /** Hạt có sẵn lúc bắt đầu (id cây trong crops.json → số hạt), xếp vào hotbar theo thứ tự này từ ô 1. */
   startSeeds: { 'rau-cai': 6, 'khoai-lang': 3 } as Readonly<Record<string, number>>,
+  /**
+   * Nông cụ có sẵn lúc bắt đầu (mã trong data/tools.json), xếp TRƯỚC hạt giống từ ô 1 (T-009, D-026: cuốc ở ô 1, vào
+   * game là đang cầm cuốc). Save cũ chưa có món nào trong này → nạp xong tự thêm vào ô trống đầu tiên.
+   */
+  startTools: ['cuoc-go'] as readonly string[],
   /** Phím thử (G: qua đêm, F8: −20 Sức…) chỉ bật khi chạy dev (`npm run dev`), tắt ở bản build. */
   devCheatsEnabled: import.meta.env.DEV,
 

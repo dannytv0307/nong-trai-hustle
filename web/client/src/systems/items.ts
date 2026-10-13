@@ -2,17 +2,20 @@
 // - hạt giống: id 'hat-<cropId>' (vd 'hat-rau-cai'), gieo được;
 // - nông sản: id = cropId (vd 'rau-cai'), hái được, bán được (T-006).
 // T-004: món ăn được + số Sức hồi lấy từ data/items.json (`staminaRestore`) — hiện chỉ khoai lang sống +8.
+// T-009 (D-026): thêm loại thứ ba — nông cụ (data/tools.json, vd 'cuoc-go'). Nông cụ nằm trong gùi/hotbar như món
+// khác nhưng không tiêu hao, không bán, không ăn; phải CHỌN ô nông cụ thì mới làm việc của nó (cuốc).
 import itemsJson from '../data/items.json';
-import type { ItemData } from '../data/types';
+import toolsJson from '../data/tools.json';
+import type { ItemData, ToolData, ToolUse } from '../data/types';
 import { cropById } from './crops';
 import { addItem, countOf, createInventory, findSlot, type Inventory } from './inventory';
 
-export type ItemKind = 'seed' | 'crop';
+export type ItemKind = 'seed' | 'crop' | 'tool';
 
 export interface ItemInfo {
   id: string;
   kind: ItemKind;
-  /** Cây tương ứng (hạt của cây nào / nông sản của cây nào). */
+  /** Cây tương ứng (hạt của cây nào / nông sản của cây nào). Nông cụ: chuỗi rỗng. */
   cropId: string;
   /** Tên hiện cho người chơi (tooltip trong gùi). */
   name: string;
@@ -21,10 +24,28 @@ export interface ItemInfo {
 }
 
 const ITEM_DATA = new Map<string, ItemData>((itemsJson as ItemData[]).map((d) => [d.id, d]));
+const TOOL_DATA = new Map<string, ToolData>((toolsJson as ToolData[]).map((d) => [d.id, d]));
 
-/** Số Sức món này hồi khi ăn (0 = không phải đồ ăn: hạt giống, rau cải sống, mã lạ…). */
+/** Mã món cái cuốc (cuốc gỗ, bậc 1) — có sẵn ở ô 1 khi bắt đầu game mới. */
+export const HOE_ITEM_ID = 'cuoc-go';
+
+/** Dữ liệu nông cụ (null nếu không phải nông cụ). */
+export const toolOf = (id: string): ToolData | null => TOOL_DATA.get(id) ?? null;
+
+export const isToolItem = (id: string): boolean => TOOL_DATA.has(id);
+
+/** Việc nông cụ ở ô hotbar đang chọn làm được (null = ô trống / không phải nông cụ). */
+export function selectedToolUse(inv: Inventory): ToolUse | null {
+  const s = inv.slots[inv.selected];
+  return s ? (toolOf(s.id)?.use ?? null) : null;
+}
+
+/** Đang cầm cuốc (ô hotbar đang chọn là nông cụ cuốc) — điều kiện để click ô cỏ / cuốc dở mới cuốc (D-026). */
+export const canTillWithSelected = (inv: Inventory): boolean => selectedToolUse(inv) === 'till';
+
+/** Số Sức món này hồi khi ăn (0 = không phải đồ ăn: hạt giống, nông cụ, rau cải sống, mã lạ…). */
 export function staminaRestoreOf(id: string): number {
-  if (isSeedItem(id)) return 0;
+  if (isSeedItem(id) || isToolItem(id)) return 0;
   return Math.max(0, ITEM_DATA.get(id)?.staminaRestore ?? 0);
 }
 
@@ -42,6 +63,8 @@ export function isSeedItem(id: string): boolean {
 
 /** Thông tin món (null nếu mã lạ — vd save cũ có món đã bỏ). */
 export function itemInfo(id: string): ItemInfo | null {
+  const tool = toolOf(id);
+  if (tool) return { id, kind: 'tool', cropId: '', name: tool.name, staminaRestore: 0 };
   if (isSeedItem(id)) {
     const crop = cropById(id.slice(SEED_PREFIX.length))!;
     return { id, kind: 'seed', cropId: crop.id, name: `Hạt ${crop.name.toLowerCase()}`, staminaRestore: 0 };
@@ -73,16 +96,18 @@ export function pickSeedSlot(inv: Inventory): number {
 }
 
 /**
- * Gùi lúc bắt đầu: `startSeeds` (id cây → số hạt, theo thứ tự khai báo) xếp vào hotbar từ ô 1.
- * Ô chọn ban đầu = ô 1.
+ * Gùi lúc bắt đầu: nông cụ `startTools` (mỗi món 1 cái, theo thứ tự — cuốc ở ô 1) rồi `startSeeds` (id cây → số hạt,
+ * theo thứ tự khai báo) xếp vào hotbar từ ô 1. Ô chọn ban đầu = ô 1 (đang cầm cuốc — vào game là cuốc được ngay).
  */
 export function createStartInventory(
   startSeeds: Readonly<Record<string, number>>,
   bagSlots: number,
   hotbarSlots: number,
   stackMax: number,
+  startTools: readonly string[] = [],
 ): Inventory {
   const inv = createInventory(bagSlots, hotbarSlots, stackMax);
+  for (const id of startTools) if (isToolItem(id)) addItem(inv, id, 1);
   for (const [cropId, count] of Object.entries(startSeeds)) {
     if (cropById(cropId) && count > 0) addItem(inv, seedItemId(cropId), count);
   }

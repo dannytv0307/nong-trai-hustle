@@ -1,6 +1,6 @@
-# ART-CHR-007 — {ten} động tác CUỐC 4 hướng (bậc 1) — NHÁP
+# ART-CHR-007 — {ten} động tác CUỐC 4 hướng (bậc 1) + ART-ITM-001 icon cuốc
 
-> **NHÁP — CHƯA GEN.** Làm ở bước **4.2 "Hình ảnh thật"** (người dùng quyết định 2026-10-10 sau khi thử T-002). Trước khi gen: chốt với `game-dev` khung 128×128 + điểm neo (mục "Khung & neo" dưới).
+> **Đã gen 2026-10-13 (T-009)** — làm sớm theo yêu cầu người dùng (muốn thấy cái cuốc). Prompt thật đã dùng: `art-source/raw/hero-hoe/prompt-{right-v2,down-v1,up-v2,icon-v1}.txt`. Thông số cuối: xem `docs/art/asset-list.md` (bảng Vị trí file).
 > Thẻ này cũng là **thẻ gốc** cho các động tác dùng nông cụ: ART-CHR-008 (tưới), ART-CHR-009 (cúi gieo/hái) dùng chung khung, neo, quy ước khung chạm.
 
 | Mục | Giá trị |
@@ -14,7 +14,7 @@
 | Animation | 4 khung, mỗi khung = 25% `actionDuration` (0.4 s → 100 ms/khung); **khung 3 = chạm** |
 | Reference (`--ref`) | Phải: `art-source/raw/hero-walk2/ref/hero-side-green.png`. Xuống: `art-source/reference/hero-front-src.png` + ảnh lưng nền xanh (`art-source/raw/hero-walk/ref/`) làm ref góc máy. Lên: ảnh lưng nền xanh |
 | File trong game | `web/client/public/assets/art/characters/hero-t1-hoe-<down\|up\|left\|right>.png` |
-| Trạng thái | **Planned (NHÁP)** — chưa gen |
+| Trạng thái | **File đã đặt trong game** (`characters/hero-t1-hoe-*.png`, `items/item-hoe.png`) — chờ game-dev gắn và người dùng duyệt |
 
 ## Mô tả (tiếng Việt)
 
@@ -88,4 +88,11 @@ $PY tools/process_image.py preview $R/final/hero-t1-hoe-right.png --display 128
 
 | Ngày | Lần | Thay đổi prompt | Kết quả (lỗi theo checklist) | Chọn |
 |---|---|---|---|---|
-| — | — | Chưa gen (nháp 2026-10-10) | — | — |
+| 2026-10-13 | icon v1 (3 ảnh hq 1:1, ref hero-front-src chỉ để lấy style) | Tả cuốc hình số 7, cán chéo trái-dưới → phải-trên, lưỡi sắt bản rộng vuông góc, mặt lưỡi chàm, mép trắng điệp | Cả 3 đạt (đúng cuốc, không thành xẻng/rìu). #3 lưỡi chữ nhật thuôn rõ nhất | **#3** |
+| 2026-10-13 | phải v1 (2 ảnh hq 21:9, ref ảnh nghiêng) | Prompt card + tả cuốc hình số 7 | Cuốc đúng; #1 khung 2 nón lật che mặt, khung 4 cuốc cầm ngược; #2 khung 4 lưỡi chĩa lên | — |
+| 2026-10-13 | phải v2 (2 ảnh hq) | Tả lại khung 4 (lưỡi vẫn ở đầu xa, chĩa xuống), giữ nón, chân đứng yên | #1 đạt (khung 1–2 thân hơi 3/4, chấp nhận); #2 khung 3 có cục đất | **#1** |
+| 2026-10-13 | xuống v1 (2 ảnh hq, ref mặt trước + lưng làm góc máy) | Biến thể FRONT VIEW | #2 đạt (đúng nhân vật); khung 4 lưỡi ở bên trái trong khi khung 3 ở bên phải → **lật gương khung 4** khi cắt. #1 nón dẹt, mặt khác style | **#2** (khung 4 lật) |
+| 2026-10-13 | lên v1 (2 ảnh hq, ref lưng) | Biến thể BACK VIEW | #1 khung 4 cuốc thõng xuống cạnh chân (khó hiểu); #2 không có khung chạm | — |
+| 2026-10-13 | lên v2 (2 ảnh hq) | Khung 3: chỉ lưỡi ló trên đỉnh nón (cắm đất phía trước), khung 4: cuốc vác chéo vai phải | #2 đạt; #1 khung 3 cuốc chưa bổ xuống | **#2** |
+
+Cắt: `art-source/raw/hero-hoe/tools/hoe_split.py <ảnh> --n 4 --stand-h 91 [--flip-frames 4] [--mirror] --out … --x2 … --gif …` (lên: `--stand-h 92`). Tỉ lệ = chiều cao đỉnh nón→đáy chân của khung 1 so với dải đi; neo tâm hai bàn chân (màu da) tại x 64, đáy chân y 110. Icon: `removebg --tol 70 --holes 30 --despill` → `fit --size 128 --pad 6`.

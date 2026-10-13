@@ -174,6 +174,7 @@ const count = (slots: Slot[], id: string) => slots.reduce((n, s) => n + (s && s.
 /** Cuốc nhanh (nhát 0.08 s) rồi gieo cải (hạt ô 1) các ô; `water` = tưới luôn. */
 async function plantTiles(page: Page, tiles: [number, number][], water: boolean): Promise<void> {
   await call(page, 'debugSetTillTuning', { strikeSeconds: 0.08 });
+  await call(page, 'debugHoldHoe'); // T-009: cầm cuốc (gieo vẫn lấy hạt đầu tiên trong gùi)
   for (const [x, y] of tiles) {
     await clickTile(page, x, y);
     await expect.poll(async () => plotOf(await st(page), x, y).soil, { timeout: 20_000 }).toBe('tilled');

@@ -175,6 +175,14 @@ Thư mục gốc: `web/client/public/assets/art/` (nếu chưa có `web/client/`
 5. Nhìn từ sau, tay gần như không lộ và đầu không nảy — bình thường; nảy 1 px có thể cộng bằng code.
 6. Dáng đứng `hero-t1-down` (3/4 chống nạnh) khác dáng đi xuống (chính diện) — chuyển đứng↔đi sẽ "xoay người" nhẹ. Nếu chướng, dùng khung 2 của dải đi làm dáng đứng hướng xuống.
 
+### 10.5 Bài học động tác dùng nông cụ (ART-CHR-007, 2026-10-13)
+
+1. Tả nông cụ bằng **hình học** ("shaped like the number 7… broad flat iron blade at a RIGHT ANGLE… chopping hoe swung overhead, NOT a shovel") + Avoid "shovel, spade, pickaxe, axe, rake" → 100% ảnh ra đúng cái cuốc.
+2. Khung "hồi" hay bị vẽ cầm ngược cuốc → tả rõ "blade still at the FAR FRONT end of the handle, hanging DOWN".
+3. Hướng lên: khung chạm chỉ đọc được khi tả "only the blade peeks out ABOVE the hat (buried in the ground beyond him)".
+4. Không fit theo bbox (cuốc làm bbox nhảy): tỉ lệ theo chiều cao đỉnh nón→chân khung 1, neo tâm bàn chân (`art-source/raw/hero-hoe/tools/hoe_split.py`). Đo bề ngang nón theo màu không dùng được để so ảnh 1024 với sprite 64 (viền/khử răng cưa ăn mất ~10 px).
+5. Khung lệch bên (lưỡi trái/phải) trong dáng chính diện → lật gương riêng khung đó (`--flip-frames`).
+
 ## 11. Checklist QA nhất quán
 
 - [ ] Viền một màu `#2E2118`, cùng độ dày với asset đã duyệt, nét kiểu khắc gỗ (không mảnh, không vector trơn)
@@ -200,3 +208,4 @@ Thư mục gốc: `web/client/public/assets/art/` (nếu chưa có `web/client/`
 - 2026-10-09 — Bước 2.2: **khóa style** (D-014). Style anchor = ảnh #4 người dùng chọn (`art-source/reference/hero-front*.png`), thêm `hero-back.png`, `hero-side.png`. Thêm §10.2 bài học, kết quả thử tile ở §9.1, quy tắc "ảnh mẫu thắng chữ".
 - 2026-10-09 — ART-CHR-003 (4 bậc ngoại hình, D-015): thêm §10.3 bài học (prompt "thay đồ giữ người", cách tả khăn xếp không thành mũ/turban, nón đeo sau lưng, cắt chung khung cho các bậc). Màu áo the bậc 4: nâu đỏ sẫm giữa `#7A4B2A` và `#9C4A32` (Giả định, không thêm màu khóa).
 - 2026-10-09 — ART-CHR-004 (chu trình đi bậc 1): thêm §10.4 bài học (sheet 21:9 nhiều khung, ref lưng để khóa góc chính diện, lệnh `sheet-split`).
+- 2026-10-13 — ART-CHR-007 cuốc 4 hướng + ART-ITM-001 icon cuốc (T-009): thêm §10.5 bài học.

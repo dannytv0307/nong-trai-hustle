@@ -176,6 +176,7 @@ async function idle(page: Page): Promise<void> {
   await expect.poll(async () => (await st(page)).action.busy, { timeout: 30_000 }).toBe(false);
 }
 async function tillOne(page: Page, x: number, y: number): Promise<void> {
+  await call(page, 'debugHoldHoe'); // T-009 (D-026): phải cầm cuốc mới cuốc
   await clickTile(page, x, y);
   await expect.poll(async () => plotOf(await st(page), x, y).soil, { timeout: 20_000 }).toBe('tilled');
   await idle(page);
@@ -275,8 +276,8 @@ test('Q1 trừ Sức đúng từng việc: đi 0, cuốc 4 ở nhát cuối, b�
   expect(s.stamina.current).toBe(96);
   await teleportAndSettle(page, 12, 14);
 
-  // Gieo (13,14) −1
-  await press(page, '1');
+  // Gieo (13,14) −1 (T-009: ô 2 = hạt cải)
+  await press(page, '2');
   await clickTile(page, 13, 14);
   await expect.poll(async () => (await st(page)).farmJuice.plants).toBe(1);
   expect((await st(page)).stamina.current).toBe(95);
@@ -412,7 +413,7 @@ test('Q4 việc nhanh: Sức 0 không tưới; Sức 2 rê tưới 4 ô → tư�
     [14, 14],
   ];
   for (const [x, y] of tiles) await tillOne(page, x, y);
-  await press(page, '1');
+  await press(page, '2'); // T-009: ô 2 = hạt cải
   for (const [x, y] of tiles) {
     const before = (await st(page)).farmJuice.plants;
     await clickTile(page, x, y);
@@ -505,7 +506,7 @@ test('Q6 ăn: đầy / gần đầy / hạt / rau cải / ô trống / gùi mở
   expect(s.stamina.current).toBe(58);
   expect(s.stamina.floatsActive).toContain('+8 Sức');
   await shot(page, 'qa-t004-eat-plus8.png');
-  // Hạt / rau cải sống / ô trống: không làm gì
+  // Cuốc / hạt / rau cải sống / ô trống: không làm gì (T-009: ô 1 = cuốc, ô 2 = hạt cải)
   await call(page, 'debugSetSlot', 5, 'rau-cai', 2);
   for (const k of ['1', '2', '6', '9']) {
     await press(page, k);
@@ -514,8 +515,8 @@ test('Q6 ăn: đầy / gần đầy / hạt / rau cải / ô trống / gùi mở
   s = await st(page);
   expect(s.stamina.current).toBe(58);
   expect(s.stamina.eats).toBe(2);
-  expect(s.inventory.slots[0]?.count).toBe(6);
-  expect(s.inventory.slots[1]?.count).toBe(3);
+  expect(s.inventory.slots[0]).toMatchObject({ id: 'cuoc-go', count: 1 });
+  expect(s.inventory.slots[1]?.count).toBe(6);
   expect(s.inventory.slots[5]?.count).toBe(2);
   // Gùi mở: chuột phải không ăn, đóng gùi xong cũng không "ăn bù"
   await press(page, '3');

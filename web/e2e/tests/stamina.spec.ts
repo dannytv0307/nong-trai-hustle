@@ -188,6 +188,7 @@ async function idle(page: Page): Promise<void> {
 }
 /** Cuốc một ô (đã chỉnh nhát ngắn) và chờ xong. */
 async function tillOne(page: Page, x: number, y: number): Promise<void> {
+  await call(page, 'debugHoldHoe'); // T-009: phải cầm cuốc mới cuốc
   await clickTile(page, x, y);
   await expect.poll(async () => plotOf(await st(page), x, y).soil, { timeout: 20_000 }).toBe('tilled');
   await idle(page);
@@ -403,7 +404,7 @@ test.describe('bản dev', () => {
 
     // Việc nhanh vẫn được với 1 Sức: gieo −1 → 0 → đuối + chửi; tưới tiếp thì "đuối rồi…".
     await bubbleGone(page);
-    await press(page, '1');
+    await press(page, '2'); // hạt cải (T-009: ô 1 là cuốc)
     await clickTile(page, 13, 14);
     await expect.poll(async () => (await st(page)).farmJuice.plants).toBe(1);
     s = await st(page);
@@ -423,7 +424,7 @@ test.describe('bản dev', () => {
     await call(page, 'debugSetTillTuning', { strikeSeconds: 0.08 });
     await tillOne(page, 13, 14);
     expect((await st(page)).stamina.current).toBe(96);
-    await press(page, '1');
+    await press(page, '2'); // hạt cải (T-009: ô 1 là cuốc)
     await clickTile(page, 13, 14);
     await expect.poll(async () => (await st(page)).farmJuice.plants).toBe(1);
     expect((await st(page)).stamina.current).toBe(95);
@@ -438,10 +439,10 @@ test.describe('bản dev', () => {
     await teleportAndSettle(page, 12, 14);
     await call(page, 'debugSetStamina', 40);
     await call(page, 'debugSetSlot', 2, 'khoai-lang', 2);
-    await press(page, '3');
     await call(page, 'debugSetTillTuning', { strikeSeconds: 0.5 });
-    await clickTile(page, 13, 14);
+    await clickTile(page, 13, 14); // đang cầm cuốc (ô 1)
     await expect.poll(async () => (await st(page)).action.strikesDone, { timeout: 15_000 }).toBeGreaterThanOrEqual(1);
+    await press(page, '3'); // đổi sang khoai giữa lúc cuốc: vẫn cuốc tiếp ô đang làm
     await rightClick(page);
     let s = await st(page);
     expect(s.stamina.current).toBe(48);
@@ -458,13 +459,13 @@ test.describe('bản dev', () => {
 
   test('chuột phải trên hạt / ô trống không làm gì; Sức đầy thì không ăn ("Còn no lắm!")', async ({ page }) => {
     await call(page, 'debugSetStamina', 60);
-    await press(page, '1'); // hạt cải
+    await press(page, '2'); // hạt cải (T-009: ô 1 là cuốc)
     const before = await st(page);
     await rightClick(page);
     let s = await st(page);
     expect(s.stamina.current).toBe(60);
     expect(s.stamina.eats).toBe(0);
-    expect(s.inventory.slots[0]).toEqual(before.inventory.slots[0]);
+    expect(s.inventory.slots[1]).toEqual(before.inventory.slots[1]);
     expect(s.bubble.visible).toBe(false);
     await press(page, '5'); // ô trống
     await rightClick(page);

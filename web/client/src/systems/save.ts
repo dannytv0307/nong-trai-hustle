@@ -6,7 +6,7 @@
 import { GAME_SAVE_VERSION, type GameSave, type SaveFacing, type SaveStack } from '@bph/shared';
 import { normalizeMoney, type Wallet } from './economy';
 import type { FarmState } from './farm';
-import { addItem, type Inventory, type ItemStack } from './inventory';
+import { addItem, countOf, type Inventory, type ItemStack } from './inventory';
 import type { Facing } from './movement';
 import { setStamina, type StaminaState } from './stamina';
 import type { DayClockState } from './time';
@@ -38,6 +38,11 @@ export interface SaveRules {
   areaHeight: number;
   isKnownItem: (id: string) => boolean;
   isKnownCrop: (cropId: string) => boolean;
+  /**
+   * Món người chơi luôn phải có (T-009: cái cuốc). Save cũ (trước T-009) chưa có, hoặc vì lý do gì đó mất → nạp xong tự
+   * thêm 1 cái vào ô trống đầu tiên của gùi. Không cần tăng version save: chỉ thêm đồ, không đổi cấu trúc.
+   */
+  requiredItems?: readonly string[];
 }
 
 /** Kết quả nạp: vị trí nhân vật (null = toạ độ hỏng → để scene đặt ở chỗ xuất phát), tên, hướng mặt. */
@@ -45,6 +50,8 @@ export interface AppliedSave {
   playerName: string;
   position: { x: number; y: number } | null;
   facing: Facing;
+  /** Món bắt buộc vừa được thêm vì save chưa có (vd cuốc với save trước T-009) — để QA / log. */
+  addedItems: string[];
 }
 
 const copyStack = (s: ItemStack | null): SaveStack | null => (s ? { id: s.id, count: s.count } : null);
@@ -96,6 +103,8 @@ export function applySave(save: GameSave, w: SaveWorld, rules: SaveRules): Appli
   const last = save.inventory.lastSeedId;
   w.inventory.lastSeedId = last !== null && rules.isKnownItem(last) ? last : null;
   loadSlots(w.sellBox, save.sellBox.slots, rules);
+  const addedItems: string[] = [];
+  for (const id of rules.requiredItems ?? []) if (ensureItem(w.inventory, w.sellBox, id)) addedItems.push(id);
 
   // Tiền, Sức (trần Sức theo game hiện tại, không theo save), đồng hồ.
   w.wallet.money = normalizeMoney(save.money);
@@ -110,7 +119,23 @@ export function applySave(save: GameSave, w: SaveWorld, rules: SaveRules): Appli
     playerName: p.name.trim() !== '' ? p.name : w.playerName,
     position: inside ? { x: p.x, y: p.y } : null,
     facing: p.facing,
+    addedItems,
   };
+}
+
+/**
+ * Bảo đảm có ít nhất 1 món `id` (gùi hoặc thùng bán). Thiếu → thêm 1 cái vào ô trống đầu tiên của gùi; gùi kín hết
+ * (hiếm) → bỏ vào thùng bán (món không bán được thì nằm yên trong thùng qua đêm, mở thùng lấy lại được) chứ không đẩy
+ * món nào của người chơi ra. Thùng cũng kín → đành không thêm. Trả về true nếu đã thêm.
+ */
+export function ensureItem(inv: Inventory, sellBox: Inventory, id: string): boolean {
+  if (countOf(inv, id) > 0 || countOf(sellBox, id) > 0) return false;
+  const empty = inv.slots.indexOf(null);
+  if (empty >= 0) {
+    inv.slots[empty] = { id, count: 1 };
+    return true;
+  }
+  return addItem(sellBox, id, 1).added > 0;
 }
 
 /** Chép các ô đồ vào gùi/thùng: bỏ món lạ, kẹp số lượng ≤ stackMax; save có nhiều ô hơn → phần dư xếp vào ô trống. */

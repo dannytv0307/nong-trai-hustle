@@ -4,7 +4,7 @@
 import type Phaser from 'phaser';
 import { palette, type PaletteKey } from '../config/palette';
 import type { CropStage } from '../systems/farm';
-import { itemInfo } from '../systems/items';
+import { itemInfo, toolOf } from '../systems/items';
 
 /** Cách vẽ từng loại cây: màu lá, màu "quả"/củ, kiểu dáng lúc chín. */
 interface CropLook {
@@ -134,7 +134,18 @@ export function drawCrop(
 }
 
 /**
+ * Khóa texture ảnh icon thật của món (T-009: nông cụ có ảnh — cái cuốc ART-ITM-001), null = vẽ bằng code (drawItemIcon).
+ */
+export function itemIconTexture(itemId: string): string | null {
+  return toolOf(itemId)?.icon ?? null;
+}
+
+/** Món có hiện số lượng ở góc ô không: nông cụ (luôn 1 cái) thì không. */
+export const showsItemCount = (itemId: string): boolean => toolOf(itemId) === null;
+
+/**
  * Icon món đồ (hotbar, gùi, icon bay), tâm tại (0, 0) trong khung `size` px.
+ * Món có ảnh thật (itemIconTexture) thì nơi gọi nên hiện Image; ở đây vẫn vẽ dự phòng (texture chưa tải được).
  * Hạt = túi hạt gỗ có chấm màu cây; nông sản = hình cây chín thu nhỏ; món lạ = chấm xám.
  */
 export function drawItemIcon(g: Phaser.GameObjects.Graphics, itemId: string, size: number): void {
@@ -142,6 +153,14 @@ export function drawItemIcon(g: Phaser.GameObjects.Graphics, itemId: string, siz
   const s = size / 64; // vẽ theo khung 64px rồi co giãn
   if (!info) {
     blob(g, [[0, 0, 14 * s]], WITHER_GRAY);
+    return;
+  }
+  if (info.kind === 'tool') {
+    // Dự phòng cho cái cuốc: cán gỗ chéo + lưỡi xanh chàm.
+    g.lineStyle(9 * s, palette.ink, 1).lineBetween(-18 * s, 20 * s, 12 * s, -14 * s);
+    g.lineStyle(5 * s, palette.wood, 1).lineBetween(-18 * s, 20 * s, 12 * s, -14 * s);
+    g.fillStyle(palette.ink, 1).fillRect(6 * s, -22 * s, 18 * s, 26 * s);
+    g.fillStyle(palette.indigo, 1).fillRect(9 * s, -19 * s, 12 * s, 20 * s);
     return;
   }
   if (info.kind === 'seed') {

@@ -1,7 +1,7 @@
 // Preload: tải mọi asset trong config/assets.ts, vẽ thanh tiến độ, xong thì sang Vườn
 // (hoặc Sandbox nếu địa chỉ có ?scene=sandbox).
 import Phaser from 'phaser';
-import { audio, HERO_FRAME, images, spritesheets } from '../config/assets';
+import { actionSpritesheets, audio, HERO_ACTION_FRAME, HERO_FRAME, images, spritesheets } from '../config/assets';
 import { gameConfig } from '../config/gameConfig';
 import { palette } from '../config/palette';
 import { textStyles } from '../config/theme';
@@ -34,6 +34,9 @@ export class PreloadScene extends Phaser.Scene {
     // Spritesheet: Phaser tự cắt dải ảnh thành các khung đánh số 0, 1, 2, 3.
     const frame = { frameWidth: HERO_FRAME.width, frameHeight: HERO_FRAME.height };
     for (const [key, url] of Object.entries(spritesheets)) this.load.spritesheet(key, url, frame);
+    // Động tác (cuốc…): khung to hơn 128×128 — cắt theo khung riêng.
+    const actionFrame = { frameWidth: HERO_ACTION_FRAME.width, frameHeight: HERO_ACTION_FRAME.height };
+    for (const [key, url] of Object.entries(actionSpritesheets)) this.load.spritesheet(key, url, actionFrame);
     // Phaser chọn định dạng đầu tiên trình duyệt hỗ trợ: OGG (Chrome/Edge/Firefox), MP3 (Safari).
     for (const [key, base] of Object.entries(audio)) this.load.audio(key, [`${base}.ogg`, `${base}.mp3`]);
   }

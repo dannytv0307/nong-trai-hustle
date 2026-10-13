@@ -58,7 +58,7 @@ import {
 } from '../ui/hudLayout';
 import { blinkOn, dayLabel, formatClock, isPassOutWarning, skyPhase } from '../systems/time';
 import { lineProgress, moneyLineText, moneyShown, summarySubtitle, summaryTitle } from '../systems/daySummary';
-import { drawItemIcon, mixColor } from '../ui/itemArt';
+import { drawItemIcon, itemIconTexture, mixColor, showsItemCount } from '../ui/itemArt';
 import type { GardenScene } from './GardenScene';
 
 /** Trạng thái HUD cho QA đọc (qua GardenScene.debugState.hud). */
@@ -79,6 +79,8 @@ export interface HudDebugState {
   selectedFrame: number;
   /** Chữ số lượng đang hiện trên từng ô hotbar ('' = ô trống). */
   hotbarCounts: string[];
+  /** T-009: texture ảnh icon đang hiện ở từng ô hotbar (null = icon vẽ bằng code / ô trống) — vd 'item-hoe'. */
+  hotbarImages: (string | null)[];
   /** Thanh Sức (T-004): chữ "64/100", dải màu, màu ruột đang tô (0xRRGGBB), tỷ lệ ruột đang vẽ. */
   staminaText: string;
   staminaBand: StaminaBand;
@@ -148,10 +150,15 @@ const STAMINA_COLORS: Readonly<Record<StaminaBand, number>> = { green: palette.s
 const VIGNETTE_TEX = 'fx-vignette';
 const VIGNETTE_TEX_SIZE = { w: 480, h: 270 } as const;
 
+/** Tên object của số phím góc ô (1–9) — nhãn phụ, QA bỏ qua khi đo cỡ chữ nhỏ nhất. */
+const SLOT_KEY_LABEL = 'slot-key-label';
+
 /** Một ô vẽ (hotbar hoặc cửa sổ gùi): khung, icon, số lượng, số phím. */
 interface SlotView {
   root: Phaser.GameObjects.Container;
   icon: Phaser.GameObjects.Graphics;
+  /** Icon ảnh thật (T-009: cái cuốc) — ẩn khi món vẽ bằng code. */
+  image: Phaser.GameObjects.Image;
   count: Phaser.GameObjects.Text;
   size: number;
 }
@@ -969,8 +976,9 @@ export class GardenHudScene extends Phaser.Scene {
         if (o.text.trim() !== '') min = Math.min(min, parseFloat(String(o.style.fontSize)));
       } else if (o instanceof Phaser.GameObjects.Container) {
         // Số phím góc ô (1–9) là nhãn phụ trong ô, không phải chữ thân — bỏ qua như cửa sổ gùi.
-        o.list.forEach((c, k) => {
-          if (!(o !== win && k === 3)) visit(c);
+        // (Nhận theo tên chứ không theo vị trí trong ô — T-009 thêm ảnh icon vào ô làm lệch thứ tự.)
+        o.list.forEach((c) => {
+          if (c.name !== SLOT_KEY_LABEL) visit(c);
         });
       }
     };
@@ -1058,19 +1066,22 @@ export class GardenHudScene extends Phaser.Scene {
     bg.fillStyle(palette.ink, 0.9).fillRoundedRect(-s / 2 - 3, -s / 2 - 3, s + 6, s + 6, 12);
     bg.fillStyle(palette.paper, 0.92).fillRoundedRect(-s / 2, -s / 2, s, s, 10);
     const icon = this.add.graphics();
+    // Ảnh icon thật (nông cụ): tạo sẵn, ẩn; drawSlot chỉ đổi texture + hiện/ẩn (không tạo object mới mỗi lần vẽ lại).
+    const image = this.add.image(0, 0, '__DEFAULT').setVisible(false);
     const count = this.add
       .text(s / 2 - 8, s / 2 - 4, '', { fontFamily: uiFontFamily, fontSize: '24px', fontStyle: 'bold', color: cssColor('paper'), stroke: cssColor('ink'), strokeThickness: 5 })
       .setOrigin(1, 1);
-    const parts: Phaser.GameObjects.GameObject[] = [bg, icon, count];
+    const parts: Phaser.GameObjects.GameObject[] = [bg, icon, image, count];
     if (keyLabel) {
       parts.push(
         this.add
           .text(-s / 2 + 8, -s / 2 + 4, keyLabel, { fontFamily: uiFontFamily, fontSize: '17px', fontStyle: 'bold', color: cssColor('earth') })
-          .setOrigin(0, 0),
+          .setOrigin(0, 0)
+          .setName(SLOT_KEY_LABEL),
       );
     }
     const root = this.add.container(r.x + s / 2, r.y + s / 2, parts);
-    return { root, icon, count, size: s };
+    return { root, icon, image, count, size: s };
   }
 
   /** Viền vàng hoa hòe (lót mực) quanh ô đang chọn — vẽ một lần, chỉ dời chỗ. */
@@ -1154,12 +1165,20 @@ export class GardenHudScene extends Phaser.Scene {
 
   private drawSlot(view: SlotView, stack: ItemStack | null): void {
     view.icon.clear();
+    view.image.setVisible(false);
     if (!stack) {
       view.count.setText('');
       return;
     }
-    drawItemIcon(view.icon, stack.id, view.size * 0.78);
-    view.count.setText(String(stack.count));
+    const tex = itemIconTexture(stack.id);
+    if (tex && this.textures.exists(tex)) {
+      // Ảnh 128×128 có đệm → hiện cỡ ~0.8 ô (≈ 74 px trong ô hotbar 92) cho to ngang icon vẽ.
+      const d = view.size * 0.8;
+      view.image.setTexture(tex).setDisplaySize(d, d).setVisible(true);
+    } else {
+      drawItemIcon(view.icon, stack.id, view.size * 0.78);
+    }
+    view.count.setText(showsItemCount(stack.id) ? String(stack.count) : '');
   }
 
   /** Tên món trên ô gùi dưới con trỏ (GardenScene tính ô nào), hiện ngay trên ô đó. */
@@ -1254,6 +1273,7 @@ export class GardenHudScene extends Phaser.Scene {
       tooltipCenter: this.tooltip?.visible ? { x: this.tooltip.x, y: this.tooltip.y } : null,
       selectedFrame: this.hotbar.findIndex((v) => v.root.x === this.selectFrame?.x),
       hotbarCounts: this.hotbar.map((v) => v.count.text),
+      hotbarImages: this.hotbar.map((v) => (v.image.visible ? v.image.texture.key : null)),
       staminaText: this.staminaText?.text ?? '',
       staminaBand: this.staminaDrawnBand,
       staminaFillColor: STAMINA_COLORS[this.staminaDrawnBand],

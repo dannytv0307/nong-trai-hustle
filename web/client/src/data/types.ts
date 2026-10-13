@@ -45,3 +45,22 @@ export interface SeedStallItem {
   /** Tên ngắn trên nút ("Hạt cải"). */
   label: string;
 }
+
+/** Việc một nông cụ làm được trên ô ruộng (T-009: mới có cuốc). */
+export type ToolUse = 'till';
+
+/**
+ * Một nông cụ (GDD §3.8 `ToolData`) — file `tools.json`. T-009 (D-026): nông cụ là MÓN trong gùi/hotbar (kiểu Stardew),
+ * phải chọn ô nông cụ thì mới làm việc của nó. Không tiêu hao, không bán, không ăn. Độ bền / số nhát theo bậc: sau.
+ */
+export interface ToolData {
+  /** Mã món trong gùi (kebab-case), vd 'cuoc-go'. */
+  id: string;
+  /** Tên hiển thị (tooltip gùi). */
+  name: string;
+  /** Việc làm được khi cầm. */
+  use: ToolUse;
+  /** Khóa texture icon (config/assets.ts `images`). */
+  icon: string;
+  note?: string;
+}

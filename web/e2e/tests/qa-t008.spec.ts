@@ -115,6 +115,7 @@ const plotOf = (s: GState, x: number, y: number): Plot => s.farm.plots.find((p: 
 
 async function till(page: Page, x: number, y: number): Promise<void> {
   await call(page, 'debugSetTillTuning', { strikeSeconds: 0.08 });
+  await call(page, 'debugHoldHoe'); // T-009 (D-026): phải cầm cuốc mới cuốc
   await clickTile(page, x, y);
   await expect.poll(async () => plotOf(await st(page), x, y).soil, { timeout: 20_000 }).toBe('tilled');
   await idle(page);
@@ -216,21 +217,21 @@ test.afterEach(() => {
 
 async function buildRichState(page: Page): Promise<void> {
   await teleportAndSettle(page, 14, 16);
-  // Gùi: hạt cải ô 1, hạt khoai ô 2 (đủ dùng).
-  await call(page, 'debugSetSlot', 0, 'hat-rau-cai', 10);
-  await call(page, 'debugSetSlot', 1, 'hat-khoai-lang', 10);
+  // Gùi: cuốc ô 1 (T-009), hạt cải ô 2, hạt khoai ô 3 (đủ dùng).
+  await call(page, 'debugSetSlot', 1, 'hat-rau-cai', 10);
+  await call(page, 'debugSetSlot', 2, 'hat-khoai-lang', 10);
   // Ngày 1: A khoai (tưới), B cải (tưới), D cải (không tưới).
   for (const [x, y] of [[13, 15], [14, 15], [15, 15]] as [number, number][]) await till(page, x, y);
-  await plant(page, 13, 15, 1, 'khoai-lang');
+  await plant(page, 13, 15, 2, 'khoai-lang');
   await water(page, 13, 15);
-  await plant(page, 14, 15, 0, 'rau-cai');
+  await plant(page, 14, 15, 1, 'rau-cai');
   await water(page, 14, 15);
-  await plant(page, 15, 15, 0, 'rau-cai');
+  await plant(page, 15, 15, 1, 'rau-cai');
   await call(page, 'debugAdvanceDay'); // → Ngày 2: B chín, D khát 1
   // Ngày 2: tưới A, B; trồng C (15,14) không tưới; D để khát tiếp.
   await water(page, 13, 15); // B (14,15) đã chín — click là hái nên để nguyên
   await till(page, 15, 14);
-  await plant(page, 15, 14, 0, 'rau-cai');
+  await plant(page, 15, 14, 1, 'rau-cai');
   await call(page, 'debugAdvanceDay'); // → Ngày 3: A chín, D héo, C khát
   // Ô cuốc dở 3 nhát ở (13,13); ô cuốc xong trống (14,13).
   await teleportAndSettle(page, 12, 14);

@@ -286,15 +286,23 @@ test('thùng bán: lấy lại được (click / Shift+click), hạt không bỏ
   expect(count(s.inventory.slots, 'rau-cai')).toBe(3);
   expect(s.hud!.sellTotalText).toBe('Cuối ngày bán được: 0 quan');
 
-  // Hạt (ô 1 = hạt cải lúc bắt đầu) không bỏ vào thùng.
-  expect(s.inventory.slots[0]?.id).toBe('hat-rau-cai');
-  const seedCount = s.inventory.slots[0]!.count;
-  await clickSellSlot(page, 'bag', 0);
+  // Hạt (ô 2 = hạt cải lúc bắt đầu — T-009: ô 1 là cuốc) không bỏ vào thùng.
+  expect(s.inventory.slots[1]?.id).toBe('hat-rau-cai');
+  const seedCount = s.inventory.slots[1]!.count;
+  await clickSellSlot(page, 'bag', 1);
   s = await st(page);
-  expect(s.inventory.slots[0]?.count).toBe(seedCount);
+  expect(s.inventory.slots[1]?.count).toBe(seedCount);
   expect(s.sellBox.slots.every((x) => x === null)).toBe(true);
   expect(s.hud!.shopStatusText).toBe('Hạt giống không bán được');
   expect(s.shop.statusWarn).toBe(true);
+
+  // T-009: cái cuốc (ô 1) cũng không bỏ vào thùng.
+  expect(s.inventory.slots[0]?.id).toBe('cuoc-go');
+  await clickSellSlot(page, 'bag', 0);
+  s = await st(page);
+  expect(s.inventory.slots[0]).toMatchObject({ id: 'cuoc-go', count: 1 });
+  expect(s.sellBox.slots.every((x) => x === null)).toBe(true);
+  expect(s.hud!.shopStatusText).toBe('Nông cụ không bán được');
 
   // Gùi đầy → không lấy lại được, báo "Gùi đầy rồi!", không mất đồ.
   await call(page, 'debugSetSellBoxSlot', 0, 'khoai-lang', 2);

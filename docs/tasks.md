@@ -19,7 +19,7 @@ Mỗi task được `qa-tester` kiểm (Playwright chụp màn hình + đọc tr
 | T-006 | 3.3 | Thùng bán, tiền và sạp hạt tạm | game-dev | M | T-003, T-005 | ✅ |
 | T-007 | 3.3 | Ngủ, ngủ gục sau 24h, sang ngày mới (cây lớn, héo) và tổng kết ngày | game-dev | L | T-004, T-006 | ✅ |
 | T-008 | 3.3 | Tự lưu trong trình duyệt, F5 vào lại đúng chỗ, đúng giờ | game-dev | M | T-007 | ✅ |
-| T-009 | 3.3 | Tinh chỉnh cảm giác chơi theo góp ý của bạn | game-planner + game-dev | M | T-008 | ⬜ |
+| T-009 | 3.3 | Tinh chỉnh cảm giác chơi theo góp ý của bạn | game-planner + game-dev | M | T-008 | 🔄 |
 
 **Tổng ước lượng:** 2 L + 7 M ≈ **40–46 giờ** (+3–4 giờ cho T-002 phần 2 theo D-022 → ≈ 43–50 giờ) (S = 1–2 giờ, M = 3–4 giờ, L = 6–8 giờ), cộng thời gian bạn thử và góp ý. Với **15 giờ/tuần**: khoảng **3 tuần** cho bước 3.3.
 

@@ -159,6 +159,7 @@ async function shot(page: Page, name: string): Promise<void> {
 }
 async function tillTiles(page: Page, tiles: [number, number][]): Promise<void> {
   await call(page, 'debugSetTillTuning', { strikeSeconds: 0.06 });
+  await call(page, 'debugHoldHoe'); // T-009 (D-026): phải cầm cuốc mới cuốc
   for (const [x, y] of tiles) {
     await idle(page);
     await clickTile(page, x, y);
@@ -236,15 +237,16 @@ test('Q1 vòng đủ cả 2 cây: cuốc → gieo → tưới → G → hái; kh
     [13, 13],
     [13, 15],
   ]);
-  await press(page, '1');
-  await plant(page, 13, 13);
+  // T-009: ô 1 = cuốc, ô 2 = hạt cải, ô 3 = hạt khoai.
   await press(page, '2');
+  await plant(page, 13, 13);
+  await press(page, '3');
   await plant(page, 13, 15);
   let s = await st(page);
   expect(cropAt(s, 13, 13)?.cropId).toBe('rau-cai');
   expect(cropAt(s, 13, 15)?.cropId).toBe('khoai-lang');
-  expect(s.inventory.slots[0]?.count).toBe(5);
-  expect(s.inventory.slots[1]?.count).toBe(2);
+  expect(s.inventory.slots[1]?.count).toBe(5);
+  expect(s.inventory.slots[2]?.count).toBe(2);
   await water(page, 13, 13);
   await water(page, 13, 15);
   await press(page, 'g');
@@ -277,7 +279,7 @@ test('Q1 vòng đủ cả 2 cây: cuốc → gieo → tưới → G → hái; kh
 test('Q2 tưới 2 lần cùng ngày & click cây chưa chín đã tưới: không làm gì, không bong bóng', async ({ page }) => {
   await teleportAndSettle(page, 12, 14);
   await tillTiles(page, [[13, 14]]);
-  await press(page, '2'); // khoai 2 ngày → sau 1 đêm vẫn chưa chín
+  await press(page, '3'); // khoai 2 ngày → sau 1 đêm vẫn chưa chín (T-009: ô 3)
   await plant(page, 13, 14);
   await water(page, 13, 14);
   await moveMouseToTile(page, 13, 14);
@@ -310,7 +312,7 @@ test('Q3 khát 1 đêm → lá rũ; khát 2 đêm → héo; dọn → đất ch�
   ]);
   await plant(page, 13, 13); // sẽ khát rồi héo
   await plant(page, 13, 14); // khát 1 đêm rồi được tưới
-  await press(page, '2');
+  await press(page, '3'); // T-009: ô 3 = hạt khoai
   await plant(page, 13, 15); // khoai: tưới đều — để so màu
   await water(page, 13, 15);
   await call(page, 'debugAdvanceDay');
@@ -365,8 +367,8 @@ test('Q4 gieo khi ô chọn là ô trống / nông sản: dùng hạt đầu ti�
   expect((await st(page)).inventory.selectedItem).toBeNull();
   await plant(page, 13, 13);
   expect(cropAt(await st(page), 13, 13)?.cropId).toBe('rau-cai');
-  // (b) Gieo khoai (phím 2) → lastSeed = khoai. Chọn ô có NÔNG SẢN (rau cải) → gieo khoai.
-  await press(page, '2');
+  // (b) Gieo khoai (phím 3 — T-009: ô 1 là cuốc) → lastSeed = khoai. Chọn ô có NÔNG SẢN (rau cải) → gieo khoai.
+  await press(page, '3');
   await plant(page, 13, 14);
   await call(page, 'debugSetSlot', 3, 'rau-cai', 5);
   await press(page, '4');
@@ -374,19 +376,19 @@ test('Q4 gieo khi ô chọn là ô trống / nông sản: dùng hạt đầu ti�
   await plant(page, 13, 15);
   let s = await st(page);
   expect(cropAt(s, 13, 15)?.cropId).toBe('khoai-lang');
-  expect(s.inventory.slots[1]?.count).toBe(1);
+  expect(s.inventory.slots[2]?.count).toBe(1);
   expect(s.inventory.slots[3]).toMatchObject({ id: 'rau-cai', count: 5 }); // nông sản không bị đụng
   // (c) Hết khoai: gieo nốt 1 hạt khoai, rồi click nữa → "Hết hạt rồi!" dù còn hạt cải (thiết kế game-dev chọn).
   await plant(page, 14, 13);
   s = await st(page);
-  expect(s.inventory.slots[1]).toBeNull();
+  expect(s.inventory.slots[2]).toBeNull();
   await clickTile(page, 14, 14);
   await expect.poll(async () => (await st(page)).bubble).toMatchObject({ visible: true, text: 'Hết hạt rồi!' });
   await waitFrames(page, 20);
   expect(cropAt(await st(page), 14, 14)).toBeNull();
   await shot(page, 'qa-t003-no-seed-bubble.png');
-  // Chọn lại ô hạt cải → gieo được.
-  await press(page, '1');
+  // Chọn lại ô hạt cải (ô 2) → gieo được.
+  await press(page, '2');
   await plant(page, 14, 14);
   expect(cropAt(await st(page), 14, 14)?.cropId).toBe('rau-cai');
 });
@@ -400,8 +402,9 @@ test('Q5 hết hạt giữa lúc rê cả hàng: gieo đủ số hạt còn, ô 
     [13, 15],
     [14, 13],
   ]);
-  await call(page, 'debugSetSlot', 0, 'hat-rau-cai', 2);
-  await call(page, 'debugSetSlot', 1, null, 0);
+  // T-009: ô 1 vẫn là cuốc (đang cầm); còn đúng 2 hạt cải ở ô 2, bỏ hạt khoai ô 3.
+  await call(page, 'debugSetSlot', 1, 'hat-rau-cai', 2);
+  await call(page, 'debugSetSlot', 2, null, 0);
   await moveMouseToTile(page, 13, 13);
   await page.mouse.down();
   for (const [x, y] of [
@@ -417,7 +420,7 @@ test('Q5 hết hạt giữa lúc rê cả hàng: gieo đủ số hạt còn, ô 
   const s = await st(page);
   expect(s.farmJuice.plants).toBe(2);
   expect(s.crops).toHaveLength(2);
-  expect(s.inventory.slots[0]).toBeNull();
+  expect(s.inventory.slots[1]).toBeNull();
   expect(s.bubble.text).toBe('Hết hạt rồi!');
   expect(s.action.queue).toHaveLength(0);
   // Bong bóng tắt sau bubbleSeconds (không bị kéo dài mãi khi đã buông chuột).

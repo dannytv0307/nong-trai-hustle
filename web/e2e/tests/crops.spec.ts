@@ -185,6 +185,8 @@ async function shot(page: Page, name: string): Promise<void> {
 /** Cuốc nhanh các ô (6 nhát × 0.08 s) bằng click, chờ xong từng ô. */
 async function tillTiles(page: Page, tiles: [number, number][]): Promise<void> {
   await call(page, 'debugSetTillTuning', { strikeSeconds: 0.08 });
+  // T-009 (D-026): phải cầm cuốc mới cuốc → chọn ô hotbar có cuốc (game mới: ô 1).
+  await call(page, 'debugHoldHoe');
   for (const [x, y] of tiles) {
     await clickTile(page, x, y);
     await expect.poll(async () => plotOf(await st(page), x, y).soil, { timeout: 20_000 }).toBe('tilled');
@@ -219,28 +221,29 @@ test.afterEach(() => {
 test('Bạn thử thế nào: phím 1 → gieo cải → tưới → G chín → hái bay vào hotbar → E thấy cải trong gùi', async ({ page }) => {
   test.setTimeout(90_000);
   const s0 = await st(page);
-  // Khởi đầu: hạt cải ×6 ô 1, hạt khoai ×3 ô 2, hotbar hiện số lượng.
-  expect(s0.inventory.slots[0]).toMatchObject({ id: 'hat-rau-cai', count: 6, name: 'Hạt rau cải' });
-  expect(s0.inventory.slots[1]).toMatchObject({ id: 'hat-khoai-lang', count: 3 });
+  // Khởi đầu (T-009): cuốc ô 1 (không hiện số), hạt cải ×6 ô 2, hạt khoai ×3 ô 3, hotbar hiện số lượng.
+  expect(s0.inventory.slots[0]).toMatchObject({ id: 'cuoc-go', count: 1, name: 'Cuốc gỗ' });
+  expect(s0.inventory.slots[1]).toMatchObject({ id: 'hat-rau-cai', count: 6, name: 'Hạt rau cải' });
+  expect(s0.inventory.slots[2]).toMatchObject({ id: 'hat-khoai-lang', count: 3 });
   expect(s0.inventory.slots).toHaveLength(18);
-  expect(s0.hud!.hotbarCounts.slice(0, 3)).toEqual(['6', '3', '']);
+  expect(s0.hud!.hotbarCounts.slice(0, 4)).toEqual(['', '6', '3', '']);
 
   await teleportAndSettle(page, 12, 14);
   await tillTiles(page, [[13, 14]]);
 
   await press(page, '3');
   expect((await st(page)).inventory.selected).toBe(2);
-  await press(page, '1');
-  expect((await st(page)).inventory.selected).toBe(0);
+  await press(page, '2');
+  expect((await st(page)).inventory.selected).toBe(1);
 
-  // Gieo: click ô đã cuốc trống.
+  // Gieo: click ô đã cuốc trống (đang cầm hạt cải ở ô 2).
   await moveMouseToTile(page, 13, 14);
   await expect.poll(async () => (await st(page)).hover?.job).toBe('plant');
   await clickTile(page, 13, 14);
   await expect.poll(async () => cropAt(await st(page), 13, 14)?.stage).toBe('seed');
   let s = await st(page);
   expect(cropAt(s, 13, 14)).toMatchObject({ cropId: 'rau-cai', age: 0, watered: false });
-  expect(s.inventory.slots[0]?.count).toBe(5);
+  expect(s.inventory.slots[1]?.count).toBe(5);
   expect(s.inventory.lastSeedId).toBe('hat-rau-cai');
   expect(s.farmJuice.plants).toBe(1);
   // Tiếng gieo (AUD-SFX-101): 1 trong 2 biến thể, lệch cao độ ngẫu nhiên trong ±70 cent (≈ ±4%).
@@ -322,11 +325,11 @@ test('Bạn thử thế nào: phím 1 → gieo cải → tưới → G chín →
   await page.screenshot({ path: join(SCREENSHOT_DIR, 't003-harvest-fly.png') });
   await setPaused(page, false);
   await expect.poll(async () => (await st(page)).hud!.landed, { timeout: 15_000 }).toBe(1);
-  await expect.poll(() => page.evaluate(() => (window as unknown as { __bounces: number[] }).__bounces.includes(2))).toBe(true);
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __bounces: number[] }).__bounces.includes(3))).toBe(true);
   s = await st(page);
-  // Cải vào ô trống đầu tiên (ô 3), ô ruộng về đất chưa cuốc (harvestResetsSoil), tillStrikes = 0.
-  expect(s.inventory.slots[2]).toMatchObject({ id: 'rau-cai', count: 1, name: 'Rau cải' });
-  expect(s.hud!.hotbarCounts[2]).toBe('1');
+  // Cải vào ô trống đầu tiên (ô 4 — ô 1 là cuốc), ô ruộng về đất chưa cuốc (harvestResetsSoil), tillStrikes = 0.
+  expect(s.inventory.slots[3]).toMatchObject({ id: 'rau-cai', count: 1, name: 'Rau cải' });
+  expect(s.hud!.hotbarCounts[3]).toBe('1');
   expect(plotOf(s, 13, 14)).toMatchObject({ soil: 'untilled', tillStrikes: 0, crop: null });
   expect(s.hover?.job).toBe('till');
 
@@ -334,14 +337,14 @@ test('Bạn thử thế nào: phím 1 → gieo cải → tưới → G chín →
   await press(page, 'e');
   await expect.poll(async () => (await st(page)).hud!.bagVisible).toBe(true);
   expect((await st(page)).bagOpen).toBe(true);
-  const p = await hudToPage(page, 'bag', 2);
+  const p = await hudToPage(page, 'bag', 3);
   await page.mouse.move(p.x, p.y);
   await expect.poll(async () => (await st(page)).hud!.tooltip).toBe('Rau cải');
-  expect((await st(page)).bagHoverSlot).toBe(2);
+  expect((await st(page)).bagHoverSlot).toBe(3);
   // BUG-011: ô hàng trên → tên món hiện BÊN DƯỚI ô (không đè tiêu đề "Gùi"). Ô 1 sát tiêu đề nhất.
   const p0 = await hudToPage(page, 'bag', 0);
   await page.mouse.move(p0.x, p0.y);
-  await expect.poll(async () => (await st(page)).hud!.tooltip).toBe('Hạt rau cải');
+  await expect.poll(async () => (await st(page)).hud!.tooltip).toBe('Cuốc gỗ');
   const slot0 = await call<XY>(page, 'debugHudSlotCenter', 'bag', 0);
   expect((await st(page)).hud!.tooltipCenter!.y).toBeGreaterThan(slot0.y + 40); // dưới mép dưới ô (ô 96 px)
   await shot(page, 't003-bag-tooltip-top.png');
@@ -363,7 +366,7 @@ test('Bạn thử thế nào: phím 1 → gieo cải → tưới → G chín →
   await expect.poll(async () => (await st(page)).bagOpen).toBe(false);
 });
 
-test('Khoai lang: phím 2, cần 2 ngày được tưới; không tưới thì khát rồi héo, click dọn → đất chưa cuốc', async ({ page }) => {
+test('Khoai lang: phím 3, cần 2 ngày được tưới; không tưới thì khát rồi héo, click dọn → đất chưa cuốc', async ({ page }) => {
   test.setTimeout(90_000);
   await teleportAndSettle(page, 12, 14);
   await tillTiles(page, [
@@ -372,11 +375,11 @@ test('Khoai lang: phím 2, cần 2 ngày được tưới; không tưới thì k
     [14, 14],
   ]);
 
-  await press(page, '2');
+  await press(page, '3'); // T-009: ô 1 cuốc, ô 2 hạt cải, ô 3 hạt khoai
   await clickTile(page, 13, 13);
   await expect.poll(async () => cropAt(await st(page), 13, 13)?.cropId).toBe('khoai-lang');
-  expect((await st(page)).inventory.slots[1]?.count).toBe(2);
-  await press(page, '1');
+  expect((await st(page)).inventory.slots[2]?.count).toBe(2);
+  await press(page, '2');
   await expect.poll(async () => (await st(page)).action.busy).toBe(false);
   await clickTile(page, 13, 15); // cải — để khát
   await expect.poll(async () => cropAt(await st(page), 13, 15)?.cropId).toBe('rau-cai');
@@ -493,11 +496,12 @@ test('Hết hạt: bong bóng "Hết hạt rồi!", không gieo', async ({ page 
     [13, 13],
     [13, 14],
   ]);
-  await call(page, 'debugSetSlot', 0, 'hat-rau-cai', 1);
-  await call(page, 'debugSetSlot', 1, null, 0);
+  // Chỉ còn 1 hạt cải ở ô 2 (ô 1 vẫn là cuốc, bỏ hạt khoai ô 3).
+  await call(page, 'debugSetSlot', 1, 'hat-rau-cai', 1);
+  await call(page, 'debugSetSlot', 2, null, 0);
   await clickTile(page, 13, 13);
   await expect.poll(async () => cropAt(await st(page), 13, 13)?.cropId).toBe('rau-cai');
-  expect((await st(page)).inventory.slots[0]).toBeNull();
+  expect((await st(page)).inventory.slots[1]).toBeNull();
   await expect.poll(async () => (await st(page)).action.busy).toBe(false);
 
   await clickTile(page, 13, 14);
