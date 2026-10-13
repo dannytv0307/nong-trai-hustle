@@ -69,7 +69,32 @@ Không thêm task mới cho bước 3.3. Ở playtest 3.5 hỏi thêm 2 câu: "L
 | Không có góp ý / không phát hiện vấn đề | — | Chốt 3.5, sang chặng 4 (D-033) |
 | Giả thuyết 1, 3, 5 (PT-000) chưa được kiểm chứng rõ vì thiếu ghi chú quan sát | Vừa | Kiểm lại ở buổi chơi thử 5.1 (có hình thật); quan sát kỹ hơn, ghi theo mẫu |
 
+## Kế hoạch kiểm giả thuyết PT-000 trong chặng 4–5 (D-034)
+
+| Giả thuyết | Đã làm gì để sửa | Kiểm ở đâu | Coi là "đúng / đã sửa" khi |
+|---|---|---|---|
+| 1. Thiếu mục tiêu ngắn hạn | T-042 level, T-043 nhiệm vụ + hướng dẫn ngày 1, T-044 mở rộng ruộng | **PT-002** (T-052, bạn tự chơi) → PT-003 (người lạ) | Người chơi tự nói được "mình đang làm gì / để làm gì" mà không cần hỏi |
+| 2. Phần thưởng cuối vòng nhạt | T-027 (hái / bán / tổng kết), T-087 … T-089 | Hỏi ngay sau T-027; PT-002; PT-003 | Có ít nhất 1 khoảnh khắc người chơi tự khen / cười |
+| 3. Ít lựa chọn (9 ô, 2 cây) | T-044 ruộng tới 24 ô, T-045 5 cây theo mùa, T-046 mưa | **PT-002** → PT-003 | Người chơi có lần cân nhắc "trồng gì / mua ô hay mua đồ" |
+| 4. Thế giới trống | Đợt C Xóm + NPC, art / âm thanh thật | PT-003 | Người chơi chủ động đi nói chuyện với NPC, nhắc tới một nhân vật |
+| 5. Tác giả tự chơi khó thấy vui | — | **Chỉ PT-003** (người lạ, bước 5.1) | So câu "vui không" của người lạ với của bạn |
+
+### Kế hoạch PT-002 — mốc giữa chặng 4 (T-052, bạn tự chơi)
+
+- **Bản thử:** sau Đợt D (có Xóm, NPC, level, nhiệm vụ, 5 cây, ruộng mở rộng, mưa, bếp, chế đồ). Esc → Chơi lại từ đầu, **không dùng phím thử**, chơi 2 ngày game (~20 phút).
+- **Hỏi sau khi chơi** (trả lời bằng lời thường): (1) Lúc nào bạn biết mình nên làm gì tiếp? Có lúc nào "không biết làm gì" không? (giả thuyết 1) (2) Hái / bán / tổng kết có lúc nào thấy "sướng" không? (giả thuyết 2) (3) Có lúc nào phải nghĩ "trồng gì lãi hơn" hay "mua ô hay mua đồ"? (giả thuyết 3) (4) Lúc nào chán nhất? (5) Muốn có thêm gì để chơi tiếp?
+- **So với PT-000:** "Làm nông có vui không?" — Có / Tạm / Chưa. Vẫn "Tạm" → `game-planner` đề xuất 2–3 hướng rẻ trước khi sang Đợt E.
+
+### Kế hoạch PT-003 — playtest vòng 2 với người lạ (bước 5.1)
+
+- **Người chơi:** 2–3 người **chưa xem game** (không phải tác giả), có ít nhất 1 người ít chơi game nông trại. Chơi trên máy bạn, từ Menu → Chơi mới, 30–40 phút.
+- **Cách quan sát:** không giải thích, không giúp. Bạn ghi (hoặc quay màn hình nếu họ đồng ý) 4 thứ: chỗ dừng lại lâu > 10 giây không biết làm gì; lúc cười / lúc bực; có tự đi nói chuyện với NPC không; có mở sổ nhiệm vụ (Q) không.
+- **Hỏi sau khi chơi:** 4 câu mẫu ở đầu file + (a) "Bạn đang cố đạt được điều gì?" (giả thuyết 1) (b) "Lúc nào vui nhất?" (giả thuyết 2) (c) "Bạn có phải chọn giữa hai thứ lần nào không?" (giả thuyết 3) (d) "Kể tên một nhân vật bạn nhớ" (giả thuyết 4) (e) "Làm nông có vui không: Có / Tạm / Chưa?" (giả thuyết 5 — so với câu trả lời của bạn ở PT-000 / PT-002).
+- **Ghi theo mẫu** ở đầu file; mỗi phát hiện quy ra hành động (task / bug / bỏ qua).
+
 ## Changelog
+
+- 2026-10-13 — D-034 (bước 4.1): thêm bảng kế hoạch kiểm 5 giả thuyết PT-000 trong chặng 4–5, kế hoạch PT-002 (mốc giữa chặng 4, T-052) và PT-003 (playtest người lạ, bước 5.1).
 
 - 2026-10-13 — Thêm PT-001 (bước 3.5): đã chơi thử, không góp ý; chốt 3.5 (D-033).
 - 2026-10-13 — Thêm PT-000 (tác giả tự chơi, T-009): giữ nguyên thông số, làm nông "Tạm", 5 giả thuyết + hướng xử lý (D-028).

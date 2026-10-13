@@ -3,9 +3,9 @@
 > Bạn chỉ cần gõ **`/next`** — Claude sẽ làm bước đang tới, hỏi bạn những gì cần quyết định, rồi đánh dấu xong.
 > Gõ `/map` để xem bản đồ này kèm tiến độ.
 
-**Đang ở: 4.1**
+**Đang ở: 4.2**
 
-> **📝 Ghi chú (2026-10-13):** Chặng 3 xong — prototype T-001 … T-010 ✅, chơi thử 3.5 không có góp ý (PT-001, D-033). Tài khoản dời xuống 5.5 (D-031, D-032). Đang ở **4.1 Kế hoạch sản xuất**. Còn mở: BUG-006 (một số test e2e chờ cố định, không chặn).
+> **📝 Ghi chú (2026-10-14):** 4.1 xong — kế hoạch sản xuất D-034: 77 task (T-018 … T-094), ~363 giờ, 15 giờ/tuần, mốc xong chặng 4 ~08/04/2027 (soát giờ thật ở T-052); ngân sách asset ~100 USD (hình ~85 + âm thanh ≤ 12). Các bước 4.2–4.5 chạy xen kẽ; làm task theo **thứ tự dòng** trong `docs/tasks.md`, bắt đầu **T-018** (làm test e2e ổn định, BUG-006). Tài khoản ở 5.5 (D-031, D-032).
 
 Ký hiệu: 👤 việc của bạn · 🤖 agent phụ trách · ✅ điều kiện để coi là xong
 
@@ -81,7 +81,7 @@ Ký hiệu: 👤 việc của bạn · 🤖 agent phụ trách · ✅ điều ki
 
 ## Chặng 4 — Làm game đầy đủ 🛠️
 
-- [ ] **4.1 Kế hoạch sản xuất**
+- [x] **4.1 Kế hoạch sản xuất**
   🤖 `art-director` + `audio-director` lập danh sách asset đầy đủ (song song); `game-planner` thêm task các tính năng còn lại (khu mới, nhiệm vụ, mặc cả, gia đình, cài đặt…).
   ✅ Asset list + `docs/tasks.md` chặng 4 đầy đủ.
 
@@ -97,7 +97,7 @@ Ký hiệu: 👤 việc của bạn · 🤖 agent phụ trách · ✅ điều ki
 
 - [ ] **4.4 Các tính năng còn lại** *(nhiều buổi)*
   🤖 `game-dev` (và `backend-dev` khi cần API) làm từng task, `qa-tester` kiểm tra.
-  ✅ Mọi task chặng 4 xong; chơi từ đăng nhập → ngày 1 → cưới vợ trơn tru.
+  ✅ Mọi task chặng 4 xong; chơi từ Menu → ngày 1 → cưới vợ trơn tru (đăng nhập làm ở bước 5.5).
 
 - [ ] **4.5 Game feel (độ "đã tay")**
   Tại sao: hiệu ứng nhỏ (rung màn, nảy, hạt, âm thanh) làm game sống động hẳn.

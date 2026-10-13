@@ -60,6 +60,106 @@ Thứ tự theo rủi ro: sửa môi trường (BUG-003) → đăng nhập email
 | `GET /api/auth/google/start` · `/callback` | Đăng nhập Google (chuyển hướng) | T-015 |
 | `GET /api/auth/facebook/start` · `/callback` | Đăng nhập Facebook | T-016 |
 
+## Chặng 4 — Làm game đầy đủ (D-034)
+
+Mục tiêu: từ prototype "một ngày ở Vườn" thành game trọn vòng **Chơi mới → Ngày 1 → cưới vợ → chơi tiếp**, đủ **Must** trong GDD §14, hình và tiếng thật. Tài khoản + lưu server vẫn ở bước **5.5** (T-011 … T-017, giữ nguyên); tới lúc đó game lưu trong trình duyệt (D-025).
+
+**Cách đọc bảng:**
+- Làm theo **Đợt A → I**, trong đợt theo thứ tự bảng (mỗi `/next` làm task đầu tiên chưa xong và đã đủ "Cần trước"). Thứ tự theo lựa chọn của bạn: **Vườn thật (Lô 1) trước**, rồi **Xóm + NPC (Lô 2)**, rồi các phần còn lại.
+- Cột **Bước** = bước của hành trình: 4.2 hình thật · 4.3 âm thanh thật · 4.4 tính năng · 4.5 game feel. Các bước này **chạy xen kẽ**; một bước coi là xong khi mọi task của bước đó ✅ (Giả định).
+- Asset chỉ ghi theo **Lô** + tên mô tả. ID, số ảnh, chi phí nằm ở `docs/art/asset-list.md` và `docs/audio/audio-list.md` (do `art-director`, `audio-director` lập). **Lô 1** = Vườn thật (kể cả nhà {ten}, trong nhà, giao diện HUD) · **Lô 2** = Xóm + NPC Xóm + {ten} bậc 2 · **Lô 3** = khu khác + mặc cả + meme (kèm bậc 3–4, gia đình, cảnh cưới) · **Lô 4** = menu, logo, intro, hoàn thiện. Nếu asset list chia lô hơi khác thì task "Gắn …" theo đúng asset list.
+- Task code **không chờ hình**: chưa có asset thì làm bằng hình khối, task "Gắn …" thay hình sau. Task art/audio chạy song song với code (agent khác nhau).
+- **Luật chung cho mọi task code:** (1) trạng thái mới phải vào save (save version 2 từ T-041, nâng cấp được từ v1) và có unit test; (2) có debug hook cho QA đọc; (3) test e2e chờ theo trạng thái, không chờ cố định (sau T-018); (4) thông số đặt trong `gameConfig.ts` / `src/data/*.json` đúng tên GDD; (5) chữ ≥ 24px ở 1080p; (6) thông tin quan trọng luôn có hình, không chỉ âm thanh.
+- Size: S = 1–2 giờ · M = 3–4 giờ · L = 6–8 giờ (1 ngày).
+
+| ID | Đợt | Bước | Task | Ai làm | Size | Cần trước | Trạng thái |
+|---|---|---|---|---|---|---|---|
+| T-018 | A Nền móng | 4.4 | Làm test e2e ổn định (BUG-006) + bộ test "smoke" chạy nhanh | game-dev + qa-tester | M | — | ⬜ |
+| T-019 | B Vườn thật | 4.2 | Gen hình **Lô 1** phần 1: đất ruộng, cỏ, đường đất, cây trồng 5 loại, icon món | art-director | L | asset list Lô 1 | ⬜ |
+| T-020 | B Vườn thật | 4.2 | Gen hình **Lô 1** phần 2: động tác tưới / cúi, nhà {ten} + **trong nhà**, bếp, thúng bán, cọc rào, quầy hạt, cây nhãn, rào | art-director | L | asset list Lô 1 | ⬜ |
+| T-091 | B Vườn thật | 4.2 | Gen hình **Lô 1** phần 3: giao diện vườn (khung cửa sổ, ô hotbar, nút, khung HUD, icon HUD, bong bóng) | art-director | M | asset list Lô 1 | ⬜ |
+| T-021 | B Vườn thật | 4.2 | Gắn Lô 1: đất ruộng 3 trạng thái, viền tự nối, nấc cuốc dở | game-dev | M | T-018, T-019 | ⬜ |
+| T-022 | B Vườn thật | 4.2 | Gắn Lô 1: cây trồng theo giai đoạn + icon món | game-dev | M | T-019 | ⬜ |
+| T-023 | B Vườn thật | 4.2 | Gắn Lô 1: động tác tưới và cúi (gieo / hái / dọn) | game-dev | M | T-020 | ⬜ |
+| T-024 | B Vườn thật | 4.2 | Gắn Lô 1: nhà {ten} (bên ngoài), thúng bán, cọc rào, quầy hạt thay sạp hạt hộp, cây nhãn, rào, đường đất | game-dev | M | T-020 | ⬜ |
+| T-093 | B Vườn thật | 4.4 | **Cảnh trong nhà {ten}**: bước qua cửa vào phòng riêng (giường, bếp, rương), chuyển cảnh dùng chung, save nhớ trong / ngoài nhà | game-dev | L | T-024 | ⬜ |
+| T-092 | B Vườn thật | 4.2 | Gắn giao diện Lô 1 vào HUD và các cửa sổ đang có | game-dev | M | T-091 | ⬜ |
+| T-025 | B Vườn thật | 4.3 | Làm âm thanh **Lô 1** (tiếng vườn còn thiếu, nhạc đêm, cửa nhà) | audio-director | L | audio list Lô 1 | ⬜ |
+| T-026 | B Vườn thật | 4.3 | Gắn âm thanh Lô 1 + tách kênh Nhạc / Hiệu ứng | game-dev | M | T-025 | ⬜ |
+| T-027 | B Vườn thật | 4.5 | "Khoảnh khắc sướng" khi hái, bán, tổng kết ngày (giả thuyết 2) | game-dev | M | T-022, T-026 | ⬜ |
+| T-041 | B2 Mục tiêu sớm | 4.4 | Save version 2 + bảng phím thử cho chặng 4 | game-dev | M | T-024 | ⬜ |
+| T-042 | B2 Mục tiêu sớm | 4.4 | Level và tiếng tăm (XP, HUD, thẻ mở khóa) | game-dev | L | T-041 | ⬜ |
+| T-043 | B2 Mục tiêu sớm | 4.4 | Nhiệm vụ, sổ nhiệm vụ (Q) và hướng dẫn ngày 1 | game-dev | L | T-042 | ⬜ |
+| T-028 | C Xóm + NPC | 4.2 | Gen hình **Lô 2a**: nhà và công trình Xóm | art-director | L | asset list Lô 2 | ⬜ |
+| T-029 | C Xóm + NPC | 4.2 | Gen hình **Lô 2b**: nền, nước hồ, cây đa, lũy tre, bụi, đồ trang trí | art-director | L | asset list Lô 2 | ⬜ |
+| T-030 | C Xóm + NPC | 4.2 | Gen hình **Lô 2c**: NPC chính ở Xóm (sprite + chân dung) + khung thoại, tab cửa hàng | art-director | L | asset list Lô 2 | ⬜ |
+| T-031 | C Xóm + NPC | 4.2 | Gen hình **Lô 2d**: 5 dân làng phụ | art-director | L | asset list Lô 2 | ⬜ |
+| T-065 | C Xóm + NPC | 4.2 | Gen hình **Lô 2e**: {ten} bậc 2 (đi, cuốc, tưới, cúi), hiệu ứng lột xác, icon nông cụ / bộ đồ | art-director | L | asset list Lô 2 | ⬜ |
+| T-032 | C Xóm + NPC | 4.4 | Dựng bản đồ Xóm làng Lầy 60×42 bằng hình khối, thay bản đồ Vườn | game-dev | L | T-043, T-093 | ⬜ |
+| T-033 | C Xóm + NPC | 4.2 | Gắn hình Lô 2 lên bản đồ Xóm | game-dev | L | T-028, T-029, T-032 | ⬜ |
+| T-034 | C Xóm + NPC | 4.4 | Hệ NPC: đứng tại chỗ, nói chuyện, khung thoại có chân dung | game-dev | L | T-032 | ⬜ |
+| T-035 | C Xóm + NPC | 4.4 | Lịch trình 4 khung giờ + giờ mở cửa hàng | game-dev | M | T-034 | ⬜ |
+| T-036 | C Xóm + NPC | 4.4 | Quầy hạt cô Tám Thóc + cửa sổ cửa hàng dùng chung (bỏ sạp hạt tạm) | game-dev | M | T-035 | ⬜ |
+| T-037 | C Xóm + NPC | 4.4 | Chốt thoại Xóm thành bảng câu cho `npcs.json` | game-planner | S | — | ⬜ |
+| T-038 | C Xóm + NPC | 4.4 | Năm dân làng phụ + các câu đùa trong Xóm | game-dev | M | T-034, T-037 | ⬜ |
+| T-039 | C Xóm + NPC | 4.3 | Làm âm thanh **Lô 2** (nhạc ngày Xóm, nền làng, giọng NPC, cửa hàng) | audio-director | L | audio list Lô 2 | ⬜ |
+| T-040 | C Xóm + NPC | 4.3 | Gắn âm thanh Lô 2 (môi trường theo vị trí, giọng NPC) | game-dev | M | T-038, T-039 | ⬜ |
+| T-044 | D Mục tiêu | 4.4 | Mở rộng ruộng bằng cọc rào (9 → 24 ô) | game-dev | M | T-032, T-042 | ⬜ |
+| T-045 | D Mục tiêu | 4.4 | Đủ 5 cây, theo mùa, mở theo level | game-dev | M | T-036, T-042 | ⬜ |
+| T-046 | D Mục tiêu | 4.4 | Thời tiết: ngày mưa tự tưới | game-dev | M | T-045 | ⬜ |
+| T-047 | D Mục tiêu | 4.4 | Kéo thả trong gùi, tooltip đầy đủ, ăn trong gùi | game-dev | M | — | ⬜ |
+| T-048 | D Mục tiêu | 4.4 | Bếp: nấu ăn và nồi cơm | game-dev | M | T-047, T-093 | ⬜ |
+| T-049 | D Mục tiêu | 4.4 | Nông cụ trên hotbar + độ bền, cùn | game-dev | M | T-042 | ⬜ |
+| T-050 | D Mục tiêu | 4.4 | Chế đồ, nâng cấp, sửa ở lò rèn / xưởng mộc | game-dev | L | T-036, T-049 | ⬜ |
+| T-051 | D Mục tiêu | 4.4 | Chửi thề đủ các trigger | game-dev | S | — | ⬜ |
+| T-052 | D Mục tiêu | 4.4 | **Mốc giữa chặng 4**: chơi thử PT-002 (giả thuyết 1–3) + soát tiến độ | game-planner + bạn | S | T-027, T-043, T-045 | ⬜ |
+| T-053 | E Núi + hồ câu | 4.2 | Gen hình **Lô 3a**: Núi, đồ hái lượm, động tác chặt / cầm cần | art-director | L | asset list Lô 3 | ⬜ |
+| T-054 | E Núi + hồ câu | 4.4 | Chuyển khu qua cổng (dùng lại chuyển cảnh của T-093) + bản đồ Núi (hình khối) + cổng chặn theo level | game-dev | M | T-033, T-042, T-093 | ⬜ |
+| T-055 | E Núi + hồ câu | 4.4 | Hái lượm và chặt củi, tre trên Núi | game-dev | M | T-049, T-054 | ⬜ |
+| T-056 | E Núi + hồ câu | 4.2 | Gắn hình Lô 3a lên Núi | game-dev | M | T-053, T-055 | ⬜ |
+| T-057 | E Núi + hồ câu | 4.2 | Gen hình **Lô 3b**: mini-game câu cá + bắn nỏ | art-director | M | asset list Lô 3 | ⬜ |
+| T-058 | E Núi + hồ câu | 4.4 | Mini-game câu cá ở hồ làng | game-dev | L | T-033, T-046, T-050 | ⬜ |
+| T-059 | E Núi + hồ câu | 4.4 | Mini-game bắn nỏ săn gà rừng | game-dev | L | T-050, T-054 | ⬜ |
+| T-060 | E Núi + hồ câu | 4.3 | Làm âm thanh **Lô 3a** (Núi, câu cá, nỏ) | audio-director | L | audio list Lô 3 | ⬜ |
+| T-061 | E Núi + hồ câu | 4.3 | Gắn âm thanh Lô 3a | game-dev | S | T-058, T-059, T-060 | ⬜ |
+| T-062 | F Chợ + cưới | 4.2 | Gen hình **Lô 3c**: làng Sung + bà Cân, cụ Bá Kẹo (4 mặt), cô Bưởi | art-director | L | asset list Lô 3 | ⬜ |
+| T-063 | F Chợ + cưới | 4.4 | Bản đồ làng Sung + đường sang chợ (cổng Lv 6, tốn giờ) | game-dev | L | T-054, T-062 | ⬜ |
+| T-064 | F Chợ + cưới | 4.4 | Sạp bà Cân: bán ngay giá cao, mua lễ vật | game-dev | M | T-036, T-063 | ⬜ |
+| T-066 | F Chợ + cưới | 4.2 | Gen hình **Lô 3d**: {ten} bậc 2 chặt + câu; bậc 3 đủ bộ khung; **bậc 4 chỉ đi / đứng** (làm việc mượn khung bậc 3) | art-director | L | T-065 | ⬜ |
+| T-067 | F Chợ + cưới | 4.4 | Bậc ngoại hình: sắm sửa, "lột xác", danh hiệu, giảm giá | game-dev | L | T-064, T-065 | ⬜ |
+| T-068 | F Chợ + cưới | 4.4 | Màn mặc cả sính lễ với cụ Bá Kẹo | game-dev | L | T-062, T-063 | ⬜ |
+| T-069 | F Chợ + cưới | 4.4 | Nối nhiệm vụ 5–9 + bà mối gõ cửa | game-dev | M | T-043, T-048, T-050, T-064, T-068 | ⬜ |
+| T-070 | F Chợ + cưới | 4.2 | Gen hình **Lô 3f**: cảnh cưới 3 khung (vẽ trọn tranh), cô Bưởi / vợ trên bản đồ | art-director | M | asset list Lô 3 | ⬜ |
+| T-071 | F Chợ + cưới | 4.4 | Cảnh cưới, vợ về nhà, chơi tiếp sau cưới | game-dev | M | T-069, T-070 | ⬜ |
+| T-072 | G Gia đình | 4.2 | Gen hình **Lô 3g**: con, gà, lợn, chuồng, icon | art-director | M | asset list Lô 3 | ⬜ |
+| T-073 | G Gia đình | 4.4 | Vợ giúp tưới, tiền cơm cả nhà, ngày "ăn cháo" | game-dev | M | T-071 | ⬜ |
+| T-074 | G Gia đình | 4.4 | Con cái: tin vui, ôm con, con lớn giúp việc | game-dev | M | T-073 | ⬜ |
+| T-075 | G Gia đình | 4.4 | Chuồng, gà và lợn | game-dev | M | T-050, T-064, T-073 | ⬜ |
+| T-076 | G Gia đình | 4.4 | Bốn sự kiện gia đình (Must) | game-dev | M | T-074, T-075 | ⬜ |
+| T-077 | H Meme + menu | 4.2 | Gen hình **Lô 3h**: ảnh meme Must | art-director | M | asset list Lô 3 | ⬜ |
+| T-078 | H Meme + menu | 4.4 | Bộ điều phối meme + 6 kiểu hiệu ứng dùng chung | game-dev | L | T-042 | ⬜ |
+| T-079 | H Meme + menu | 4.4 | Nối 8 meme Must vào trò chơi | game-dev | M | T-068, T-077, T-078 | ⬜ |
+| T-080 | H Meme + menu | 4.3 | Làm âm thanh **Lô 3b** (chợ, mặc cả, cưới, jingle, meme, gia đình) | audio-director | L | audio list Lô 3 | ⬜ |
+| T-081 | H Meme + menu | 4.3 | Gắn âm thanh Lô 3b | game-dev | M | T-080 | ⬜ |
+| T-082 | H Meme + menu | 4.2 | Gen hình **Lô 4**: logo, nền menu, **intro 4 khung (vẽ trọn tranh)**, kit menu / cài đặt / ô nhập tên | art-director | L | asset list Lô 4 | ⬜ |
+| T-083 | H Meme + menu | 4.4 | Menu chính + "Về Menu" | game-dev | M | T-041 | ⬜ |
+| T-084 | H Meme + menu | 4.4 | Intro 4 khung + đặt tên nhân vật | game-dev | M | T-082, T-083 | ⬜ |
+| T-085 | H Meme + menu | 4.4 | Cửa sổ Cài đặt (âm lượng, rung màn, toàn màn hình…) | game-dev | M | T-026, T-083 | ⬜ |
+| T-086 | H Meme + menu | 4.2 | Gắn kit menu Lô 4 + rà đồng bộ giao diện mọi cửa sổ, cỡ chữ | game-dev | M | T-082, T-085 | ⬜ |
+| T-094 | H Meme + menu | 4.3 | Âm thanh **Lô 4**: âm giao diện, nhạc menu, **cân mix cuối** cả game | audio-director + game-dev | M | T-081, T-086 | ⬜ |
+| T-087 | I Game feel | 4.5 | Juice phần 1: rung màn 3 mức, tiền, level, nhiệm vụ, chặt, hái lượm | game-dev | M | T-043, T-055 | ⬜ |
+| T-088 | I Game feel | 4.5 | Juice phần 2: chuyển khu, giờ trong ngày, trạng thái nhân vật, mưa | game-dev | M | T-046, T-054 | ⬜ |
+| T-089 | I Game feel | 4.5 | Juice phần 3: mini-game, mặc cả, cưới | game-dev | M | T-058, T-059, T-068, T-071 | ⬜ |
+| T-090 | I Game feel | 4.4 | Kiểm trọn vòng Ngày 1 → cưới + hồi quy cả game | qa-tester | L | mọi task chặng 4 | ⬜ |
+
+**Người dùng chốt (2026-10-14, D-034):** giữ đủ Must, soát giờ thật ở T-052 · bậc ngoại hình 2–3 đủ động tác, **bậc 4 chỉ đi / đứng, làm việc mượn khung bậc 3** · **level + nhiệm vụ (T-041 … T-043) chen lên ngay sau T-027** (đợt "B2") · **có cảnh trong nhà riêng** (T-093). Đội chọn: intro 4 khung + cảnh cưới vẽ trọn tranh; Xóm dùng nhạc ngày bản B; mỗi NPC một bộ giọng lẩm bẩm tổng hợp. Lô asset theo đúng `docs/art/asset-list.md` (nhà {ten}, trong nhà, quầy hạt, cây nhãn, rào, đường đất, giao diện HUD ở **Lô 1**; {ten} bậc 2 ở **Lô 2**; intro ở **Lô 4**).
+
+**Theo bước:** 4.2 = 24 task (16 gen hình + 8 gắn hình) · 4.3 = 9 task · 4.4 = 40 task · 4.5 = 4 task. Tổng **77 task**: 4 S + 44 M + 29 L. (ID T-091 … T-094 thêm sau nên nằm xen trong bảng; làm theo thứ tự dòng, không theo số.)
+
+**Tổng ước lượng (D-034):** khoảng **310–416 giờ, lấy mốc 363 giờ** (4.2 ≈ 126 · 4.3 ≈ 43,5 · 4.4 ≈ 179,5 · 4.5 ≈ 14 giờ; tính S 1–2, M 3–4, L 6–8 giờ). Với **15 giờ/tuần**: khoảng **20,5–28 tuần, mốc 24 tuần** tính từ 14/10/2026 → xong chặng 4 khoảng **14/03 – 03/05/2027, mốc kế hoạch ~08/04/2027** (đã cộng ~1 tuần nghỉ Tết 06/02/2027). So với bản đầu (345 giờ, ~30/03) thêm ~18 giờ: cảnh trong nhà + rương, giao diện Lô 1, âm thanh theo ước lượng của audio list, âm Lô 4 + cân mix. Cao hơn ước cũ ở GDD §14 (9,5–12 tuần) vì lần này tính đủ từng việc gắn hình, gắn tiếng, cửa sổ, kiểm tra. Lưu ý: chặng 3 ước 43–50 giờ nhưng xong trong ~5 ngày lịch — nếu nhịp đó giữ được dù chỉ một nửa, chặng 4 có thể xong sớm hơn nhiều; **soát lại ở T-052** bằng giờ thật.
+
+**Nếu trễ:** cắt theo thứ tự ở GDD §14 "Thứ tự cắt khi sản xuất (D-034)" (C1 meme rút gọn → C2 bậc ngoại hình rút gọn → C3 gia đình rút gọn → …). Không cắt: Xóm + NPC chính, level + nhiệm vụ, mặc cả, juice cơ bản (đều là pillar).
+
 ## Chi tiết task
 
 ### T-001 — Dựng bản đồ Vườn thử, va chạm và camera đi theo
@@ -491,6 +591,1182 @@ Thứ tự theo rủi ro: sửa môi trường (BUG-003) → đăng nhập email
 
 **Bạn thử thế nào:** đọc báo cáo của `qa-tester` (có ảnh chụp ở `web/e2e/screenshots/t017-*.png`). Tự làm 1 lần: đăng nhập ở Chrome, chơi một chút, đăng nhập cùng tài khoản ở Edge → thấy tiến độ giống hệt. Đây cũng là điều kiện để đánh dấu xong bước 3.4.
 
+---
+
+## Chi tiết task chặng 4
+
+### T-018 — Làm test e2e ổn định (BUG-006) và có bộ "smoke" chạy nhanh
+
+**Bước:** 4.4 · **Ai làm:** game-dev + qa-tester · **Size:** M (3–4h) · **Cần trước:** —
+
+**Mục tiêu:** cả bộ e2e không còn đỏ ngẫu nhiên, và có một bộ test ngắn chạy sau mỗi task — để chặng 4 thêm nhiều code mà không mất công đoán "lỗi thật hay test chập chờn" (14 ca chập chờn đang tăng).
+
+**Điều kiện xong:**
+- [ ] Rà mọi `waitForTimeout` cố định trong `web/e2e/tests/`: đổi sang chờ theo trạng thái (`expect.poll` / `waitForFunction` trên `debugState`) hoặc đếm frame. Chỗ nào buộc phải giữ thì ghi lý do ngay cạnh.
+- [ ] Hiệu ứng "thoáng qua" (giọt nước, chữ bay, tiếng hái, `action.kind` của việc nhanh) kiểm bằng **bộ đếm / nhật ký** (vd `farmJuice.waterDrops` tổng, `money.floatLog`) hoặc **hook kéo dài** (`debugSetTestTuning` thêm `harvestPitchResetSeconds`, thời gian chữ bay). Sửa đủ 5 ca nêu trong BUG-006.
+- [ ] Gắn nhãn `@smoke` cho ~15–25 ca chính (vào game, đi, cuốc, gieo–tưới–hái, Sức, đồng hồ, thùng bán, ngủ, lưu/F5); lệnh `npm run test:e2e:smoke` chạy ≤ 5 phút.
+- [ ] Cả bộ chạy **2 lần liền** trên stack Docker đều xanh (ghi số ca, thời gian). Ca nào còn đỏ → ghi bug riêng, không nới điều kiện cho qua.
+- [ ] BUG-006 → Đã sửa; báo phiên chính thêm lệnh smoke vào CLAUDE.md mục Web.
+
+**Thông số / ghi chú:** không đổi gameplay, không đổi `gameConfig.ts`. Từ task này, mọi task code chạy smoke trước khi báo xong; cả bộ chạy ở cuối mỗi Đợt.
+
+**Bạn thử thế nào:** không cần mở game. Đọc báo cáo: "cả bộ N ca xanh 2 lần liền, smoke M ca trong X phút".
+
+---
+
+### T-019 — Gen hình Lô 1 (phần 1): đất ruộng, cỏ, đường đất, cây trồng, icon món
+
+**Bước:** 4.2 · **Ai làm:** art-director · **Size:** L (1 ngày) · **Cần trước:** asset list Lô 1 (bước 4.1)
+
+**Mục tiêu:** đủ hình để ruộng và gùi trông như game thật.
+
+**Điều kiện xong:**
+- [ ] Theo asset list Lô 1: đất **chưa cuốc / đã cuốc / đã tưới** (texture + viền tự nối), 2 nấc **cuốc dở**, cỏ nền chính thức, **đường đất** + mép cỏ.
+- [ ] Cây trồng **5 loại** (rau cải, khoai lang, rau muống, dưa hấu, lúa nếp) × giai đoạn hạt / mầm / chín, có cách hiện **khát** và **héo** (vẽ riêng hoặc để code tô màu — art-director chọn, ghi vào asset list).
+- [ ] Icon **hạt + nông sản** cho 5 cây, cùng phong cách icon cái cuốc.
+- [ ] Tự review theo checklist art bible, hậu kỳ, đặt file vào `web/client/public/assets/art/<loại>/`, cập nhật asset list. Bạn duyệt ảnh so sánh.
+
+**Thông số / ghi chú:** chi phí theo asset list, trong ngân sách D-034. Gen vừa đủ 2–4 bản/lần.
+
+**Bạn thử thế nào:** mở ảnh so sánh `art-director` gửi, chọn bản ưng hoặc nói chỗ cần sửa.
+
+---
+
+### T-020 — Gen hình Lô 1 (phần 2): động tác tưới / cúi, nhà {ten} và trong nhà, đồ vật vườn
+
+**Bước:** 4.2 · **Ai làm:** art-director · **Size:** L (1 ngày) · **Cần trước:** asset list Lô 1
+
+**Mục tiêu:** {ten} có dáng thật khi tưới, gieo, hái; nhà, trong nhà và đồ vật quanh nhà có hình thật — dùng ngay ở Vườn rồi mang sang Xóm.
+
+**Điều kiện xong:**
+- [ ] Động tác **tưới** (bình tưới tôn — món bậc 1 đổi tên "bình tưới cũ", D-034) và **cúi** (gieo / hái / dọn) 4 hướng, bậc 1, cùng khung 128×128 và điểm chân với động tác cuốc (ART-CHR-007).
+- [ ] Theo asset list Lô 1: **nhà {ten}** (bên ngoài), **nền trong nhà** + nội thất (giường tre, hũ gạo, rương gỗ, nón ông nội), bếp rơm + bếp gạch (2 trạng thái), thúng bán có nắp + cọc rào, **quầy hạt** ở hiên, **cây nhãn** (tách tán / gốc), **rào** dâm bụt / tre.
+- [ ] Hậu kỳ, đặt file, cập nhật asset list. Bạn duyệt.
+
+**Thông số / ghi chú:** theo asset list mới, các món này ở **Lô 1** (Vườn có hình thật sớm; nhà, cây, rào dùng lại ở Xóm, không vẽ hai lần). Ao / nước hồ vẫn ở Lô 2 — ao ở Vườn tạm giữ hình khối tới T-033.
+
+**Bạn thử thế nào:** xem GIF động tác tưới / cúi 4 hướng và ảnh nhà + trong nhà, duyệt.
+
+---
+
+### T-091 — Gen hình Lô 1 (phần 3): giao diện vườn
+
+**Bước:** 4.2 · **Ai làm:** art-director · **Size:** M (3–4h) · **Cần trước:** asset list Lô 1
+
+**Mục tiêu:** HUD và các cửa sổ đang có (gùi, thùng bán, tổng kết, Tạm dừng) có giao diện thật thay khung vẽ bằng code.
+
+**Điều kiện xong:**
+- [ ] Theo asset list Lô 1: khung giấy điệp 9-slice (lớn + tooltip), ô hotbar / gùi (thường / chọn / khóa), nút 9-slice (thường / rê chuột / nhấn / xám), khung HUD (ống tre thanh Sức, đĩa đồng hồ, ô tiền, bảng level), sheet icon HUD, 4 kiểu bong bóng (thường, chửi thề, khoe, "…").
+- [ ] Màu viền ô ngoài tầm ART-UI-001 chốt. Hậu kỳ, đặt file + `ui/ui.json` (lề cắt). Bạn duyệt.
+
+**Bạn thử thế nào:** xem bản ghép mẫu HUD + cửa sổ gùi, duyệt.
+
+---
+
+### T-021 — Gắn hình Lô 1: đất ruộng 3 trạng thái, viền tự nối, nấc cuốc dở
+
+**Bước:** 4.2 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-018, T-019
+
+**Mục tiêu:** ruộng trông thật: cỏ khô → vỡ cỏ → lổn nhổn → đất tơi, sẫm khi tưới, viền liền giữa các ô.
+
+**Điều kiện xong:**
+- [ ] Ô ruộng vẽ bằng tile thật theo trạng thái: `soil`, nấc cuốc dở (`tillStrikes` → `tillVisualStages`), `watered`. Viền 4-bit tự chọn theo ô bên cạnh.
+- [ ] Nền cỏ Vườn đổi sang tile thật.
+- [ ] Thanh tiến độ cuốc, viền chọn ô (sáng / xám), số hàng chờ vẫn đọc rõ trên nền mới (ảnh e2e trước/sau). Màu viền ngoài tầm theo ART-UI-001 nếu đã chốt.
+- [ ] Thiếu file ảnh → game không treo, log cảnh báo, vẽ bằng code như cũ.
+
+**Thông số / ghi chú:** không đổi thông số gameplay. Tên file theo asset list.
+
+**Bạn thử thế nào:** mở http://localhost:5173, cuốc một ô: đất đổi 3 nấc bằng hình thật. Tưới: đất sẫm. Cuốc 2 ô cạnh nhau: viền nối liền, không thấy đường kẻ ô.
+
+---
+
+### T-022 — Gắn hình Lô 1: cây trồng theo giai đoạn và icon món
+
+**Bước:** 4.2 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-019
+
+**Mục tiêu:** cây và món trong gùi bằng hình thật.
+
+**Điều kiện xong:**
+- [ ] Cây vẽ bằng sprite theo `cropStage` + khát / héo.
+- [ ] Icon thật ở hotbar, gùi, thùng bán, sạp hạt, icon bay khi hái.
+- [ ] `crops.json` thêm trường tên hình (vd `sprite`, `icon`) — để T-045 thêm cây chỉ cần thêm dữ liệu.
+
+**Thông số / ghi chú:** 3 cây mới (rau muống, dưa hấu, lúa nếp) đã có hình nhưng chưa trồng được tới T-045.
+
+**Bạn thử thế nào:** gieo cải + khoai, bấm **G** vài lần: thấy mầm → chín bằng hình thật. Bấm **E**: icon thật.
+
+---
+
+### T-023 — Gắn hình Lô 1: động tác tưới và cúi
+
+**Bước:** 4.2 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-020
+
+**Mục tiêu:** gieo, hái, dọn có dáng cúi; tưới có dáng cầm gáo — thay cú nhún thân bằng code.
+
+**Điều kiện xong:**
+- [ ] Gieo / hái / dọn dùng khung cúi, tưới dùng khung tưới, 4 hướng, khung "chạm" khớp `actionImpactAt`, điểm chân như cuốc (`HERO_ACTION_FRAME`). Khung tính từ tiến độ động tác (như `systems/toolAnim.ts`).
+- [ ] Việc nhanh vẫn không khóa chân (D-022). Đang đi mà làm việc nhanh: game-dev chọn hiện khung đi hay khung cúi sao cho không "trượt", ghi lý do.
+- [ ] e2e cũ (crops, qa-t003) xanh.
+
+**Thông số / ghi chú:** dùng `actionDuration` 0.4. Nếu cần số mới (vd thời lượng khung) thì thêm vào `gameConfig.ts` và ghi ở ghi chú khi làm.
+
+**Bạn thử thế nào:** giữ chuột rê gieo cả luống: {ten} cúi gieo từng ô. Tưới: thấy cầm gáo nghiêng.
+
+---
+
+### T-024 — Gắn hình Lô 1: nhà {ten}, thúng bán, quầy hạt, cây nhãn, rào, đường đất
+
+**Bước:** 4.2 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-020
+
+**Mục tiêu:** Vườn có hình thật: nhà tranh, cây nhãn, rào, lối đất, thúng bán, quầy hạt.
+
+**Điều kiện xong:**
+- [ ] Nhà {ten} (bên ngoài) thay khối nhà; va chạm theo chân đế trong `props/props.json`, có **điểm cửa** (dùng ở T-093). Trong lúc chờ T-093, giường tạm đặt ở hiên để vẫn ngủ được (Giả định).
+- [ ] Thúng bán, cọc rào (ẩn tới T-044), **quầy hạt** thay hộp sạp hạt (vẫn là sạp không người tới T-036), cây nhãn (tán che người), rào, đường đất (viền tự nối).
+- [ ] Vùng click khớp hình; e2e economy / day / garden xanh.
+
+**Bạn thử thế nào:** đi quanh vườn: nhà tranh, cây nhãn che người khi đi sau, rào, lối đất; F ở thúng bán và quầy hạt vẫn mở như cũ.
+
+---
+
+### T-093 — Cảnh trong nhà {ten}: bước qua cửa vào phòng riêng
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** L (1 ngày) · **Cần trước:** T-024
+
+**Mục tiêu:** bước qua cửa nhà là vào một cảnh nhỏ bên trong (giường, bếp, rương) — có cảm giác "về nhà"; đồng thời làm sẵn **chuyển cảnh dùng chung** cho cổng Núi / làng Sung sau này.
+
+**Điều kiện xong:**
+- [ ] Đi vào **điểm cửa** nhà → màn mờ → cảnh trong nhà (nền phòng + nội thất Lô 1, va chạm tường, camera cố định hoặc bám nhẹ); đi ra cửa → về đứng trước cửa. Hàm chuyển cảnh chung (mờ, điểm xuất hiện, tên khu, tự lưu) để T-054 dùng lại.
+- [ ] Bên trong: **giường** (ngủ / hỏi "Đi ngủ?" như cũ, `wakeSpot` trong nhà), **bếp** (đặt sẵn, nấu ở T-048), **rương** (cửa sổ 2 lưới gùi ⇄ rương như thùng bán, `chestSlots` 20 ô — rương lên Must theo D-034).
+- [ ] Save: `player.area` thêm giá trị `house`; F5 trong nhà vào lại trong nhà; ngủ gục ngoài đồng → sáng dậy trong nhà cạnh giường; save cũ (đứng ngoài) nạp bình thường.
+- [ ] Đồng hồ vẫn chạy trong nhà; trời tối dần cũng phủ trong nhà (nhẹ hơn — game-dev chọn, ghi chú).
+- [ ] e2e: vào / ra nhà, ngủ trong nhà, F5 trong nhà, rương cất / lấy không mất đồ.
+
+**Thông số / ghi chú:** thêm `chestSlots` 20 (GDD §3.9), `areaFadeSeconds` 0.4 (Giả định).
+
+**Bạn thử thế nào:** đi tới cửa nhà: màn mờ, vào trong thấy giường, bếp, rương. Cất 5 củ khoai vào rương, F5: vẫn ở trong nhà, khoai còn trong rương. Ra cửa: đứng trước nhà.
+
+---
+
+### T-092 — Gắn giao diện Lô 1 vào HUD và các cửa sổ đang có
+
+**Bước:** 4.2 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-091
+
+**Mục tiêu:** HUD, hotbar, gùi, thùng bán, rương, tổng kết, Tạm dừng, bong bóng dùng giao diện thật.
+
+**Điều kiện xong:**
+- [ ] Khung 9-slice (`nineslice` của Phaser), ô hotbar, nút, khung HUD, icon HUD, 4 kiểu bong bóng thay hình vẽ bằng code; chữ vẫn ≥ 24px, bố cục 1920×1080 và 1366×768 không đè (e2e `time.spec` bố cục).
+- [ ] Các cửa sổ làm sau (thoại, cửa hàng, sổ Q…) dùng chung các khung này.
+
+**Bạn thử thế nào:** mở gùi (E), thùng bán (F), Tạm dừng (Esc): khung giấy điệp, nút có hover.
+
+---
+
+### T-025 — Làm âm thanh Lô 1 (vườn)
+
+**Bước:** 4.3 · **Ai làm:** audio-director · **Size:** L (1 ngày — audio list ước 5–7 giờ) · **Cần trước:** audio list Lô 1
+
+**Mục tiêu:** đủ tiếng cho mọi việc ở vườn trong bảng juice GDD §8.
+
+**Điều kiện xong:**
+- [ ] Theo audio list Lô 1, ví dụ: tiếng **chốt** khi xong ô cuốc (thay "bộp" hạ giọng), héo "phù", ăn "nhồm nhoàm", bụng réo khi đuối, ngáp lúc 23h, ngáy khi ngủ gục, gà gáy 6h, "tách tách" tổng kết, "leng keng" nhận tiền, cửa nhà {ten} (T-093), **nhạc đêm**, jingle Lô 1; thay các tiếng "đang mượn tạm" của Lô 1. Âm giao diện cơ bản (miễn phí) có thể kéo lên làm cùng.
+- [ ] Hậu kỳ (chuẩn hóa âm lượng, cắt), đặt file `web/client/public/assets/audio/<music|sfx|ui>/`, cập nhật audio list. Bạn nghe duyệt.
+
+**Bạn thử thế nào:** nghe bản nghe thử `audio-director` gửi, chọn bản ưng.
+
+---
+
+### T-026 — Gắn âm thanh Lô 1 và tách kênh Nhạc / Hiệu ứng
+
+**Bước:** 4.3 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-025
+
+**Mục tiêu:** tiếng đúng lúc, và có sẵn 2 nút âm lượng riêng cho Cài đặt sau này.
+
+**Điều kiện xong:**
+- [ ] Gắn từng tiếng vào đúng sự kiện (GDD §8).
+- [ ] Mọi âm thanh đi qua **một chỗ** (vd `src/systems/audio.ts`) với 2 kênh **Nhạc** và **Hiệu ứng**, âm lượng riêng — để T-085 chỉ cần nối thanh trượt.
+- [ ] Tiếng lặp có lệch cao độ; cùng một tiếng không phát chồng quá `sfxMaxConcurrent` bản.
+
+**Thông số / ghi chú:** thêm `musicVolume` 0.8, `sfxVolume` 0.9, `sfxMaxConcurrent` 4 (Giả định, chỉnh khi nghe).
+
+**Bạn thử thế nào:** F9 tới 23h: nghe ngáp. Không ngủ tới 24h: nghe ngáy. Sáng ra: gà gáy.
+
+---
+
+### T-027 — "Khoảnh khắc sướng" khi hái, bán và tổng kết ngày (giả thuyết 2)
+
+**Bước:** 4.5 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-022, T-026
+
+**Mục tiêu:** cuối vòng có phần thưởng rõ ràng: cây chín gọi người hái, tiền đổ vào túi, tổng kết "rung lên" — kiểm giả thuyết 2 của PT-000 ("phần thưởng còn nhạt").
+
+**Điều kiện xong:**
+- [ ] Cây chín lấp lánh / nhún nhẹ định kỳ để gọi hái.
+- [ ] Hái: icon bay có vệt sáng; tiếng pop cao dần (đã có) giữ nguyên.
+- [ ] Tổng kết ngày: đóng màn tổng kết thì xu bay vào ô tiền HUD, số tiền nhảy, "leng keng". Ngày tiền bán cao nhất từ trước tới giờ → dòng vàng **"Kỷ lục mới!"** (chừa chỗ cho meme `profitArrow` ở T-079; kỷ lục lưu trong save).
+- [ ] Mua hạt: xu bay khỏi ô tiền.
+
+**Thông số / ghi chú:** thêm `ripeSparkleIntervalSeconds` (2), `coinFlyCount` (6), `coinFlySeconds` (0.6) — Giả định, chỉnh khi thử.
+
+**Bạn thử thế nào:** hái cả luống, bỏ vào thùng, ngủ. Tự hỏi: **"hái và bán đã sướng hơn chưa?"** — câu trả lời ghi vào PT-002 (T-052).
+
+---
+
+### T-028 — Gen hình Lô 2a: nhà và công trình Xóm
+
+**Bước:** 4.2 · **Ai làm:** art-director · **Size:** L (1 ngày) · **Cần trước:** asset list Lô 2
+
+**Mục tiêu:** đủ nhà và công trình để dựng Xóm làng Lầy (GDD §5, D-027).
+
+**Điều kiện xong:**
+- [ ] Theo asset list Lô 2: nhà {ten}, 3 biến thể nhà + nhà bỏ hoang, lò rèn, xưởng mộc, cổng ngõ, đình, giếng, miếu, quán chè, lều chợ cóc, bến câu (gãy / lành), bến nước.
+- [ ] Nhà quay mặt về nam, nhìn 3/4 trên-nam, đúng kích thước ô gợi ý. Hậu kỳ, đặt file, cập nhật asset list. Bạn duyệt.
+
+**Bạn thử thế nào:** xem ảnh so sánh, duyệt.
+
+---
+
+### T-029 — Gen hình Lô 2b: nền, nước hồ, cây, rào, đồ trang trí
+
+**Bước:** 4.2 · **Ai làm:** art-director · **Size:** L (1 ngày) · **Cần trước:** asset list Lô 2
+
+**Mục tiêu:** đủ nền và cây để Xóm liền mạch.
+
+**Điều kiện xong:**
+- [ ] Theo asset list Lô 2: sân gạch, nước hồ + bờ (viền tự nối), lũy tre, cây đa (tách tán / gốc), bụi cây, lau sậy / sen, 2 sheet đồ trang trí, vật chặn cổng theo level. (Đường đất, cây nhãn, rào đã làm ở Lô 1 — T-019, T-020.)
+- [ ] Hậu kỳ, đặt file, cập nhật asset list. Bạn duyệt.
+
+**Bạn thử thế nào:** xem ảnh so sánh, duyệt.
+
+---
+
+### T-030 — Gen hình Lô 2c: NPC chính ở Xóm
+
+**Bước:** 4.2 · **Ai làm:** art-director · **Size:** L (1 ngày) · **Cần trước:** asset list Lô 2
+
+**Mục tiêu:** U Hến, ông Gật + gà Mái Mơ, cô Tám Thóc, ông Hai Bễ, chú Đục, bà Ba Trầu có hình trên bản đồ và chân dung thoại.
+
+**Điều kiện xong:**
+- [ ] Sprite bản đồ (đứng 2 khung) + chân dung thoại (số biểu cảm theo asset list), giữ visual hook trong story bible.
+- [ ] Giao diện đi kèm: khung thoại dưới màn + khung chân dung, tab cửa hàng + dòng món (asset list Lô 2) — dùng ở T-034, T-036.
+- [ ] Hậu kỳ, đặt file, cập nhật asset list. Bạn duyệt.
+
+**Bạn thử thế nào:** xem ảnh so sánh, duyệt.
+
+---
+
+### T-031 — Gen hình Lô 2d: năm dân làng phụ
+
+**Bước:** 4.2 · **Ai làm:** art-director · **Size:** L (1 ngày) · **Cần trước:** asset list Lô 2
+
+**Mục tiêu:** bà Chém, ông Khướt, cô Ngóng, anh Tráng, trẻ trâu Sún–Hĩm–Cò có hình + hoạt ảnh tại chỗ (GDD §14 mục D-021).
+
+**Điều kiện xong:**
+- [ ] Theo asset list Lô 2 (~12 ảnh: ngồi, nằm ngủ, sau rào, tập võ, trẻ trâu 3 đầu nhảy).
+- [ ] Hậu kỳ, đặt file, cập nhật asset list. Bạn duyệt.
+
+**Thông số / ghi chú:** nếu trễ: mục cắt C4 giữ 3 người (ông Khướt, cô Ngóng, trẻ trâu).
+
+**Bạn thử thế nào:** xem ảnh so sánh, duyệt.
+
+---
+
+### T-032 — Dựng bản đồ Xóm làng Lầy 60×42 bằng hình khối, thay bản đồ Vườn
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** L (1 ngày) · **Cần trước:** T-043, T-093
+
+**Mục tiêu:** mở game là ở trong Xóm: nhà {ten} + ruộng góc tây-bắc, ra ngõ thấy các nhà, giếng, hồ, cây đa, đình (hình khối + nhãn tên) — mọi thứ của prototype vẫn chạy.
+
+**Điều kiện xong:**
+- [ ] Bản đồ dạng **Tilemap JSON** (định dạng Tiled; game-dev được sinh bằng script từ dữ liệu bố cục nếu không dùng Tiled — Giả định). Lớp Nền / Vật cản / Trên đầu; lớp đối tượng: ruộng 24 ô (`maxPlots`, mở trước `startPlots` 9), giường, bếp, thùng bán, 2 cổng (chặn), quầy hạt, lò rèn, xưởng mộc, điểm `npcSpots`, 2 bến câu.
+- [ ] Đúng bảng tọa độ GDD §5, `villageMapSize` [60, 42]; nhà quay mặt về nam, cửa ra đường.
+- [ ] Va chạm bằng lớp Tilemap (bài học BUG-001); tán cây đa / mái nhà vẽ trên người; camera dừng ở mép.
+- [ ] Cuốc–gieo–tưới–hái, thùng bán, ngủ, qua đêm chạy như cũ ở tọa độ mới; nhà {ten} + cửa vào **cảnh trong nhà** (T-093) giữ nguyên; quầy hạt chuyển sang hiên nhà cô Tám (vẫn không người tới T-036).
+- [ ] Level, nhiệm vụ, hướng dẫn ngày 1 (T-041 … T-043, đã làm trên Vườn) vẫn chạy: mũi tên chỉ đúng ô ruộng mới.
+- [ ] Save: `player.area` = `village`. Save Vườn cũ nạp được: 9 ô cũ chuyển sang 9 ô đầu của ruộng Xóm theo thứ tự, nhân vật đứng cạnh giường, không mất cây / tiền / gùi (Giả định).
+- [ ] e2e cũ sửa theo tọa độ mới; thêm ca đi từ cổng nhà tới giếng, bến câu, sân đình không kẹt.
+
+**Thông số / ghi chú:** `villageMapSize` [60, 42]. Đối chiếu thời gian đi bộ với bảng GDD §5; lệch > 30% thì báo `game-planner`. Có thể giữ `?scene=garden` để so (game-dev quyết, ghi chú).
+
+**Bạn thử thế nào:** mở game, đi từ cổng nhà tới quầy cô Tám (~6 giây), giếng (~8 giây), sân đình (~15 giây). Tự hỏi: đi trong xóm **xa quá hay vừa**?
+
+---
+
+### T-033 — Gắn hình Lô 2 lên bản đồ Xóm
+
+**Bước:** 4.2 · **Ai làm:** game-dev · **Size:** L (1 ngày) · **Cần trước:** T-028, T-029, T-032
+
+**Mục tiêu:** Xóm trông như ảnh concept: nhà Bắc Bộ, cây đa, hồ, lũy tre.
+
+**Điều kiện xong:**
+- [ ] Thay hình khối bằng nhà, cây, nước, đường, rào, lũy tre thật; viền nước / đường tự nối; tán cây, mái vẽ trên người.
+- [ ] Vùng va chạm khớp chân nhà / gốc cây: không kẹt, không đi xuyên tường (e2e ép tường 4 mặt một nhà mẫu và gốc đa).
+- [ ] Ghi tổng dung lượng asset sau Lô 2 (mục tiêu tải lần đầu < 30 MB, GDD §12) và FPS khi đi qua chỗ nhiều đồ nhất (mục tiêu ≥ 50 trên máy test).
+
+**Bạn thử thế nào:** đi một vòng Xóm, chụp màn hình chỗ đẹp nhất và chỗ "lạ" nhất gửi lại.
+
+---
+
+### T-034 — Hệ NPC: đứng tại chỗ, nói chuyện, khung thoại có chân dung
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** L (1 ngày) · **Cần trước:** T-032
+
+**Mục tiêu:** đi tới NPC bấm F là nói chuyện được — nền móng cho cửa hàng, nhiệm vụ, mặc cả.
+
+**Điều kiện xong:**
+- [ ] `src/data/npcs.json` + kiểu `NpcData` (id, tên, sprite, chân dung, `schedule` 4 khung, `lines` có điều kiện) theo GDD §3.16.
+- [ ] NPC chính đứng ở chỗ của khung "Sáng" (lịch đầy đủ ở T-035), có va chạm nhỏ, quay mặt về {ten} khi nói.
+- [ ] F khi đứng cạnh / click / chuột phải trong `interactRange` → **khung thoại** dưới màn: chân dung trái, tên, tối đa 2 câu, Space / click qua câu, thay `{ten}`. Đồng hồ dừng (`PauseReasons` thêm `dialogue`), Esc đóng.
+- [ ] Chọn câu theo điều kiện (khung giờ, mùa, level tối thiểu, bậc ngoại hình, cờ sự kiện): câu đúng điều kiện ưu tiên hơn câu chung, không lặp câu vừa nói — hàm thuần + unit test.
+- [ ] Chưa có art T-030 thì NPC là hình khối màu + nhãn tên; có rồi thì gắn luôn.
+
+**Bạn thử thế nào:** nói chuyện với U Hến ở hiên nhà và ông Hai Bễ ở lò rèn: khung thoại hiện, Space qua câu, đồng hồ đứng yên.
+
+---
+
+### T-035 — Lịch trình 4 khung giờ và giờ mở cửa hàng
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-034
+
+**Mục tiêu:** làng "sống": NPC đổi chỗ theo giờ, quầy hàng có giờ mở cửa.
+
+**Điều kiện xong:**
+- [ ] Sang khung mới (`npcSlotHours` 6 / 12 / 19 / 22): NPC ngoài màn chuyển ngay; trong màn mờ đi `npcSwapFadeSeconds` rồi hiện chỗ mới; đêm ẩn (về nhà), riêng ông Khướt ngủ gốc đa. Theo bảng lịch GDD §3.16.
+- [ ] Mở game / F5 giữa ngày → NPC đúng chỗ theo giờ (không lưu vị trí NPC).
+- [ ] Cửa hàng mở `shopOpenHour`–`shopCloseHour` (6–19h); ngoài giờ click quầy → bong bóng chủ quán (story bible §3.14), không mở cửa sổ.
+- [ ] Unit test "NPC đứng đâu lúc h giờ".
+
+**Thông số / ghi chú:** `npcSlotHours`, `shopOpenHour`, `shopCloseHour`, `npcSwapFadeSeconds` (GDD §3.16).
+
+**Bạn thử thế nào:** đứng ở lò rèn, F9 tới 19h: ông Hai Bễ mờ đi; ra quán chè thấy ông ở đó; click lò rèn → "TAO ĐI UỐNG CHÈ! MAI!".
+
+---
+
+### T-036 — Quầy hạt cô Tám Thóc và cửa sổ cửa hàng dùng chung
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-035
+
+**Mục tiêu:** mua hạt ở quầy cô Tám thay cái hộp hạt tạm; có một cửa sổ cửa hàng dùng lại cho mọi quầy.
+
+**Điều kiện xong:**
+- [ ] Bỏ sạp hạt tạm. Nói chuyện với cô Tám trong giờ mở → cửa sổ cửa hàng.
+- [ ] Cửa sổ **dùng chung**: danh sách món (icon, tên, giá, "Có: N", nút Mua), có tab — lò rèn / xưởng mộc (T-050), sạp bà Cân (T-064), tab Sắm sửa (T-067) dùng lại.
+- [ ] Giữ luật T-006: Shift+click mua 5, thiếu tiền nút xám, gùi đầy không mất tiền. Món chưa mở theo level: xám + "Lv N" (khi có level, T-042).
+
+**Bạn thử thế nào:** 8h sáng tới quầy cô Tám mua hạt cải; 20h tới thì cô báo đóng cửa.
+
+---
+
+### T-037 — Chốt thoại Xóm cho `npcs.json`
+
+**Bước:** 4.4 · **Ai làm:** game-planner · **Size:** S (1–2h) · **Cần trước:** —
+
+**Mục tiêu:** game-dev có bảng câu chép thẳng vào dữ liệu, không phải tự nghĩ câu.
+
+**Điều kiện xong:**
+- [ ] Rà story bible §3.13, §3.14, §6.1: đủ câu cho 6 NPC chính ở Xóm (chào, theo giờ, đóng cửa, khu chưa mở) và 5 dân làng phụ (2–4 câu, có điều kiện giờ / level / bậc); câu cửa nhà ông Khướt, nhà bỏ hoang, sạp chợ cóc, bến gãy.
+- [ ] Mỗi câu ≤ 90 ký tự; điều kiện ghi bằng tên trường; tổng chữ cả game vẫn ≤ ~300 câu.
+
+**Bạn thử thế nào:** đọc bảng câu, gạch câu không thích.
+
+---
+
+### T-038 — Năm dân làng phụ và các câu đùa trong Xóm
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-034, T-037 (gắn hình T-031 khi có)
+
+**Mục tiêu:** đi đâu trong xóm cũng có người nói một câu "lầy" (pillar "Mặc cả lầy lội").
+
+**Điều kiện xong:**
+- [ ] Bà Chém, ông Khướt, cô Ngóng, anh Tráng, trẻ trâu Sún–Hĩm–Cò đứng đúng chỗ theo khung giờ (GDD §3.16), hoạt ảnh tại chỗ 2–3 khung.
+- [ ] F / click → bong bóng trên đầu `npcBubbleSeconds` (3 s), không khóa điều khiển, đồng hồ chạy, xoay vòng câu theo điều kiện; tối đa 1 bong bóng NPC trên màn.
+- [ ] Click cửa nhà ông Khướt, nhà bỏ hoang, sạp chợ cóc → bong bóng như GDD §5.
+
+**Bạn thử thế nào:** nói chuyện với ông Khướt ở gốc đa buổi sáng rồi ở quán chè buổi tối: câu khác nhau. Click cửa nhà ông: nghe "giọng" bà Khướt.
+
+---
+
+### T-039 — Làm âm thanh Lô 2 (Xóm)
+
+**Bước:** 4.3 · **Ai làm:** audio-director · **Size:** L (1 ngày — audio list ước 8–10 giờ) · **Cần trước:** audio list Lô 2
+
+**Mục tiêu:** Xóm nghe như có người ở.
+
+**Điều kiện xong:**
+- [ ] Theo audio list Lô 2: **nhạc ngày Xóm bản B** (đội chọn, D-034), lớp môi trường (gà, búa lò rèn xa, cưa xa, giếng, hồ), **mỗi NPC một bộ giọng "lẩm bẩm" tổng hợp** (NPC chính + 5 dân làng phụ), ngáy, "hây-a", trẻ con cười, tiếng cửa hàng (trả tiền, cửa gỗ).
+- [ ] Hậu kỳ, đặt file, cập nhật audio list. Bạn nghe duyệt.
+
+**Bạn thử thế nào:** nghe bản nghe thử, duyệt.
+
+---
+
+### T-040 — Gắn âm thanh Lô 2
+
+**Bước:** 4.3 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-038, T-039
+
+**Mục tiêu:** đi gần lò rèn nghe búa to dần; NPC nói có giọng riêng.
+
+**Điều kiện xong:**
+- [ ] Lớp môi trường to / nhỏ theo khoảng cách tới nguồn (lò rèn, xưởng mộc, giếng, hồ), qua kênh Hiệu ứng.
+- [ ] Mở thoại / bong bóng → giọng lẩm bẩm của NPC đó (mỗi người một cao độ). Nhạc Xóm thay nhạc Vườn.
+
+**Bạn thử thế nào:** đi ngang lò rèn: tiếng búa to dần rồi nhỏ dần. Nói chuyện với trẻ trâu: nghe cười.
+
+---
+
+### T-041 — Save version 2 và bảng phím thử cho chặng 4
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-024 (chen sớm theo D-034: T-041 … T-043 làm ngay sau T-027, trên bản đồ Vườn; T-032 chuyển sang Xóm sau)
+
+**Mục tiêu:** có chỗ lưu cho level, nhiệm vụ, nông cụ, gia đình…; bạn và QA nhảy nhanh tới phần muốn thử mà không phải chơi lại từ đầu.
+
+**Điều kiện xong:**
+- [ ] `GAME_SAVE_VERSION` = 2 ở `@bph/shared`: thêm `progress` (xp, level, quests), `flags`, `tools` (độ bền), `outfitTier`, `family`, `weather`, `records` (kỷ lục) — mặc định rỗng. **Nâng cấp từ v1** trong `SAVE_MIGRATIONS` + unit test (save v1 thật của prototype nạp được, không mất gì).
+- [ ] **Bảng "Thử"** (chỉ bản dev, `devCheatsEnabled`): đặt level, +100 quan, nhảy ngày / mùa, cho món bất kỳ, bật cờ (đã cưới, bếp gạch…), mở khu. Gợi ý phím dev có dòng mở bảng. Bản build không có.
+
+**Thông số / ghi chú:** các task sau thêm nút vào bảng Thử khi cần. Không đổi luật "không lưu giữa chuỗi đêm" (D-025).
+
+**Bạn thử thế nào:** bản dev mở bảng Thử, cho mình 500 quan và Lv 5; bấm F5: vẫn còn.
+
+---
+
+### T-042 — Level và tiếng tăm
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** L (1 ngày) · **Cần trước:** T-041
+
+**Mục tiêu:** làm gì cũng thấy "tiếng tăm" tăng, lên level có thứ mới để mong (giả thuyết 1: thiếu mục tiêu).
+
+**Điều kiện xong:**
+- [ ] XP theo bảng GDD §7 (hái 2/5, hái lượm 1, cá, gà rừng, chế đồ / sắm đồ 10, bán ở chợ 1 mỗi 20 quan, nhiệm vụ) qua một hàm chung `grantXp`; `xpToNextLevel`, `xpPerLevelAfter10`.
+- [ ] HUD góc trên trái: "Lv 1 · Nghèo kiết xác" + thanh XP mảnh; chữ "+2 tiếng tăm" bay khi hái (gộp khi hái liên tiếp, như BUG-012).
+- [ ] Lên level: chữ lớn "Lên level 3!" + thẻ **"Mở khóa"** (cây, khu, công thức, bộ đồ — đọc từ dữ liệu); đồng hồ dừng khi thẻ hiện. Tổng kết ngày thêm dòng "Tiếng tăm hôm nay: +N".
+- [ ] Dữ liệu mở khóa theo level ở một file dữ liệu (vd `src/data/levels.json` — Giả định) để task sau chỉ thêm dòng.
+- [ ] Unit test: cộng XP, lên nhiều level một lần, level 10+.
+
+**Thông số / ghi chú:** `xpToNextLevel` [30, 60, 100, 150, 200, 260, 330, 400, 480], `xpPerLevelAfter10` 90.
+
+**Bạn thử thế nào:** Chơi lại từ đầu, hái 15 cây (G cho nhanh): lên Lv 2, thẻ "Mở khóa: Núi sau nhà" (khu chưa có thì thẻ vẫn hiện — mở thật ở T-054).
+
+---
+
+### T-043 — Nhiệm vụ, sổ nhiệm vụ (Q) và hướng dẫn ngày 1
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** L (1 ngày) · **Cần trước:** T-042
+
+**Mục tiêu:** luôn có một việc cụ thể đang làm ("Ruộng đầu tay 2/3"), người mới được dắt tay ngày 1.
+
+**Điều kiện xong:**
+- [ ] `quests.json` đủ **9 nhiệm vụ** (GDD §7) với yêu cầu dạng dữ liệu (đếm việc: cuốc / gieo / tưới N ô, mua ô, nộp món, chế món, câu N cá…). Task này làm **chạy trọn nhiệm vụ 1**; nhiệm vụ khác hoàn thành được khi tính năng của nó có (ghi ở từng task).
+- [ ] Phím **Q** mở sổ: đang làm (thanh tiến độ), đã xong; chọn 1 nhiệm vụ hiện ở HUD góc trên phải.
+- [ ] Xong: con dấu đỏ **"XONG"** đóng xuống + thưởng XP / tiền ngay.
+- [ ] **Ngày 1:** đồng hồ đứng tới khi xong "Ruộng đầu tay"; mũi tên nhấp nháy chỉ chỗ cần click + một dòng nhắc phím theo thứ tự (WASD đi → cuốc đang ở ô 1, click ô ruộng → phím 2 chọn hạt, gieo → tưới) — GDD §11.
+- [ ] Gợi ý phím thêm "Q Nhiệm vụ".
+
+**Bạn thử thế nào:** Esc → Chơi lại từ đầu. Làm theo mũi tên tới khi dấu "XONG" đóng xuống; đồng hồ bắt đầu chạy.
+
+---
+
+### T-044 — Mở rộng ruộng bằng cọc rào
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-032, T-042
+
+**Mục tiêu:** có chỗ tiêu tiền thấy ngay kết quả: ruộng to dần (giả thuyết 3: 9 ô quá ít).
+
+**Điều kiện xong:**
+- [ ] Click / F cọc rào mép ruộng → hỏi "Mua thêm 3 ô — 40 quan?"; mua xong 3 ô mới hiện (bụi cỏ bung). Tới `maxPlots` 24 thì cọc biến mất.
+- [ ] Lần mua đầu tính cho nhiệm vụ 2 "Rào vườn" (phần ruộng).
+- [ ] Save lưu số ô đã mở; unit test giá từng lần + trần.
+
+**Thông số / ghi chú:** `plotExpansionSize` 3, `plotExpansionCosts` [40, 100, 180, 280, 400], `maxPlots` 24.
+
+**Bạn thử thế nào:** bảng Thử cho 200 quan, mua 2 lần: ruộng 15 ô.
+
+---
+
+### T-045 — Đủ 5 cây, theo mùa, mở theo level
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-036, T-042 (hình ở T-022)
+
+**Mục tiêu:** mỗi mùa có quyết định "trồng gì lãi hơn" (giả thuyết 3).
+
+**Điều kiện xong:**
+- [ ] Thêm rau muống (mưa), dưa hấu (nắng, Lv 3), lúa nếp (mưa, Lv 5) vào `crops.json` theo bảng GDD §3.4.
+- [ ] Quầy cô Tám bán theo mùa + level; hạt trái mùa xám ("Trái mùa"), không gieo được hạt trái mùa; cây gieo trước khi đổi mùa vẫn lớn tới khi hái (A1).
+- [ ] Sáng ngày đầu mùa: băng chữ "Mùa mưa tới rồi!" trên màn (ngoài dòng ở tổng kết).
+
+**Bạn thử thế nào:** bảng Thử nhảy tới ngày 5: quầy chỉ bán rau muống, khoai (và lúa nếp nếu Lv 5); hạt cải xám.
+
+---
+
+### T-046 — Thời tiết: ngày mưa tự tưới
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-045
+
+**Mục tiêu:** mùa mưa thật sự "mưa": được tưới miễn phí, câu cá và hái nấm khác đi.
+
+**Điều kiện xong:**
+- [ ] 6h chọn thời tiết theo `rainChanceDrySeason` / `rainChanceRainySeason`; ngày 1 luôn nắng; ngày đầu của mùa mưa đầu tiên luôn mưa. Lưu trong save.
+- [ ] Ngày mưa: mọi ô đã gieo tự được tưới, hạt mưa + màn sẫm nhẹ (không che ruộng, giữ FPS), icon mưa cạnh "Ngày 6 · Mùa mưa".
+- [ ] Có cờ "đang mưa" cho câu cá (T-058) và nấm (T-055) dùng.
+
+**Thông số / ghi chú:** `rainChanceDrySeason` 0.15, `rainChanceRainySeason` 0.6; thêm `rainTintAlpha` (0.15 — Giả định).
+
+**Bạn thử thế nào:** bảng Thử nhảy tới ngày 5: trời mưa, ô đã gieo tự sẫm màu.
+
+---
+
+### T-047 — Kéo thả trong gùi, tooltip đầy đủ, ăn trong gùi
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** —
+
+**Mục tiêu:** tự xếp đồ lên hotbar (GDD §3.9), xem đủ thông tin món.
+
+**Điều kiện xong:**
+- [ ] Cửa sổ gùi (E): kéo thả món giữa các ô (đổi chỗ / gộp chồng), kéo lên hàng hotbar.
+- [ ] Chuột phải món ăn trong gùi = ăn (như chuột phải trên hotbar).
+- [ ] Tooltip: tên, giá bán, hồi Sức, giá trị lễ vật (nếu có), độ bền (nông cụ — khi có T-049).
+- [ ] Unit test đổi chỗ / gộp không mất, không sinh đồ.
+
+**Bạn thử thế nào:** bấm E, kéo khoai từ hàng dưới lên ô 3; chuột phải một củ khoai trong gùi để ăn.
+
+---
+
+### T-048 — Bếp: nấu ăn và nồi cơm
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-047, T-093
+
+**Mục tiêu:** có chỗ biến nông sản / cá / nấm thành đồ ăn hồi nhiều Sức; áp lực tiền cơm nhẹ.
+
+**Điều kiện xong:**
+- [ ] Click / F bếp trong nhà → cửa sổ món: Cơm (trả `riceCost`), Khoai nướng, Nấm xào, Măng luộc, Cá nướng (theo loại), Trứng luộc, Gà rừng nướng; thiếu nguyên liệu thì xám. Nấu tốn `cookGameMinutes` (đồng hồ nhảy, không chờ thật), món vào gùi.
+- [ ] `items.json`: `staminaRestore` theo bảng GDD §3.2; có cờ bếp gạch → nhân `kitchenUpgradeStaminaMultiplier`.
+- [ ] Chừa chỗ công thức hũ rượu nếp (T-069).
+
+**Thông số / ghi chú:** `riceCost` 5, `cookGameMinutes` 30, `kitchenUpgradeStaminaMultiplier` 1.5.
+
+**Bạn thử thế nào:** vào bếp nấu 1 bát cơm: mất 5 quan, đồng hồ nhảy 30 phút; ăn được +30 Sức.
+
+---
+
+### T-049 — Nông cụ trên hotbar, độ bền và "cùn"
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-042
+
+**Mục tiêu:** nông cụ mòn dần, phải ghé thợ sửa — lý do quay lại lò rèn, tiêu tiền nhẹ (D-008).
+
+**Điều kiện xong:**
+- [ ] `tools.json` đủ: cuốc gỗ / sắt, rìu cũ / sắt, cần tre / trúc, nỏ, **bình tưới cũ** / thùng tưới (D-034: đổi tên từ "gáo dừa" cho khớp hình ART-CHR-008; thùng tưới dùng chung hoạt ảnh, chỉ khác icon) (`maxDurability`, `tillStrikesPerPlot` cho cuốc…).
+- [ ] (Giả định theo D-026) rìu, cần câu, nỏ là món hotbar, **phải cầm** mới chặt / câu / bắn; tưới vẫn không cần cầm gì, có thùng tưới trong gùi thì tự tưới 3 ô. Game mới có rìu cũ ở ô trống kế cuốc.
+- [ ] Độ bền −1 (cuốc: xong ô; rìu: mỗi nhát; cần: mỗi lượt quăng; nỏ: mỗi lượt bắn). ≤ `toolLowDurabilityWarn` → thanh bền dưới icon hotbar vàng; 0 → **cùn** đỏ + chửi "cuốc cùn" + Sức × `brokenToolStaminaMultiplier` (cần / nỏ: vùng × `brokenToolZoneMultiplier` ở mini-game).
+- [ ] Độ bền hiện ngay trên ô hotbar (bỏ ô "Nông cụ" góc dưới trái của GDD §11 — Giả định, vì D-026 đưa nông cụ lên hotbar).
+
+**Thông số / ghi chú:** `toolLowDurabilityWarn` 0.25, `brokenToolStaminaMultiplier` 2, `brokenToolZoneMultiplier` 0.7.
+
+**Bạn thử thế nào:** bảng Thử đặt cuốc còn 1 điểm bền, cuốc 1 ô: icon đỏ, {ten} chửi; ô sau tốn 8 Sức.
+
+---
+
+### T-050 — Chế đồ, nâng cấp và sửa ở lò rèn, xưởng mộc
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** L (1 ngày) · **Cần trước:** T-036, T-049
+
+**Mục tiêu:** đổi củi, tre, tiền thành công cụ tốt hơn — thấy rõ "làm giàu từ hai bàn tay".
+
+**Điều kiện xong:**
+- [ ] Cửa sổ cửa hàng chung (T-036) có tab **Chế** và **Sửa** ở lò rèn ông Hai Bễ / xưởng mộc chú Đục: công thức bảng GDD §3.8 (tối đa 2 vật liệu + tiền công, mở theo level, xám khi thiếu); thợ "chê khó" 1 câu (giá cố định).
+- [ ] Chế xong có ngay: cuốc sắt (5 nhát, 2 Sức / ô), rìu sắt, cần tre, cần trúc, thùng tưới (3 ô cùng hàng), gùi to (`bagSlotsUpgraded` 27), nỏ, bếp gạch (cờ `kitchenUpgraded`); chuồng để T-075.
+- [ ] Sửa: `repairCostPerPoint` × số điểm thiếu, làm tròn lên, về đầy ngay.
+- [ ] Nhiệm vụ 3 "Cuốc mới, sức mới" và 8 "Có bếp mới có vợ" hoàn thành được.
+
+**Thông số / ghi chú:** `repairCostPerPoint` 0.5, `bagSlotsUpgraded` 27, `bambooRodZoneBonus` 0.2. Vật liệu củi / tre có từ T-055; trước đó thử bằng bảng Thử.
+
+**Bạn thử thế nào:** bảng Thử cho 5 củi + 100 quan + Lv 3; chế cuốc sắt ở ông Hai Bễ; cuốc 1 ô: chỉ 5 nhát.
+
+---
+
+### T-051 — Chửi thề đủ các trigger
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** S (1–2h) · **Cần trước:** —
+
+**Mục tiêu:** {ten} "lầy" đúng lúc (GDD §3.12), không chỉ khi đuối.
+
+**Điều kiện xong:**
+- [ ] Trigger: mệt (Sức < `grumbleLowStaminaThreshold` và vừa làm việc), buồn ngủ (≥ `grumbleSleepyHour`), hỏng việc, mất tiền — các trigger hỏng việc / mất tiền là **hàm gọi được** để task sau nối (cá sổng, nỏ trượt, gà mổ rau, lợn sổng, bố vợ từ chối, ăn cháo).
+- [ ] `grumbleChance`, `grumbleCooldownSeconds`; không chửi khi đang thoại / trong nhà bố vợ; câu từ story bible §6.3, không lặp câu vừa nói. Unit test chọn câu + nghỉ.
+
+**Thông số / ghi chú:** `grumbleChance` 0.35, `grumbleCooldownSeconds` 45, `grumbleLowStaminaThreshold` 0.2, `grumbleSleepyHour` 22.
+
+**Bạn thử thế nào:** F8 tới dưới 20 Sức rồi cuốc vài ô; F9 tới 22h: thỉnh thoảng có câu chửi.
+
+---
+
+### T-052 — Mốc giữa chặng 4: chơi thử PT-002 và soát tiến độ
+
+**Bước:** 4.4 · **Ai làm:** game-planner + bạn · **Size:** S (1–2h) · **Cần trước:** T-027, T-043, T-045
+
+**Mục tiêu:** biết sớm game đã "vui" hơn chưa (giả thuyết 1–3 của PT-000) và chặng 4 có kịp mốc D-034 không.
+
+**Điều kiện xong:**
+- [ ] Bạn chơi **2 ngày game** từ "Chơi lại từ đầu", không dùng phím thử, theo kịch bản "Kế hoạch PT-002" trong `docs/playtests.md`; trả lời các câu về mục tiêu, phần thưởng, lựa chọn.
+- [ ] `game-planner` ghi PT-002, so giờ thật đã dùng với ước lượng, dự báo lại ngày xong chặng 4.
+- [ ] Dự báo trễ > 3 tuần so với mốc D-034 → đề xuất cắt theo "Thứ tự cắt khi sản xuất" (GDD §14), bạn chọn, ghi D-NNN. Nhanh hơn nhiều → cập nhật mốc.
+
+**Bạn thử thế nào:** chơi như người chơi thật rồi kể lại bằng lời thường.
+
+---
+
+### T-053 — Gen hình Lô 3a: Núi sau nhà
+
+**Bước:** 4.2 · **Ai làm:** art-director · **Size:** L (1 ngày) · **Cần trước:** asset list Lô 3
+
+**Mục tiêu:** đủ hình cho khu Núi và việc ở Núi.
+
+**Điều kiện xong:**
+- [ ] Theo asset list Lô 3: nền / cảnh Núi, đường mòn, cây củi, bụi tre, bụi nấm / măng / sim, bụi rậm có gà; icon nấm, măng, sim, củi, tre; động tác **chặt** (rìu) 4 hướng + dáng **cầm cần câu** (bậc 1).
+- [ ] Hậu kỳ, đặt file, cập nhật asset list. Bạn duyệt.
+
+**Bạn thử thế nào:** xem ảnh so sánh, duyệt.
+
+---
+
+### T-054 — Chuyển khu qua cổng và bản đồ Núi (hình khối)
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** M (3–4h — nhẹ hơn vì T-093 đã làm chuyển cảnh chung) · **Cần trước:** T-033, T-042, T-093
+
+**Mục tiêu:** đi bộ ra cổng là sang khu khác; cổng khu chưa mở bị chặn (pillar "Mỗi khu một trò").
+
+**Điều kiện xong:**
+- [ ] Dùng lại hàm chuyển cảnh của T-093 cho cổng: tới cổng → màn mờ → hiện ở đầu đường khu kia, tên khu hiện 2 giây, **tự lưu khi qua cổng**, save lưu `area`; mỗi khu một Tilemap, chỉ nạp khu đang đứng.
+- [ ] Cổng chặn theo level (thân cây đổ / biển "Lv 2"); click → bong bóng.
+- [ ] Bản đồ Núi 48×36 bằng hình khối: đường mòn, lớp đối tượng chỗ đặt điểm tài nguyên, bụi rậm gà rừng.
+- [ ] Ngủ gục ở Núi → sáng dậy ở nhà (GDD §3.1). e2e: qua lại 2 khu; F5 ở Núi vào lại đúng Núi.
+
+**Bạn thử thế nào:** bảng Thử Lv 2, đi ra cổng bắc sau nhà: màn mờ, chữ "Núi sau nhà"; quay về Xóm được.
+
+---
+
+### T-055 — Hái lượm và chặt củi, tre trên Núi
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-049, T-054
+
+**Mục tiêu:** Núi có việc riêng: hái đồ ăn, gom vật liệu chế đồ.
+
+**Điều kiện xong:**
+- [ ] Mỗi sáng đặt lại điểm tài nguyên ngẫu nhiên trong chỗ đặt sẵn theo `mountainNodeCounts` (nắng / mưa, bảng GDD §3.5); nấm gấp đôi ngày mưa.
+- [ ] Hái: click = 1 món (`staminaCostForage`, +1 XP). Chặt: cầm rìu, mỗi nhát 1 món (rìu sắt `ironAxeYieldPerChop`), `staminaCostChop`, hết `chopsPerNode` nhát thì cây biến mất tới sáng.
+- [ ] Giá bán vào dữ liệu; nhiệm vụ 2 (nộp 5 củi) hoàn thành được.
+
+**Thông số / ghi chú:** `staminaCostForage` 2, `staminaCostChop` 4, `chopsPerNode` 3, `ironAxeYieldPerChop` 2.
+
+**Bạn thử thế nào:** lên Núi hái 2 nấm, cầm rìu chặt 1 cây củi 3 nhát.
+
+---
+
+### T-056 — Gắn hình Lô 3a lên Núi
+
+**Bước:** 4.2 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-053, T-055
+
+**Mục tiêu:** Núi có hình thật, {ten} vung rìu thật.
+
+**Điều kiện xong:**
+- [ ] Cảnh, điểm tài nguyên, icon vật liệu, động tác chặt (khung chạm khớp nhát chặt); va chạm khớp hình.
+
+**Bạn thử thế nào:** lên Núi đi một vòng, chặt một cây.
+
+---
+
+### T-057 — Gen hình Lô 3b: mini-game câu cá và bắn nỏ
+
+**Bước:** 4.2 · **Ai làm:** art-director · **Size:** M (3–4h) · **Cần trước:** asset list Lô 3
+
+**Điều kiện xong:**
+- [ ] Theo asset list Lô 3: phao, 5 icon "cá" (rô, trê, chép, lóc, dép tổ ong), khung bụi rậm phóng to, gà rừng (chạy 2–3 khung + mổ đất), nỏ, mũi tên. Hậu kỳ, đặt file. Bạn duyệt.
+
+**Thông số / ghi chú:** nếu cắt C6 (bỏ nỏ) thì chỉ làm phần câu cá.
+
+**Bạn thử thế nào:** xem ảnh so sánh, duyệt.
+
+---
+
+### T-058 — Mini-game câu cá ở hồ làng
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** L (1 ngày) · **Cần trước:** T-033, T-046, T-050
+
+**Mục tiêu:** đứng trên bến câu, giữ chuột kéo cá — trò thứ hai của "Mỗi khu một trò".
+
+**Điều kiện xong:**
+- [ ] Luật GDD §3.6 đầy đủ: chỉ câu khi đứng trên bến câu; bến **gãy** tới Lv 4 (click mặt hồ → "Tiên sư cái bến!"), Lv 4 nói chuyện với chú Đục là bến được sửa (Giả định) → bến lành.
+- [ ] Cầm cần, click mặt nước: quăng (`staminaCostMinigame`, −1 bền) → chờ `fishBiteWaitMin/Max` (mưa × `rainBiteWaitMultiplier`) → phao giật, dấu "!" → trong `fishBiteWindowSeconds` giữ chuột / Space → thanh kéo trên đầu (kim, vùng xanh theo cá, thanh "bắt được").
+- [ ] Cá chọn theo trọng số mùa / thời tiết (`fish.json`); cần trúc rộng vùng; cần cùn hẹp vùng. Esc bỏ cuộc (không hoàn Sức). Đồng hồ vẫn chạy.
+- [ ] Cá sổng / dép tổ ong → gọi trigger chửi; nhiệm vụ 4 (chế cần tre + câu 3 cá) hoàn thành được.
+- [ ] Logic thuần + unit test (kim, thanh, chọn cá).
+
+**Thông số / ghi chú:** đủ bảng tham số GDD §3.6 (`fishBiteWaitMin` 2 … `catchDrainPerSecond` 0.2).
+
+**Bạn thử thế nào:** bảng Thử Lv 4 + cần tre; nói chuyện chú Đục; đứng trên bến Tây click mặt hồ, chờ "!" rồi giữ / thả chuột cho kim nằm trong vùng xanh.
+
+---
+
+### T-059 — Mini-game bắn nỏ săn gà rừng
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** L (1 ngày) · **Cần trước:** T-050, T-054
+
+**Mục tiêu:** trò của Núi: canh đúng lúc bắn gà rừng — lễ vật quý cho sính lễ.
+
+**Điều kiện xong:**
+- [ ] GDD §3.7: gà xuất hiện `junglefowlSpawnsPerDay` lần ở bụi rậm (7–17h), ở lại `junglefowlStayGameMinutes`, bụi rung + icon lông gà.
+- [ ] Cầm nỏ, click bụi trong tầm → khung giữa màn, `crossbowArrowsPerRound` mũi, gà chạy qua lại, thỉnh thoảng dừng mổ; vùng tâm `crossbowHitZoneWidth`; trượt thì gà nhanh hơn; trúng +1 gà rừng (+15 XP); hết tên → chửi.
+- [ ] Nhiệm vụ 7 hoàn thành được. Logic thuần + unit test.
+
+**Thông số / ghi chú:** đủ bảng tham số GDD §3.7. Cắt C6 → bỏ task này, nhiệm vụ 7 đổi thành "bán 20 bó củi".
+
+**Bạn thử thế nào:** bảng Thử Lv 8 + nỏ; lên Núi chờ bụi rung, click bụi, bắn khi gà vào vạch đỏ.
+
+---
+
+### T-060 — Làm âm thanh Lô 3a (Núi, câu cá, nỏ)
+
+**Bước:** 4.3 · **Ai làm:** audio-director · **Size:** L (1 ngày — Lô 3 âm thanh ước 15–19 giờ, chia T-060 + T-080) · **Cần trước:** audio list Lô 3
+
+**Điều kiện xong:**
+- [ ] Theo audio list Lô 3: nhạc Núi, chặt "cốc", hái lượm "pụp", quăng câu "vút + tõm", phao giật, cuộn dây, jingle bắt được cá, cá sổng "phựt", dép "bẹp", nỏ "phập", gà "cục tác". Hậu kỳ, đặt file. Bạn nghe duyệt.
+
+**Bạn thử thế nào:** nghe bản nghe thử, duyệt.
+
+---
+
+### T-061 — Gắn âm thanh Lô 3a
+
+**Bước:** 4.3 · **Ai làm:** game-dev · **Size:** S (1–2h) · **Cần trước:** T-058, T-059, T-060
+
+**Điều kiện xong:**
+- [ ] Gắn từng tiếng vào sự kiện tương ứng; nhạc đổi theo khu khi qua cổng (mờ chéo).
+
+**Bạn thử thế nào:** lên Núi nghe nhạc đổi; câu một con cá nghe đủ tiếng.
+
+---
+
+### T-062 — Gen hình Lô 3c: làng Sung và người làng Sung
+
+**Bước:** 4.2 · **Ai làm:** art-director · **Size:** L (1 ngày) · **Cần trước:** asset list Lô 3
+
+**Mục tiêu:** làng giàu bên cạnh và nhà bố vợ có hình thật.
+
+**Điều kiện xong:**
+- [ ] Theo asset list Lô 3: nền / nhà làng Sung (ngói mới, gạch đỏ), sạp bà Cân, nhà cụ Bá Kẹo; sprite + chân dung bà Cân, cô Bưởi; cụ Bá Kẹo sprite + chân dung **4 mặt** (nhăn / im lặng / nhấp trà / cười) + mặt **nhướng mày** (meme `browBoom`).
+- [ ] Hậu kỳ, đặt file, cập nhật asset list. Bạn duyệt.
+
+**Bạn thử thế nào:** xem ảnh so sánh, duyệt (nhất là 4 mặt cụ Bá Kẹo — phải đọc được ngay).
+
+---
+
+### T-063 — Bản đồ làng Sung và đường sang chợ
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** L (1 ngày) · **Cần trước:** T-054, T-062
+
+**Mục tiêu:** khu thứ 3: đi đường cái sang làng Sung bán hàng giá cao, gặp nhà bố vợ.
+
+**Điều kiện xong:**
+- [ ] Bản đồ 40×28 (gắn luôn hình Lô 3c; thiếu thì hình khối). Cổng tây Xóm chặn tới Lv 6 ("đường đang sửa").
+- [ ] Đi qua tốn `marketTravelGameMinutes` (màn mờ, đồng hồ nhảy, không chờ thật).
+- [ ] Bà Cân ở sạp, cô Bưởi đứng ngoài (thoại), cửa nhà cụ Bá Kẹo (vào = màn mặc cả, T-068; trước đó bong bóng).
+
+**Thông số / ghi chú:** `marketTravelGameMinutes` 30.
+
+**Bạn thử thế nào:** bảng Thử Lv 6, đi cổng tây: đồng hồ nhảy 30 phút, tới làng Sung.
+
+---
+
+### T-064 — Sạp bà Cân: bán ngay giá cao, mua lễ vật
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-036, T-063
+
+**Mục tiêu:** lý do đi chợ: bán ngay × 1.3 và mua lễ vật.
+
+**Điều kiện xong:**
+- [ ] Cửa sổ cửa hàng chung, tab **Bán**: bán ngay × `marketPriceMultiplier` (+1 XP mỗi 20 quan). Tab **Mua**: trầu cau, lợn lễ (`giftValue`), gà / lợn con (chỉ hiện sau cưới — T-075). Tab Sắm sửa để T-067.
+- [ ] Nhiệm vụ 6 "Đơn hàng chợ" hoàn thành được.
+
+**Thông số / ghi chú:** `marketPriceMultiplier` 1.3; giá theo bảng GDD §3.9.
+
+**Bạn thử thế nào:** mang 10 cải sang chợ bán: được 130 quan thay vì 100.
+
+---
+
+### T-065 — Gen hình Lô 2e: {ten} bậc 2, hiệu ứng lột xác, icon nông cụ / bộ đồ
+
+**Bước:** 4.2 · **Ai làm:** art-director · **Size:** L (1 ngày) · **Cần trước:** asset list Lô 2 (làm trong Đợt C theo lô hình; game dùng ở T-067)
+
+**Mục tiêu:** sắm "Bộ đồ lành" xong thì {ten} đi lại, làm việc ở vườn bằng bộ đồ mới.
+
+**Điều kiện xong:**
+- [ ] Bậc 2 theo asset list Lô 2: **đi 4 hướng** (đứng = khung 1 của dải đi), **cuốc + tưới + cúi** ("thay đồ giữ dáng" `--ref` dải bậc 1), giữ khung + điểm chân; khung xoay là Should.
+- [ ] Hiệu ứng lột xác (nếu không làm bằng code), icon nông cụ + icon bộ đồ sắm sửa.
+- [ ] Hậu kỳ, đặt file. Bạn duyệt.
+
+**Thông số / ghi chú:** chặt + câu của bậc 2 ở Lô 3 (T-066). Bậc 2–3 **đủ động tác** (người dùng chọn, D-034).
+
+**Bạn thử thế nào:** xem GIF từng động tác, duyệt.
+
+---
+
+### T-066 — Gen hình Lô 3d: bậc 2 chặt + câu, bậc 3 đủ bộ, bậc 4 chỉ đi / đứng
+
+**Bước:** 4.2 · **Ai làm:** art-director · **Size:** L (1 ngày) · **Cần trước:** T-065
+
+**Điều kiện xong:**
+- [ ] Bậc 2: chặt + câu. Bậc 3 (Khá giả): đi, cuốc, tưới, cúi, chặt, câu (khung xoay Should). Mọi bậc giữ chi tiết đỏ son.
+- [ ] **Bậc 4 (Phú ông): chỉ đi 4 hướng** (đứng = khung 1). Khi làm việc game **mượn khung bậc 3** + khăn xếp vẽ đè bằng code (mục cắt 0b(d) — người dùng chọn, D-034; chỉ thấy sau cưới, Lv 12).
+- [ ] Hậu kỳ, đặt file. Bạn duyệt.
+
+**Thông số / ghi chú:** nếu trễ thêm: mục cắt C2 còn lại (bỏ chân dung theo bậc — vốn đã là Should; gộp 3 bậc).
+
+**Bạn thử thế nào:** xem GIF, duyệt.
+
+---
+
+### T-067 — Bậc ngoại hình: sắm sửa, "lột xác", danh hiệu, giảm giá
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** L (1 ngày) · **Cần trước:** T-064, T-065 (bậc 3–4 gắn khi T-066 xong)
+
+**Mục tiêu:** giàu lên là thấy trên chính nhân vật (pillar "Làm giàu từ hai bàn tay").
+
+**Điều kiện xong:**
+- [ ] `outfits.json` (GDD §3.14). Tab **Sắm sửa** ở quầy cô Tám (bậc 2) và sạp bà Cân (bậc 3–4; bậc 4 cần đã cưới); xem trước nhân vật mặc bộ đó; giá đã giảm thì gạch giá cũ.
+- [ ] Mua → **lột xác** `outfitTransformSeconds` (xoay, khói, đổi bộ sprite theo bậc, băng chữ tên bậc); danh hiệu HUD đổi; +`outfitXpReward`.
+- [ ] Bậc 4 làm việc (cuốc / tưới / cúi / chặt / câu) dùng khung **bậc 3** + khăn xếp vẽ đè bằng code, đi / đứng dùng khung bậc 4 (D-034). Khóa sprite theo bậc có bảng "mượn khung" trong dữ liệu, không viết cứng.
+- [ ] `shopDiscount` áp cho mọi giá mua bằng tiền (làm tròn lên, không áp sính lễ); `haggleDiscount` để T-068 dùng; câu làng gọi theo bậc ("thằng / anh / ông {ten}", story bible §3.0).
+- [ ] Save `outfitTier`; unit test giá giảm.
+
+**Thông số / ghi chú:** `OutfitData.*`, `outfitXpReward` 10, `outfitTransformSeconds` 1.5, `weddingGrantsOutfitTier` 3 (dùng ở T-071).
+
+**Bạn thử thế nào:** bảng Thử Lv 3 + 50 quan, mua "Bộ đồ lành" ở quầy cô Tám: xem lột xác; đi cuốc thấy dáng mới; trẻ trâu gọi khác đi.
+
+---
+
+### T-068 — Màn mặc cả sính lễ với cụ Bá Kẹo
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** L (1 ngày) · **Cần trước:** T-062, T-063
+
+**Mục tiêu:** điểm khác biệt của game: chọn giá, đưa lễ vật, đọc mặt bố vợ.
+
+**Điều kiện xong:**
+- [ ] `brides.json` (`askPrice`, `acceptRatioMin/Max`, `favoriteGift`, `patienceTurns`): mức ưng ẩn chọn 1 lần khi nhiệm vụ 9 mở, lưu save; mỗi lần thua giảm `failRetryDiscount` (tối đa `failRetryDiscountMaxTimes`); nhân (1 − `haggleDiscount`).
+- [ ] Vào nhà cụ cần ≥ 1 lễ vật trong gùi, mỗi ngày 1 buổi. Màn: chân dung cụ to (4 mặt), 5 chén trà = lượt kiên nhẫn, 3 nút giá theo thang (chỉ nấc cao hơn, thiếu tiền xám), "Thêm lễ vật" (tối đa `maxGiftsPerHaggle`, món ông mê × `favoriteGiftMultiplier`), "Xin phép về" (Esc); phím 1–4; dòng "Đã đưa: …".
+- [ ] Mặt cố định theo `r` (`faceSipTeaRatio`, `faceSilentRatio`; < `insultRatio` mất thêm 1 lượt), 2–3 câu mỗi mặt (story bible §6.2). Hết lượt → về, không mất gì; chửi khi đã ra cổng.
+- [ ] Chốt (r ≥ 1) → trừ tiền + lễ vật → gọi cảnh cưới (T-071; trước đó chỉ báo "Chốt!").
+- [ ] Logic thuần + unit test (thang giá, r, mặt, lượt, giảm sau thua).
+
+**Thông số / ghi chú:** đủ bảng tham số GDD §3.10.
+
+**Bạn thử thế nào:** bảng Thử bật nhiệm vụ 9 + 1500 quan + rượu nếp. Vào nhà cụ: trả 800 → mặt nhăn "Coi thường nhà tôi à?"; tăng dần, đưa rượu nếp → nhìn mặt đổi.
+
+---
+
+### T-069 — Nối nhiệm vụ 5–9 và bà mối gõ cửa
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-043, T-048, T-050, T-064, T-068
+
+**Mục tiêu:** chuỗi 9 nhiệm vụ đi trọn tới đám cưới.
+
+**Điều kiện xong:**
+- [ ] Hũ rượu nếp ở bếp (3 lúa nếp + 10 quan men); nhiệm vụ 5–8 hoàn thành được.
+- [ ] Nhiệm vụ 9 mở khi đủ: Lv ≥ `weddingUnlockLevel`, `kitchenUpgraded`, ≥ `weddingMinPlots` ô → sáng hôm sau bà Ba Trầu đến nhà (thoại, gợi ý lễ vật ông mê).
+- [ ] Đi trọn chuỗi 1 → 9 bằng bảng Thử không kẹt; ghi số ngày / XP thật để cân bằng ở 5.1.
+
+**Thông số / ghi chú:** `weddingUnlockLevel` 10, `weddingMinPlots` 12.
+
+**Bạn thử thế nào:** bảng Thử Lv 10 + bếp gạch + 12 ô, ngủ: sáng ra bà mối gõ cửa.
+
+---
+
+### T-070 — Gen hình Lô 3f: cảnh cưới 3 khung và vợ trên bản đồ
+
+**Bước:** 4.2 · **Ai làm:** art-director · **Size:** M (3–4h) · **Cần trước:** asset list Lô 3
+
+**Điều kiện xong:**
+- [ ] Theo asset list Lô 3: **đám cưới 3 khung vẽ trọn tranh** (story bible §5.3; đội chọn, D-034 — khung nào lệch nhân vật quá 3 vòng thì khung đó lùi về nền + sprite ghép bằng code); cô Bưởi (vợ) đứng trên bản đồ Xóm (sprite cô Bưởi có thể đã làm ở T-062). Intro 4 khung ở Lô 4 (T-082). Hậu kỳ, đặt file. Bạn duyệt.
+
+**Bạn thử thế nào:** xem 3 khung theo thứ tự như truyện tranh, duyệt.
+
+---
+
+### T-071 — Cảnh cưới, vợ về nhà, chơi tiếp sau cưới
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-069, T-070
+
+**Mục tiêu:** phần thưởng lớn nhất game, rồi chơi tiếp mãi.
+
+**Điều kiện xong:**
+- [ ] Chốt sính lễ → 3 khung cưới (click / Space qua, pháo) → về nhà: vợ ở nhà theo giờ, cờ `married`, bậc ngoại hình lên ít nhất `weddingGrantsOutfitTier`, +2 gà (chưa có chuồng thì gà ở sân tới T-075 — Giả định), mở level 11+.
+- [ ] F5 giữa cảnh cưới → vào lại đã cưới, tiền không bị trừ hai lần.
+
+**Bạn thử thế nào:** chốt sính lễ, xem cảnh cưới; sáng hôm sau vợ ở nhà.
+
+---
+
+### T-072 — Gen hình Lô 3g: con cái và gia súc
+
+**Bước:** 4.2 · **Ai làm:** art-director · **Size:** M (3–4h) · **Cần trước:** asset list Lô 3
+
+**Điều kiện xong:**
+- [ ] Theo asset list Lô 3: con nhỏ, con lớn (1 kiểu), gà, lợn (nhỏ / lớn), chuồng, ổ trứng, icon trứng, bát cháo. Hậu kỳ, đặt file. Bạn duyệt.
+
+**Thông số / ghi chú:** cắt C3 → bỏ con lớn và lợn.
+
+**Bạn thử thế nào:** xem ảnh so sánh, duyệt.
+
+---
+
+### T-073 — Vợ giúp tưới, tiền cơm cả nhà, ngày "ăn cháo"
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-071
+
+**Mục tiêu:** sau cưới nhà đông thì tốn, nhưng ai cũng giúp việc (GDD §3.11).
+
+**Điều kiện xong:**
+- [ ] Mỗi sáng vợ tưới `wifeAutoWaterPlots` ô (ô chưa tưới gần nhà trước), có bong bóng ngắn.
+- [ ] Tổng kết thêm dòng "Tiền cơm cả nhà: −X quan" + icon từng miệng ăn. Thiếu tiền → tiền về 0, hôm sau "ăn cháo" (`porridgeDayPenaltyDays`: con không giúp, gia súc không cho sản phẩm), câu chửi "ăn cháo".
+- [ ] Tiền không bao giờ âm — unit test.
+
+**Thông số / ghi chú:** `wifeDailyUpkeep` 15, `wifeAutoWaterPlots` 4, `porridgeDayPenaltyDays` 1.
+
+**Bạn thử thế nào:** bảng Thử "đã cưới" + 0 quan, ngủ: sáng ra cả nhà ăn cháo.
+
+---
+
+### T-074 — Con cái: tin vui, ôm con, con lớn giúp việc
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-073
+
+**Điều kiện xong:**
+- [ ] Mỗi sáng xác suất `childChancePerDay` vợ báo tin vui (tối đa `maxChildren`), con xuất hiện ngay.
+- [ ] Con nhỏ: click lần đầu mỗi ngày +`childHugStamina` Sức + tiếng tăm. Sau `childGrowDays` thành con lớn: mỗi sáng hái tối đa `childHarvestPlots` ô chín hoặc mang về 1 món.
+- [ ] Tiền cơm `childSmallUpkeep` / `childBigUpkeep` vào dòng tổng kết.
+
+**Thông số / ghi chú:** tham số gia đình GDD §3.11.
+
+**Bạn thử thế nào:** bảng Thử cho có con; click con: +20 Sức, "Ôm con là hết mệt".
+
+---
+
+### T-075 — Chuồng, gà và lợn
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-050, T-064, T-073
+
+**Điều kiện xong:**
+- [ ] Dựng chuồng ở xưởng mộc (`penBuildCost` + 10 tre), tối đa `penCapacity` con; mua gà / lợn ở sạp bà Cân.
+- [ ] Gà đẻ 1 trứng / ngày (click ổ nhặt; bán `eggPrice` hoặc nấu trứng luộc). Lợn lớn sau `pigGrowDays` → bán `pigSellPrice` hoặc làm lễ vật. Tiền cơm theo con.
+
+**Thông số / ghi chú:** `penBuildCost` 150, `penCapacity` 6, `chickenPrice` / `chickenUpkeep` / `eggPrice` 30 / 3 / 8, `pigPrice` / `pigUpkeep` / `pigGrowDays` / `pigSellPrice` 60 / 8 / 6 / 250.
+
+**Bạn thử thế nào:** bảng Thử "đã cưới" + 300 quan + 10 tre: dựng chuồng, mua 1 gà; sáng hôm sau nhặt trứng.
+
+---
+
+### T-076 — Bốn sự kiện gia đình (Must)
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-074, T-075
+
+**Điều kiện xong:**
+- [ ] Mỗi sáng xác suất `familyEventChance` chọn 1 sự kiện đủ điều kiện: gà đẻ trứng đôi, con lớn mang cá to về, ông bà ngoại dúi tiền, lợn sổng chuồng (click lợn 3 lần để lùa về; không lùa thì mất 1 ô rau + chửi). Bong bóng + icon; mất tối đa `familyEventMaxLoss`.
+- [ ] Bảng Thử ép được từng sự kiện.
+
+**Thông số / ghi chú:** `familyEventChance` 0.3, `familyEventMaxLoss` 30. Cắt C3 → chỉ giữ trứng đôi + ông bà ngoại.
+
+**Bạn thử thế nào:** bảng Thử ép "lợn sổng chuồng": đuổi bắt con lợn 3 click.
+
+---
+
+### T-077 — Gen hình Lô 3h: ảnh meme Must
+
+**Bước:** 4.2 · **Ai làm:** art-director · **Size:** M (3–4h) · **Cần trước:** asset list Lô 3
+
+**Điều kiện xong:**
+- [ ] Theo asset list Lô 3 (đúng luật nhái D-016, không tên meme trong prompt): mèo Mướp 2 khung, hạt nước mắt / vòi nước, mũi tên đỏ son trên giấy dó, túi tiền + sợi dây nịt. (Cụ Bá Kẹo nhướng mày đã ở T-062.) Hậu kỳ, đặt file. Bạn duyệt.
+
+**Thông số / ghi chú:** cắt C1 → bỏ task này (giữ 4 meme chỉ cần chữ + code).
+
+**Bạn thử thế nào:** xem ảnh, duyệt — phải buồn cười kể cả khi không biết meme gốc.
+
+---
+
+### T-078 — Bộ điều phối meme và 6 kiểu hiệu ứng dùng chung
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** L (1 ngày) · **Cần trước:** T-042
+
+**Mục tiêu:** meme hiếm mà đắt, không chặn chơi (GDD §3.15).
+
+**Điều kiện xong:**
+- [ ] `memes.json` (trigger, `chance`, `maxPerDay`, `cooldownDays`); luật chung: `memeMaxPerDay`, `memeGlobalCooldownSeconds`, `memeFirstTimeGuaranteed`, meme thay câu chửi lần đó, meme cảnh lớn không tính giới hạn, click / Space bỏ qua, khóa tối đa `memeMaxLockSeconds`.
+- [ ] 6 kiểu hiệu ứng: zoom 3 nấc + chữ kéo dài; chữ to nảy rồi vỡ; thẻ góc phải có phụ đề; số "−N SĨ DIỆN"; hạt nước mắt; mũi tên trong tổng kết. Tắt rung màn → vẫn zoom, không giật.
+- [ ] Unit test điều phối (giới hạn, nghỉ, lần đầu luôn hiện). Bảng Thử "phát meme" từng kiểu.
+
+**Thông số / ghi chú:** bảng tham số chung GDD §3.15 (`memeMaxPerDay` 4 … `faceDamageCritChance` 0.1).
+
+**Bạn thử thế nào:** bảng Thử phát lần lượt 6 kiểu hiệu ứng.
+
+---
+
+### T-079 — Nối 8 meme Must vào trò chơi
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-068, T-077, T-078
+
+**Điều kiện xong:**
+- [ ] `smugCatSubtitle`, `cryRiver`, `dramaticZoom`, `profitArrow`, `oiDoiOi`, `onlyBeltLeft`, `browBoom`, `faceDamage` với đúng trigger bảng GDD §3.15; chữ theo story bible §6.5. Trigger nào thuộc tính năng chưa xong (vd lợn sổng trước T-076) thì nối khi tính năng có — ghi chú.
+
+**Bạn thử thế nào:** câu được dép tổ ong → "ỐI DỒI ÔI!"; trả giá quá rẻ cụ Bá Kẹo → nhướng mày + "BÙM".
+
+---
+
+### T-080 — Làm âm thanh Lô 3b (chợ, mặc cả, cưới, menu, jingle, meme, gia đình)
+
+**Bước:** 4.3 · **Ai làm:** audio-director · **Size:** L (1 ngày) · **Cần trước:** audio list Lô 3
+
+**Điều kiện xong:**
+- [ ] Theo audio list Lô 3: nhạc làng Sung, nhạc màn mặc cả, kèn trống cưới (nhạc menu ở Lô 4 — T-094); jingle lên level / xong nhiệm vụ / lột xác; 8 SFX meme Must (nhạc cụ dân tộc, tạo mới); tiếng gà, lợn, trẻ con; tiếng bố vợ ("hừm", "xụp", "khà khà"). Hậu kỳ, đặt file. Bạn nghe duyệt.
+
+**Bạn thử thế nào:** nghe bản nghe thử, duyệt.
+
+---
+
+### T-081 — Gắn âm thanh Lô 3b
+
+**Bước:** 4.3 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-080
+
+**Điều kiện xong:**
+- [ ] Gắn nhạc theo khu / màn (chợ, mặc cả, cưới, menu), jingle, SFX meme, gia đình, bố vợ; nhạc đổi mờ chéo, không phát chồng.
+
+**Bạn thử thế nào:** vào màn mặc cả: nhạc đổi; lên level: nghe kèn trống.
+
+---
+
+### T-082 — Gen hình Lô 4: logo, nền menu, intro 4 khung, kit menu
+
+**Bước:** 4.2 · **Ai làm:** art-director · **Size:** L (1 ngày) · **Cần trước:** asset list Lô 4
+
+**Điều kiện xong:**
+- [ ] Theo asset list Lô 4: **logo** (chữ đặt bằng font), **nền menu** (dùng lại concept Xóm nếu bạn ưng), **intro 4 khung vẽ trọn tranh** (story bible §5.1; đội chọn, D-034 — khung lệch quá 3 vòng thì lùi về ghép bằng code), **kit menu / cài đặt** (nút to, thanh trượt, công tắc, ô nhập tên). Hậu kỳ, đặt file. Bạn duyệt.
+
+**Thông số / ghi chú:** khung cửa sổ, nút, icon HUD đã ở Lô 1 (T-091); khung thoại / cửa hàng ở Lô 2 (T-030); thẻ mở khóa, con dấu "XONG", UI mặc cả / câu cá / nỏ ở Lô 3 (T-057, T-062, T-077). Favicon, ảnh giới thiệu làm ở bước 5.3.
+
+**Bạn thử thế nào:** xem logo, nền menu và 4 khung intro theo thứ tự, duyệt.
+
+---
+
+### T-083 — Menu chính và "Về Menu"
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-041
+
+**Điều kiện xong:**
+- [ ] Scene **Menu**: logo, "Chơi tiếp" (chỉ khi có save), "Chơi mới" (có save → hỏi xác nhận 2 lần), "Cài đặt"; không có nút Thoát. Nhạc bắt đầu sau click đầu.
+- [ ] Mở game: Boot → Preload → Menu (2 click là vào chơi tiếp).
+- [ ] Cửa sổ Tạm dừng thêm "Cài đặt", "Về Menu (đã tự lưu)"; "Chơi lại từ đầu" chuyển thành "Chơi mới" ở Menu (Giả định).
+
+**Bạn thử thế nào:** F5 → thấy Menu → "Chơi tiếp" vào đúng chỗ, đúng giờ.
+
+---
+
+### T-084 — Intro 4 khung và đặt tên nhân vật
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-082, T-083
+
+**Điều kiện xong:**
+- [ ] "Chơi mới" → khung 1 → **đặt tên** ("Còn anh, anh tên gì?", thẻ `<input>` HTML đè lên game để gõ tiếng Việt bằng Unikey / EVKey, mặc định "Tý", tối đa 10 ký tự, nút "Ngẫu nhiên", Enter) → khung 2–4 → Xóm ngày 1. Click / Space qua khung, nút "Bỏ qua".
+- [ ] Tên lưu save (`player.name`); mọi thoại thay `{ten}`.
+
+**Bạn thử thế nào:** Chơi mới, gõ "Tèo" có dấu; U Hến gọi "Tèo".
+
+---
+
+### T-085 — Cửa sổ Cài đặt
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-026, T-083
+
+**Điều kiện xong:**
+- [ ] Thanh trượt **Nhạc**, **Hiệu ứng** (0–100%); **rung màn** bật / tắt (mọi rung + meme zoom tôn trọng); **toàn màn hình**; **tự tạm dừng khi chuyển tab** (`pauseOnFocusLost`); **hiện gợi ý phím**.
+- [ ] Lưu localStorage riêng (vd `bph-settings`), không nằm trong save. Mở từ Menu và từ Tạm dừng.
+
+**Bạn thử thế nào:** kéo Nhạc về 0, F5: nhạc vẫn tắt. Bật toàn màn hình.
+
+---
+
+### T-086 — Gắn kit menu Lô 4, rà đồng bộ giao diện và cỡ chữ
+
+**Bước:** 4.2 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-082, T-085
+
+**Điều kiện xong:**
+- [ ] Menu, Cài đặt, ô đặt tên dùng kit Lô 4 + logo + nền menu. Rà mọi cửa sổ (gùi, thùng bán, rương, cửa hàng / chế đồ, bếp, thoại, mặc cả, sổ Q, tổng kết, Tạm dừng) đều dùng chung khung Lô 1–3, không còn khung vẽ bằng code sót lại.
+- [ ] Chữ ≥ 24px ở 1080p; 1366×768 và 2560×1440 không đè nhau (e2e chụp từng cửa sổ).
+- [ ] Gợi ý phím đúng bảng GDD §4.
+
+**Bạn thử thế nào:** mở lần lượt từng cửa sổ, báo chỗ nào khó đọc.
+
+---
+
+### T-094 — Âm thanh Lô 4: âm giao diện, nhạc menu, cân mix cuối
+
+**Bước:** 4.3 · **Ai làm:** audio-director + game-dev · **Size:** M (3–4h) · **Cần trước:** T-081, T-086
+
+**Mục tiêu:** bấm nút có tiếng, menu có nhạc riêng, cả game nghe đều tai (không tiếng nào to / nhỏ lạc).
+
+**Điều kiện xong:**
+- [ ] Theo audio list Lô 4: âm giao diện còn lại (rê chuột, bấm, mở / đóng cửa sổ, lỗi), nhạc menu; gắn vào Menu, Cài đặt và mọi cửa sổ.
+- [ ] **Cân mix cuối**: audio-director đo lại toàn bộ (peak / RMS), game-dev chỉnh âm lượng từng nhóm trong `gameConfig.ts`; ghi bảng mức âm lượng vào audio list.
+
+**Bạn thử thế nào:** chơi 10 phút có đủ nhạc + tiếng; báo tiếng nào quá to / quá nhỏ.
+
+---
+
+### T-087 — Juice phần 1: rung màn 3 mức, tiền, level, nhiệm vụ, chặt, hái lượm
+
+**Bước:** 4.5 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-043, T-055
+
+**Điều kiện xong:**
+- [ ] Hàm rung chung `screenShakeLight / Medium / Strong` (tắt được ở Cài đặt).
+- [ ] Theo GDD §8: lên level (pháo giấy, rung vừa), xong nhiệm vụ (dấu đóng, rung mạnh), nhận tiền (xu bay vào HUD, số nhảy), chặt (cây rung, mảnh gỗ, khựng 0.05 s, rung vừa), hái lượm (món nảy bay vào gùi).
+
+**Thông số / ghi chú:** thêm `screenShakeMedium` (0.1 ô / 0.15 s), `screenShakeStrong` (0.2 ô / 0.25 s).
+
+**Bạn thử thế nào:** chặt một cây, xong một nhiệm vụ. Tự hỏi: "đã tay" chưa?
+
+---
+
+### T-088 — Juice phần 2: chuyển khu, giờ trong ngày, trạng thái nhân vật, mưa
+
+**Bước:** 4.5 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-046, T-054
+
+**Điều kiện xong:**
+- [ ] Theo GDD §8: qua cổng (tên khu + bước chân), 6h trời hửng, 23h nhân vật ngáp, đuối (mồ hôi), ăn (má phồng), cây héo (ruồi bay), nông cụ cùn (icon lắc + "cạch"), trời đổ mưa (sấm rung nhẹ), đầu mùa (băng chữ).
+
+**Bạn thử thế nào:** chơi trọn 1 ngày có mưa, để ý từng chi tiết nhỏ.
+
+---
+
+### T-089 — Juice phần 3: mini-game, mặc cả, cưới
+
+**Bước:** 4.5 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-058, T-059, T-068, T-071
+
+**Điều kiện xong:**
+- [ ] Theo GDD §8: phao giật (dấu "!" + rung vừa — báo được cả khi tắt tiếng), cá bắt được bay lên phóng to, cá sổng / dép, nỏ trúng (chậm hình 0.2 s + lông gà, rung mạnh), nỏ trượt; mặc cả (mặt đỏ lắc, hơi trà, lấp lánh + vỗ đùi khi cười); pháo cưới.
+
+**Bạn thử thế nào:** câu 3 con cá, mặc cả một buổi.
+
+---
+
+### T-090 — Kiểm trọn vòng Ngày 1 → cưới và hồi quy cả game
+
+**Bước:** 4.4 · **Ai làm:** qa-tester · **Size:** L (1 ngày) · **Cần trước:** mọi task chặng 4
+
+**Mục tiêu:** chắc chắn điều kiện xong chặng 4: chơi từ Menu → ngày 1 → cưới trơn tru (phần đăng nhập dời sang 5.5).
+
+**Điều kiện xong:**
+- [ ] E2E "trọn vòng" (dùng bảng Thử để nhảy): Menu → Chơi mới → intro / đặt tên → nhiệm vụ 1 → Núi → câu cá → nỏ → làng Sung → sắm sửa → mặc cả → cưới → ngày sau cưới (vợ tưới, tiền cơm). F5 ở mỗi khu vào lại đúng chỗ.
+- [ ] Cả bộ e2e xanh 2 lần liền; ghi FPS ở Xóm / làng Sung, dung lượng tải lần đầu; console không lỗi.
+- [ ] Bug ghi bảng Lỗi; không còn bug "Nặng" thì chặng 4 xong.
+
+**Bạn thử thế nào:** đọc báo cáo; tự chơi 30 phút đầu game như người mới (Chơi mới, không phím thử).
+
 ## Lỗi (bug)
 
 | ID | Mô tả | Mức độ | Trạng thái |
@@ -500,7 +1776,7 @@ Thứ tự theo rủi ro: sửa môi trường (BUG-003) → đăng nhập email
 | BUG-003 | (Môi trường dev) **`web/start.bat` / `npm run up` không bật được server trên máy người dùng**: (1) cổng 5432 bị container Postgres của dự án khác (`hoaphap-postgres`) chiếm → phải chạy tay `POSTGRES_PORT=5433`; (2) volume node_modules mới thì container server thiếu Prisma client (phải `npx prisma generate` tay); (3) thiếu `web/server/.env` (`SESSION_SECRET`) → server dừng, không báo rõ. Game T-001 vẫn chạy vì chỉ cần client. Gợi ý (`backend-dev`): entrypoint tự `prisma generate`; tự tạo `.env` dev từ `.env.example` (sinh secret ngẫu nhiên) hoặc báo lỗi dễ hiểu; cho đổi cổng DB qua `web/.env` và để `start.bat` báo khi cổng bận. Cần sửa trước bước 3.4 (tài khoản). **→ Sửa ở T-010.** **Đã sửa (2026-10-13, T-010):** cổng DB trên máy mặc định 5433, đổi được bằng `POSTGRES_PORT` trong `web/.env`; `start.bat`/`npm run up` chạy `web/docker/preflight.ps1` trước (cổng bận → báo rõ ai chiếm + cách sửa, không bật nửa chừng; thiếu `web/server/.env` → tự tạo với SESSION_SECRET ngẫu nhiên); entrypoint tự `prisma generate`; thiếu biến → một dòng `[config] …`. Kiểm: stack sạch tách riêng + stack thật đều healthy, `/api/health` db:true. | Vừa | Đã sửa (người dùng xác nhận start.bat chạy, 2026-10-13) |
 | BUG-004 | (T-002) **Mới vào game, chưa rê chuột lên khung game đã có một viền xám ở góc trên-trái màn hình.** `InputController.pointerInside` mặc định `true`, con trỏ Phaser mặc định ở (0,0) → `updatePointer` vẽ viền ô ngoài tầm ở ô góc trên-trái khung nhìn cho tới khi chuột di chuyển lần đầu. Tái hiện: mở http://localhost:5173 mà không đụng chuột (hoặc chuột đang nằm ngoài cửa sổ trình duyệt) → nhìn góc trên-trái; `debugState.hover` = `{ x: 1, y: 7, highlight: 'gray' }`. Test `A10` trong `web/e2e/tests/qa-t002.spec.ts`, ảnh `web/e2e/screenshots/qa-t002-load-no-mouse.png`. Gợi ý: để `pointerInside = false` cho tới sự kiện `GAME_OVER`/`POINTER_MOVE` đầu tiên. | Nh Đã sửa 2026-10-10: `pointerInside` bắt đầu là false, bật khi có `POINTER_MOVE`/`GAME_OVER`. | Nhẹ | Đã sửa |
 | BUG-005 | (T-002) **Rung màn khi cuốc theo chiều dọc chỉ còn ~0.02 ô thay vì 0.05 ô (GDD §8 `screenShakeLight`).** `cam.shake(…, (0.05·T)/cam.width)` truyền một số → Phaser nhân cùng tỷ lệ với bề rộng cho trục X (đúng 0.052 ô) nhưng với **bề cao** cho trục Y → 0.021 ô (màn 16:9 nên dọc chỉ bằng 56%). Thời gian 0.1 s đúng. Tái hiện: test `A9` trong `web/e2e/tests/qa-t002.spec.ts` (in `max ox (ô) 0.052 max oy (ô) 0.021`). Gợi ý: truyền `new Phaser.Math.Vector2(a / cam.width, a / cam.height)`. Ảnh hưởng nhỏ (rung hơi "ngang"), sửa khi tiện — các mức rung vừa/mạnh về sau sẽ dùng chung hàm. | Nh Đã sửa 2026-10-10: truyền `Vector2(amp/width, amp/height)` cho `cam.shake`. | Nhẹ | Đã sửa |
-| BUG-006 | (Test, không phải game) **Vài test e2e đo theo giờ thật nên đỏ ngẫu nhiên khi máy bận / chạy cả bộ** (thấy ở `qa-t002` A1/A2, `garden.spec` BUG-001, `qa-t001` Q4, `farm.spec` đi+cuốc): chạy riêng thì xanh. Chromium headless chạy đồng hồ game chậm hơn giờ thật nên `waitForTimeout(ms)` không đủ. A2 đã nới chờ 600→1500 ms. Gợi ý: đổi các chờ cố định sang chờ theo trạng thái game (`expect.poll`/`waitForFunction` trên `debugState`), hoặc đặt `workers: 1` + retries 1 cho e2e. **QA T-007 (2026-10-12):** chạy cả bộ (142 ca, 1 worker, 58 phút; máy 32 luồng dùng ~24% CPU, chrome-headless ~5,6 lõi, có League Client + OneDrive chạy nền) đỏ 5 ca — chạy lại riêng `--repeat-each 2` thì xanh 10/10, cả 5 file test không bị T-007 sửa → đều do đọc trạng thái "thoáng qua" trễ khi máy chậm (~16 FPS): (1) `crops.spec:219` dòng 259 `dropsActive > 0` — giọt nước đã tắt trước khi đọc; (2) `crops.spec:536` dòng 558 và (3) `qa-t003.spec:642` Q11 dòng 674 — chờ `action.kind` = `plant`/`water` nhưng việc nhanh 0.4 s đã xong trước lần hỏi đầu; (4) `crops.spec:615` dòng 649 tiếng hái `[0, 200, 0]` thay vì `[0, 200, 400]` — giữa hai lần hái quá `harvestPitchResetSeconds` 1.2 s; (5) `economy.spec:186` dòng 260 `moneyFloat` rỗng — chữ "−4 quan" (1.2 s) đã bay xong. Gợi ý: (2)(3) gọi `debugSetTestTuning({ fastActionSeconds: 30 })` trước khi chờ `action.kind` (như Q10b của BUG-014); (1)(5) kiểm bằng bộ đếm/nhật ký (vd `farmJuice.waterDrops` tổng, `money.floatLog`) thay vì "đang hiện"; (4) thêm hook kéo dài `harvestPitchResetSeconds` lúc kiểm, hoặc chỉ đòi các nấc tăng dần khi khoảng cách giữa hai lần hái < ngưỡng. | Nhẹ | Mở |
+| BUG-006 | (Test, không phải game) **Vài test e2e đo theo giờ thật nên đỏ ngẫu nhiên khi máy bận / chạy cả bộ** (thấy ở `qa-t002` A1/A2, `garden.spec` BUG-001, `qa-t001` Q4, `farm.spec` đi+cuốc): chạy riêng thì xanh. Chromium headless chạy đồng hồ game chậm hơn giờ thật nên `waitForTimeout(ms)` không đủ. A2 đã nới chờ 600→1500 ms. Gợi ý: đổi các chờ cố định sang chờ theo trạng thái game (`expect.poll`/`waitForFunction` trên `debugState`), hoặc đặt `workers: 1` + retries 1 cho e2e. **QA T-007 (2026-10-12):** chạy cả bộ (142 ca, 1 worker, 58 phút; máy 32 luồng dùng ~24% CPU, chrome-headless ~5,6 lõi, có League Client + OneDrive chạy nền) đỏ 5 ca — chạy lại riêng `--repeat-each 2` thì xanh 10/10, cả 5 file test không bị T-007 sửa → đều do đọc trạng thái "thoáng qua" trễ khi máy chậm (~16 FPS): (1) `crops.spec:219` dòng 259 `dropsActive > 0` — giọt nước đã tắt trước khi đọc; (2) `crops.spec:536` dòng 558 và (3) `qa-t003.spec:642` Q11 dòng 674 — chờ `action.kind` = `plant`/`water` nhưng việc nhanh 0.4 s đã xong trước lần hỏi đầu; (4) `crops.spec:615` dòng 649 tiếng hái `[0, 200, 0]` thay vì `[0, 200, 400]` — giữa hai lần hái quá `harvestPitchResetSeconds` 1.2 s; (5) `economy.spec:186` dòng 260 `moneyFloat` rỗng — chữ "−4 quan" (1.2 s) đã bay xong. Gợi ý: (2)(3) gọi `debugSetTestTuning({ fastActionSeconds: 30 })` trước khi chờ `action.kind` (như Q10b của BUG-014); (1)(5) kiểm bằng bộ đếm/nhật ký (vd `farmJuice.waterDrops` tổng, `money.floatLog`) thay vì "đang hiện"; (4) thêm hook kéo dài `harvestPitchResetSeconds` lúc kiểm, hoặc chỉ đòi các nấc tăng dần khi khoảng cách giữa hai lần hái < ngưỡng. **→ Sửa ở T-018** (đầu chặng 4, trước các task code lớn — D-034). | Nhẹ | Mở (T-018) |
 | BUG-007 | (T-002 phần 2) **Chạm phím đi thật nhanh khi đang cuốc có thể không bỏ dở.** Bỏ dở chỉ xét `isDown` của phím tại lúc `update()` (`GardenScene.update` → `controls.moveDirection()`); nếu keydown + keyup lọt giữa hai frame (chạm phím ngắn hơn 1 frame — dễ gặp hơn khi FPS thấp, máy vẽ bằng CPU 13–40 FPS) thì {ten} cuốc tiếp như không có gì. Chuột đã ghi theo sự kiện (`primaryPressed`) nhưng phím đi thì chưa. **Tái hiện:** `qa-t002b.spec.ts` B10 — đang cuốc, bắn `keydown`+`keyup` D liền nhau trong cùng một tác vụ JS → `action.busy` vẫn `true`, `till.cancels` = 0. Gợi ý: ghi "vừa nhấn phím đi" theo sự kiện (như chuột) hoặc dùng `JustDown` cho các phím đi để bỏ dở. **Đã sửa 2026-10-10:** `InputController` ghi "vừa nhấn phím đi" theo sự kiện keydown (`consumeMovePress`, giống chuột); `GardenScene` bỏ dở khi có lần nhấn đó hoặc đang giữ phím. B10 trong `qa-t002b.spec.ts` giờ kiểm cứng (`busy` false, `cancels` 1) — xanh. | Nhẹ | Đã sửa |
 | BUG-008 | (Test, không phải game — cùng loại BUG-006) **Chạy cả bộ `npm run test:e2e` (nhiều worker song song) có 2 ca T-002 đỏ ngẫu nhiên, chạy riêng thì xanh (3/3 lần):** (1) `farm.spec` "THÔNG SỐ THẬT" — `heroScale.y` = 0.964 không < 0.95 vì cảnh bị dừng trễ 1 frame sau điểm chạm khi máy bận; (2) `qa-t002` A3 — `tilled` dừng ở 3 thay vì 4 trong 30 s (đồng hồ game quá chậm khi 4 worker chạy WebGL phần mềm cùng lúc). Gợi ý: `workers: 1` cho e2e hoặc nới điều kiện (kiểm bẹp trong cửa sổ vài frame quanh điểm chạm; timeout theo frame). **Đã sửa 2026-10-10:** `web/e2e/playwright.config.ts` đặt `workers: 1` (chậm hơn nhưng ổn định); ca "THÔNG SỐ THẬT" nới kiểm bẹp còn `heroScale.y < 0.98`; A3 và các ca hàng chờ/bỏ dở đặt nhát rất dài lúc kiểm rồi mới rút ngắn (không phụ thuộc tốc độ máy). | Nhẹ | Đã sửa |
 | BUG-009 | (T-003) **Cuộn bằng touchpad laptop làm ô hotbar chạy vèo vèo.** `InputController` cộng `Math.sign(deltaY)` cho MỖI sự kiện wheel, bất kể độ lớn: chuột thường 1 nấc = 1 sự kiện deltaY 100 (đúng), nhưng touchpad / chuột cuộn mượt bắn hàng chục sự kiện deltaY nhỏ (2–20) mỗi lần vuốt → nhảy vài ô, thậm chí vòng cả thanh. **Tái hiện:** `qa-t003.spec.ts` Q8 — 4 sự kiện `mouse.wheel(0, 4)` (tổng chỉ 16 px) đổi ô chọn từ 8 sang 3 (nhảy 4 ô). Trên laptop: vuốt hai ngón nhẹ trên touchpad khi đang chơi. Gợi ý: cộng dồn deltaY, đủ ngưỡng (~50–100 px) mới tính 1 nấc, hoặc giới hạn tối đa 1 nấc mỗi ~80 ms. **Đã sửa 2026-10-10:** cộng dồn deltaY (deltaMode dòng/trang đổi ra px), đủ `wheelStepDelta` (100 px, gameConfig) mới tính 1 nấc, đổi chiều thì bỏ phần dư (`src/input/wheel.ts` + unit test `wheel.test.ts`). Chuột thường (deltaY 100) vẫn 1 ô/nấc; 4 × deltaY 4 không đổi ô. E2E `crops.spec` ca Hotbar kiểm cả hai. | Nhẹ | Đã sửa |
@@ -513,6 +1789,8 @@ Thứ tự theo rủi ro: sửa môi trường (BUG-003) → đăng nhập email
 
 ## Changelog
 
+- 2026-10-14 — D-034 (người dùng chốt kế hoạch 4.1): T-041 … T-043 chen lên ngay sau T-027 (đợt B2, T-041 cần T-024; T-032 cần T-043, T-093); bậc 2–3 đủ động tác, bậc 4 chỉ đi / đứng (T-065 thành Lô 2e trong Đợt C, T-066 sửa, T-067 thêm "mượn khung bậc 3"); thêm **T-093 cảnh trong nhà** (giường, bếp, rương — rương lên Must; chuyển cảnh chung, T-054 L → M); khớp lô với asset list mới (nhà {ten}, trong nhà, quầy hạt, cây nhãn, rào, đường đất, giao diện HUD ở Lô 1 → sửa T-019, T-020, T-024 S → M, thêm T-091 / T-092; intro sang Lô 4 → T-070 L → M, T-082, T-084, T-086 L → M) và audio list (T-025, T-039, T-060 M → L; thêm T-094 âm Lô 4 + cân mix). Tổng 77 task (4 S + 44 M + 29 L) ≈ 310–416 giờ, mốc 363 → xong chặng 4 ~08/04/2027.
+- 2026-10-13 — Bước 4.1 (D-034): thêm **73 task chặng 4** T-018 … T-090 theo 9 đợt (A nền móng → B Vườn thật Lô 1 → C Xóm + NPC Lô 2 → D mục tiêu & tiến trình → E Núi + hồ câu + nỏ → F làng Sung, sắm sửa, mặc cả, cưới → G gia đình → H meme, menu, cài đặt, UI → I game feel + QA trọn vòng). Theo bước: 4.2 = 22, 4.3 = 8, 4.4 = 39, 4.5 = 4. 5 S + 40 M + 28 L ≈ 290–395 giờ (mốc 345) ≈ 19,5–26 tuần với 15 giờ/tuần → mốc kế hoạch xong chặng 4 ~30/03/2027, soát lại ở T-052. BUG-006 giao cho T-018. T-011 … T-017 (bước 5.5) giữ nguyên.
 - 2026-10-13 — T-010 👀 (backend-dev): start.bat/npm run up kiểm trước khi bật (cổng, tự tạo server/.env), cổng DB máy mặc định 5433 (POSTGRES_PORT trong web/.env), entrypoint tự prisma generate; BUG-003 → Đã sửa (chờ QA). Chờ qa-tester.
 - 2026-10-13 — Bước 3.4 (D-029): thêm 8 task T-010 … T-017 (bắt buộc đăng nhập; email + Google, Facebook là task cuối cắt được; server là bản chính, bản đệm trên máy theo tài khoản, save cũ đẩy lên tài khoản đầu tiên một lần; số `revision` chống ghi đè). 4 L + 4 M ≈ 36–48 giờ ≈ 2,5–3 tuần. BUG-003 giao cho T-010.
 - 2026-10-13 — T-009 ✅: bạn tự chơi (PT-000), giữ nguyên mọi thông số, đánh giá "Tạm" (D-028). Mọi task chặng 3 (T-001 … T-009) xong. Còn mở BUG-003 (sửa trước 3.4), BUG-006.
