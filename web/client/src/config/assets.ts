@@ -1,6 +1,10 @@
 // Danh sách asset (khóa → đường dẫn trong public/). Preload đọc danh sách này,
 // scene dùng khóa — đổi tên file chỉ sửa một chỗ.
+import cropsJson from '../data/crops.json';
+import type { CropData } from '../data/types';
 import type { Facing } from '../systems/movement';
+import { FENCE_KEYS, SELL_BASKET } from '../systems/propArt';
+import { ACTION_ANIMS, type ActionAnim } from '../systems/toolAnim';
 
 const ART = 'assets/art';
 const AUDIO = 'assets/audio';
@@ -21,12 +25,89 @@ export const heroTurnKey = (tier: number): string => `hero-t${tier}-turn`;
  * Khóa spritesheet động tác CUỐC (ART-CHR-007), vd `hero-t1-hoe-down`: dải 512×128 = 4 khung HERO_ACTION_FRAME —
  * 0 chuẩn bị, 1 giơ cao, 2 chạm đất, 3 hồi (systems/toolAnim.ts).
  */
-export const heroHoeKey = (tier: number, facing: Facing): string => `hero-t${tier}-hoe-${facing}`;
+export const heroHoeKey = (tier: number, facing: Facing): string => heroActionKey(tier, 'hoe', facing);
+
+/**
+ * T-023: khoá dải động tác bất kỳ, vd `hero-t1-water-left`, `hero-t1-bend-up` — cùng chuẩn với cuốc (4 khung
+ * HERO_ACTION_FRAME, khung 2 = chạm, chân ở hàng 111). Cũng là tên file trong characters/.
+ */
+export function heroActionKey(tier: number, anim: ActionAnim, facing: Facing): string {
+  return `hero-t${tier}-${anim}-${facing}`;
+}
+
+/**
+ * T-023: điểm TAY ở khung cuối (khung 3) của dáng cúi, px trong khung 128×128 (art-director đo, ±4 px) — icon cây vừa hái
+ * bay ra từ đây. Đổi ra toạ độ thế giới: chân nhân vật + (px − (64, footY)).
+ */
+export const HERO_BEND_HAND: Readonly<Record<Facing, readonly [number, number]>> = {
+  right: [90, 65],
+  left: [38, 65],
+  down: [36, 59],
+  up: [88, 61],
+};
+
+/** Điểm tay cúi so với CHÂN nhân vật (px; âm = lên trên / sang trái). */
+export function bendHandOffset(facing: Facing): { x: number; y: number } {
+  const [hx, hy] = HERO_BEND_HAND[facing];
+  return { x: hx - HERO_ACTION_FRAME.width / 2, y: hy - HERO_ACTION_FRAME.footY };
+}
 
 /** Khóa icon nông cụ cái cuốc (ART-ITM-001) — data/tools.json `icon`. */
 export const ITEM_HOE_ICON = 'item-hoe';
 
 const facings: Facing[] = ['down', 'up', 'left', 'right'];
+
+/**
+ * T-021: tấm tile nền Lô 1 (asset-list §3 "Ghép tile Lô 1") → số ô trong tấm. Texture lõi 4×4 = 16 ô; viền 16 ô
+ * (ô = mask N1 E2 S4 W8); góc lõm 2×2 = 4 ô. Nạp bản `-ex.png`: mỗi ô có đệm 1 px lặp mép (TILE_SHEET margin/spacing)
+ * để khi game co giãn (Scale.FIT, zoom 1.5) không lộ khe giữa các ô.
+ */
+export const TILE_SHEETS = {
+  grass: 16,
+  path: 16,
+  yard: 16,
+  'soil-dry': 16,
+  'soil-till-1': 16,
+  'soil-till-2': 16,
+  'soil-tilled': 16,
+  'soil-watered': 16,
+  'soil-tilled-edge': 16,
+  'path-edge': 16,
+  'path-corner': 4,
+} as const;
+export type TileSheetName = keyof typeof TILE_SHEETS;
+/** Khóa texture của một tấm tile, vd `tile-grass`. */
+export const tileKey = (name: string): string => `tile-${name}`;
+/** Đệm của bản `-ex`: lề ngoài 1 px, khe giữa hai ô 2 px. */
+export const TILE_SHEET = { margin: 1, spacing: 2 } as const;
+
+/**
+ * T-024: ảnh đồ vật Vườn (props/, khoá = tên file). Cỡ, chân đế, điểm cửa… ở props/props.json (systems/props.ts).
+ * Nội thất trong nhà (house-bed, stove-…, backgrounds/house-interior) nạp ở T-093.
+ */
+export const PROP_IMAGES: readonly string[] = [
+  'house-hero',
+  SELL_BASKET.closed,
+  SELL_BASKET.open,
+  'seed-stall',
+  'stake-1',
+  'stake-row',
+  'tree-nhan-trunk',
+  'tree-nhan-canopy',
+  ...FENCE_KEYS,
+];
+
+/** Dữ liệu hình của 5 cây (crops.json) — cây chưa trồng được (T-045) vẫn nạp sẵn. */
+const CROP_ART: readonly CropData[] = cropsJson as CropData[];
+
+/** T-022: khung dải cây trồng 64×96; đáy khung = đáy ô, gốc cây ở hàng 86 (`rootY`). */
+export const CROP_FRAME = { width: 64, height: 96, rootY: 86 } as const;
+
+/** T-022: dải cây (khung CROP_FRAME): `crop-common` (0 hạt, 1 mầm, 2 héo) + `crop-<id>` (0 non, 1 lớn, 2 chín). */
+export const cropSpritesheets: Record<string, string> = {
+  'crop-common': `${ART}/props/crop-common.png`,
+  ...Object.fromEntries(CROP_ART.filter((c) => c.sprite).map((c) => [c.sprite!, `${ART}/props/${c.sprite}.png`])),
+};
 
 export const images: Record<string, string> = {
   // Bậc 1 "Nghèo kiết xác", 4 hướng (ART-CHR-002)
@@ -46,11 +127,16 @@ export const images: Record<string, string> = {
   'portrait-hero-fawning': `${ART}/portraits/portrait-hero-g-fawning.png`,
   'portrait-hero-rejected': `${ART}/portraits/portrait-hero-h-rejected.png`,
   'portrait-hero-money-eyes': `${ART}/portraits/portrait-hero-i-money-eyes.png`,
-  // Tile thử (ART-TIL-001/002): ảnh 256×256 = 4×4 ô 64px, nối liền khi lặp
-  'tile-grass-test': `${ART}/tiles/tile-grass-test.png`,
-  'tile-dirt-test': `${ART}/tiles/tile-dirt-test.png`,
+  // T-021: tile nền Lô 1 (bản -ex đệm 1 px — xem TILE_SHEET), khóa `tile-<tên>`
+  ...Object.fromEntries(Object.entries(TILE_SHEETS).map(([name]) => [tileKey(name), `${ART}/tiles/${name}-ex.png`])),
+  // T-022: icon hạt + nông sản (128×128) — khóa = tên file, lấy từ crops.json `icon` / `seedIcon`
+  ...Object.fromEntries(
+    CROP_ART.flatMap((c) => [c.icon, c.seedIcon]).filter((k): k is string => !!k).map((k) => [k, `${ART}/items/${k}.png`]),
+  ),
   // Icon cái cuốc (ART-ITM-001): 128×128 nền trong suốt, hiện ~72 px trong ô hotbar
   [ITEM_HOE_ICON]: `${ART}/items/item-hoe.png`,
+  // T-024: đồ vật Vườn (nhà, thúng, quầy hạt, cọc, cây nhãn, rào)
+  ...Object.fromEntries(PROP_IMAGES.map((k) => [k, `${ART}/props/${k}.png`])),
 };
 
 /** Kích thước một khung trong mọi spritesheet nhân vật (px). */
@@ -70,10 +156,10 @@ export const spritesheets: Record<string, string> = {
   [heroTurnKey(1)]: `${ART}/characters/hero-t1-turn.png`,
 };
 
-/** Spritesheet động tác (khung HERO_ACTION_FRAME 128×128). Bậc 1: cuốc 4 hướng (ART-CHR-007). */
-export const actionSpritesheets: Record<string, string> = {
-  ...Object.fromEntries(facings.map((d) => [heroHoeKey(1, d), `${ART}/characters/hero-t1-hoe-${d}.png`])),
-};
+/** Spritesheet động tác (khung HERO_ACTION_FRAME 128×128). Bậc 1: cuốc (ART-CHR-007), tưới + cúi (T-020/T-023) 4 hướng. */
+export const actionSpritesheets: Record<string, string> = Object.fromEntries(
+  ACTION_ANIMS.flatMap((a) => facings.map((d) => [heroActionKey(1, a, d), `${ART}/characters/${heroActionKey(1, a, d)}.png`])),
+);
 
 /** Âm thanh: ghi đường dẫn không đuôi; Preload tự thêm .ogg (ưu tiên) và .mp3 (Safari). */
 export const audio: Record<string, string> = {

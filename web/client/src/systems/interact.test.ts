@@ -20,7 +20,7 @@ describe('vật tương tác (thùng bán, sạp hạt)', () => {
   it('vật chặn đường (có va chạm)', () => {
     const grid = blockedGrid(L);
     expect(grid[L.sellBox.y][L.sellBox.x]).toBe(true);
-    expect(grid[L.seedStall.y][L.seedStall.x]).toBe(true);
+    expect(grid[L.seedStallFoot.y][L.seedStallFoot.x]).toBe(true);
   });
 
   it('click: trong tầm interactRange (tính tới tâm ô gần nhất của vật)', () => {
@@ -66,13 +66,18 @@ describe('giường (T-007)', () => {
     expect(targetInReach(L, 'bed', p.x, p.y, T, gameConfig.interactRange)).toBe(true);
   });
 
-  it('ô thức dậy đi được (không bị chặn) và nằm trong nhà', () => {
+  it('ô thức dậy đi được (không bị chặn) và ở ngay trước hiên nhà (T-024: chõng hiên là giường tạm tới T-093)', () => {
     const grid = blockedGrid(L);
     expect(grid[L.wakeSpot.y][L.wakeSpot.x]).toBe(false);
     const h = L.house;
-    expect(L.wakeSpot.x).toBeGreaterThan(h.x);
-    expect(L.wakeSpot.x).toBeLessThan(h.x + h.w - 1);
-    expect(L.wakeSpot.y).toBeGreaterThan(h.y);
-    expect(L.wakeSpot.y).toBeLessThan(h.y + h.h - 1);
+    expect(L.wakeSpot.x).toBeGreaterThanOrEqual(h.x);
+    expect(L.wakeSpot.x).toBeLessThan(h.x + h.w);
+    expect(L.wakeSpot.y).toBe(h.y + h.h);
+  });
+
+  it('T-024: quầy hạt bấm được cả ảnh (cả hàng trên — không chặn — lẫn chân đế)', () => {
+    const s = L.seedStall;
+    expect(targetAt(L, s.x + 1, s.y)).toBe('seedStall');
+    expect(targetAt(L, s.x + 1, s.y + 1)).toBe('seedStall');
   });
 });

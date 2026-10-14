@@ -1,7 +1,12 @@
 // Bố cục bản đồ Vườn (T-001) ở dạng dữ liệu thuần: đâu là nhà, rào, ao, cây, ruộng.
-// Scene dựa vào đây để vẽ hình khối + tạo hộp va chạm; test dựa vào đây để kiểm
+// Scene dựa vào đây để vẽ hình + tạo hộp va chạm; test dựa vào đây để kiểm
 // "đi được tới giường, tới ruộng, tới thùng bán" mà không cần mở trình duyệt.
+// T-024: nhà, thúng bán, quầy hạt, cọc rào ghi trong gardenLayout.json dạng { prop, x, y } (ô trên-trái của chân đế);
+// cỡ ảnh, chân đế, điểm cửa, chỗ người bán đọc từ props/props.json (systems/props.ts) → ở đây đổi ra TileRect.
 import layoutJson from '../data/gardenLayout.json';
+import { gameConfig } from '../config/gameConfig';
+import { propFootRect, propImageTiles, propPoint, propSpec } from './props';
+import type { FenceLine, FenceStyle } from './propArt';
 
 /** Hình chữ nhật theo ô. */
 export interface TileRect {
@@ -11,30 +16,129 @@ export interface TileRect {
   h: number;
 }
 
+/** Một vật có hình thật: tên ảnh trong props.json + ô trên-trái của chân đế. */
+export interface PropAt {
+  prop: string;
+  x: number;
+  y: number;
+}
+
+/** Bố cục như trong gardenLayout.json. */
+export interface GardenLayoutData {
+  cols: number;
+  rows: number;
+  spawn: { x: number; y: number };
+  house: PropAt;
+  bed: TileRect;
+  wakeSpot: { x: number; y: number };
+  plots: TileRect;
+  path: TileRect;
+  yard?: TileRect;
+  pathBranches?: TileRect[];
+  pond: TileRect;
+  sellBox: PropAt;
+  seedStall: PropAt;
+  stakes?: PropAt[];
+  borderFence?: FenceStyle;
+  fences?: FenceLine[];
+  tree: { trunk: string; canopy: string };
+  trees: [number, number][];
+}
+
 export interface GardenLayout {
   cols: number;
   rows: number;
   /** Vị trí chân nhân vật lúc vào Vườn (ô, cho phép số lẻ). */
   spawn: { x: number; y: number };
-  /** Khung nhà (tường dày 1 ô), cửa ở tường dưới từ cột doorX, rộng doorW ô. */
-  house: TileRect & { doorX: number; doorW: number };
+  /** T-024: chân đế nhà {ten} (vật cản liền khối; mái phía trên đi sau được). */
+  house: TileRect;
+  /** Ảnh + mốc đặt nhà (props.json `house-hero`). */
+  houseProp: PropAt;
+  /** Ô bậc thềm cửa (thuộc chân đế) — T-093 dùng: đứng ô ngay dưới + đi lên = vào nhà. */
+  houseDoor: TileRect;
+  /** Điểm cửa (px thế giới, props.json `door.px`). */
+  houseDoorPoint: { x: number; y: number };
+  /** Giường (T-007). T-024: chõng tre trên hiên — giường tạm tới T-093 (Giả định). */
   bed: TileRect;
   /** Ô nhân vật đứng khi thức dậy (T-007): ngay cạnh giường, mặt hướng xuống. */
   wakeSpot: { x: number; y: number };
   /** Ruộng ban đầu (startPlots ô). */
   plots: TileRect;
-  /** Lối đất từ cửa nhà xuống Đầu ngõ (chỉ trang trí). */
+  /** Lối đất nện từ cửa nhà xuống Đầu ngõ (chỉ trang trí, đi xuyên). */
   path: TileRect;
+  /** T-021 (D-035): sân đất nện trước cửa, nối lối dọc với ruộng và thùng bán. */
+  yard?: TileRect;
+  /** T-021 (D-035): nhánh lối đất nện (vd tới sạp hạt). */
+  pathBranches?: TileRect[];
   pond: TileRect;
-  /** Thùng bán (T-006) — có va chạm. */
+  /** Thúng bán (T-006) — ô chân đế = vùng click (ảnh 1 ô). */
   sellBox: TileRect;
-  /** Sạp hạt tạm (T-006, D-019: hộp hạt, không NPC) — có va chạm. */
+  sellBoxProp: PropAt;
+  /** Quầy hạt (T-006, D-019 / D-037: chưa có người bán) — VÙNG CLICK = cả ảnh 3×2 ô. */
   seedStall: TileRect;
+  /** Chân đế quầy hạt (vật cản): hàng ô dưới cùng. */
+  seedStallFoot: TileRect;
+  seedStallProp: PropAt;
+  /** Chỗ chân người bán đứng sau quầy (px thế giới, props.json `sellerSpot`) — T-036. */
+  sellerSpot: { x: number; y: number };
+  /** Cọc rào mở ruộng (ẩn tới T-044). */
+  stakes: PropAt[];
+  /** Kiểu rào viền bản đồ. */
+  borderFence: FenceStyle;
+  /** Đoạn rào thêm bên trong (có va chạm). */
+  fences: FenceLine[];
+  tree: { trunk: string; canopy: string };
   /** Gốc cây [x, y] (ô). */
   trees: [number, number][];
 }
 
-export const gardenLayout = layoutJson as unknown as GardenLayout;
+/** Đổi bố cục JSON → TileRect (đọc chân đế / điểm cửa từ props.json). */
+export function resolveLayout(d: GardenLayoutData, tileSize: number = gameConfig.tileSize): GardenLayout {
+  const foot = (p: PropAt): TileRect => propFootRect(p.prop, p.x, p.y) ?? { x: p.x, y: p.y, w: 1, h: 1 };
+  const house = foot(d.house);
+  const houseSpec = propSpec(d.house.prop);
+  const door = houseSpec.door;
+  // door.tiles đo từ góc dưới-trái ảnh, y LÊN trên → hàng thế giới = hàng đáy chân đế − y − (h − 1).
+  const houseDoor: TileRect = door
+    ? { x: house.x + door.tiles.x, y: house.y + house.h - 1 - door.tiles.y - (door.tiles.h - 1), w: door.tiles.w, h: door.tiles.h }
+    : { x: house.x + Math.floor(house.w / 2), y: house.y + house.h - 1, w: 1, h: 1 };
+  const houseDoorPoint = door
+    ? propPoint(d.house.prop, d.house.x, d.house.y, tileSize, door.px)
+    : { x: (houseDoor.x + houseDoor.w / 2) * tileSize, y: (houseDoor.y + 1) * tileSize };
+  const stallSpot = propSpec(d.seedStall.prop).sellerSpot;
+  const seedStallFoot = foot(d.seedStall);
+  return {
+    cols: d.cols,
+    rows: d.rows,
+    spawn: d.spawn,
+    house,
+    houseProp: d.house,
+    houseDoor,
+    houseDoorPoint,
+    bed: d.bed,
+    wakeSpot: d.wakeSpot,
+    plots: d.plots,
+    path: d.path,
+    yard: d.yard,
+    pathBranches: d.pathBranches,
+    pond: d.pond,
+    sellBox: foot(d.sellBox),
+    sellBoxProp: d.sellBox,
+    seedStall: propImageTiles(d.seedStall.prop, d.seedStall.x, d.seedStall.y, tileSize),
+    seedStallFoot,
+    seedStallProp: d.seedStall,
+    sellerSpot: stallSpot
+      ? propPoint(d.seedStall.prop, d.seedStall.x, d.seedStall.y, tileSize, stallSpot.px)
+      : { x: (seedStallFoot.x + seedStallFoot.w / 2) * tileSize, y: seedStallFoot.y * tileSize },
+    stakes: d.stakes ?? [],
+    borderFence: d.borderFence ?? 'tre',
+    fences: d.fences ?? [],
+    tree: d.tree,
+    trees: d.trees,
+  };
+}
+
+export const gardenLayout: GardenLayout = resolveLayout(layoutJson as unknown as GardenLayoutData);
 
 export type SolidKind = 'fence' | 'wall' | 'bed' | 'pond' | 'tree' | 'sellBox' | 'seedStall';
 
@@ -53,30 +157,21 @@ export function fenceRects(cols: number, rows: number): TileRect[] {
   ];
 }
 
-/** Tường nhà: trên, trái, phải, và tường dưới bị khoét ô cửa. */
-export function houseWallRects(h: GardenLayout['house']): TileRect[] {
-  const bottom = h.y + h.h - 1;
-  const rects: TileRect[] = [
-    { x: h.x, y: h.y, w: h.w, h: 1 },
-    { x: h.x, y: h.y + 1, w: 1, h: h.h - 2 },
-    { x: h.x + h.w - 1, y: h.y + 1, w: 1, h: h.h - 2 },
-  ];
-  const leftW = h.doorX - h.x;
-  const rightX = h.doorX + h.doorW;
-  if (leftW > 0) rects.push({ x: h.x, y: bottom, w: leftW, h: 1 });
-  if (rightX < h.x + h.w) rects.push({ x: rightX, y: bottom, w: h.x + h.w - rightX, h: 1 });
-  return rects;
+/** Ô của một đoạn rào thêm. */
+export function fenceLineRect(f: FenceLine): TileRect {
+  return f.dir === 'h' ? { x: f.x, y: f.y, w: f.len, h: 1 } : { x: f.x, y: f.y, w: 1, h: f.len };
 }
 
 /** Mọi vật cản, theo ô. Cây tính là 1 ô (hộp va chạm thật nhỏ hơn — xem treeTrunkHitbox). T-006: thùng bán, sạp hạt. */
 export function solids(layout: GardenLayout): Solid[] {
   return [
     ...fenceRects(layout.cols, layout.rows).map((rect) => ({ kind: 'fence' as const, rect })),
-    ...houseWallRects(layout.house).map((rect) => ({ kind: 'wall' as const, rect })),
+    ...layout.fences.map((f) => ({ kind: 'fence' as const, rect: fenceLineRect(f) })),
+    { kind: 'wall', rect: layout.house },
     { kind: 'bed', rect: layout.bed },
     { kind: 'pond', rect: layout.pond },
     { kind: 'sellBox', rect: layout.sellBox },
-    { kind: 'seedStall', rect: layout.seedStall },
+    { kind: 'seedStall', rect: layout.seedStallFoot },
     ...layout.trees.map(([x, y]) => ({ kind: 'tree' as const, rect: { x, y, w: 1, h: 1 } })),
   ];
 }

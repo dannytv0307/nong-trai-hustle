@@ -4,7 +4,7 @@
 import type Phaser from 'phaser';
 import { palette, type PaletteKey } from '../config/palette';
 import type { CropStage } from '../systems/farm';
-import { itemInfo, toolOf } from '../systems/items';
+import { itemIconKey, itemInfo, toolOf } from '../systems/items';
 
 /** Cách vẽ từng loại cây: màu lá, màu "quả"/củ, kiểu dáng lúc chín. */
 interface CropLook {
@@ -134,10 +134,11 @@ export function drawCrop(
 }
 
 /**
- * Khóa texture ảnh icon thật của món (T-009: nông cụ có ảnh — cái cuốc ART-ITM-001), null = vẽ bằng code (drawItemIcon).
+ * Khóa texture ảnh icon thật của món (T-009 cái cuốc; T-022 hạt + nông sản theo crops.json `seedIcon` / `icon`),
+ * null = vẽ bằng code (drawItemIcon). Nơi gọi vẫn phải kiểm `textures.exists` (ảnh có thể tải lỗi).
  */
 export function itemIconTexture(itemId: string): string | null {
-  return toolOf(itemId)?.icon ?? null;
+  return itemIconKey(itemId);
 }
 
 /** Món có hiện số lượng ở góc ô không: nông cụ (luôn 1 cái) thì không. */

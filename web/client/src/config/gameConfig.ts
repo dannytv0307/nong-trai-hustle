@@ -185,6 +185,13 @@ export const gameConfig = {
   tillAnimWindupShare: 0.4,
   /** Phần sau lúc chạm chia cho khung 2 (lưỡi cắm đất) / khung 3 (hồi): khung 2 chiếm bấy nhiêu phần (≈ 0.21 s). */
   tillAnimImpactShare: 0.5,
+  /**
+   * T-023: dáng tưới / cúi (gieo, hái, dọn) — cùng luật 4 khung như cuốc trong một động tác nhanh `actionDuration` 0.4 s.
+   * Trước lúc chạm: khung 0 (chuẩn bị) chiếm bấy nhiêu phần, còn lại khung 1 (0.4 → 0.08 s / 0.12 s).
+   */
+  quickAnimWindupShare: 0.4,
+  /** Sau lúc chạm: khung 2 (CHẠM — nước đổ / tay chạm đất) chiếm bấy nhiêu phần, còn lại khung 3 hồi (0.12 s / 0.08 s). */
+  quickAnimImpactShare: 0.6,
   /** Nhát cuối (xong ô): bụi đất nhiều gấp mấy lần nhát thường. */
   tillFinishDustMultiplier: 2,
   /** Nhát cuối: khựng hình bao lâu (giây) — cảm giác "chốt". */
@@ -251,8 +258,11 @@ export const gameConfig = {
    * 1.5 = ô hiện 96px, nhân vật 96×144px, vẫn thấy 20×11 ô — đủ nhìn quanh ruộng.
    */
   cameraZoom: 1.5,
-  /** Đứng sau cây thì tán cây mờ còn độ đục này (0–1) để vẫn thấy nhân vật. */
-  treeFadeAlpha: 0.55,
+  /**
+   * Đứng dưới / sau tán cây thì tán mờ còn độ đục này (0–1) để vẫn thấy nhân vật. T-024: tán cây nhãn luôn vẽ trên
+   * nhân vật → mờ khi thân người chạm vùng lá (props.json gợi ý 50%).
+   */
+  treeFadeAlpha: 0.5,
   /** Độ mượt camera bám theo (0–1 mỗi frame). Nhỏ = trễ/mềm hơn, 1 = dính chặt. */
   cameraLerp: 0.12,
 
@@ -355,10 +365,13 @@ export const gameConfig = {
   waterDropLifeSeconds: 0.5,
   /** Gieo: số hạt rơi xuống ô. */
   plantSeedDropCount: 4,
-  /** Ô đã tưới phủ màu sẫm bấy nhiêu (độ đục lớp mực). */
-  wateredSoilAlpha: 0.32,
-  /** Cây khát (hôm qua không tưới) — ô phủ màu đất khô bấy nhiêu. */
-  thirstySoilAlpha: 0.35,
+  // Ô đã tưới: đổi lõi sang tile `soil-watered` (T-021) — thôi phủ lớp mực (bỏ wateredSoilAlpha / thirstySoilAlpha).
+  /** T-022: cây đang lớn dùng khung "lớn" khi tuổi / số ngày chín ≥ ngưỡng này (dưới ngưỡng: khung "non"). */
+  cropGrownFrameAt: 0.5,
+  /** T-022: cây khát (hôm qua không tưới) — tint ngả về màu đất khô (`palette.wood` #B98550) bấy nhiêu (0–1). */
+  cropThirstyTintAmount: 0.35,
+  /** T-022: cây khát co dọc còn bấy nhiêu (lá rũ). */
+  cropThirstyScaleY: 0.92,
   /** Hái: cây bật lên cao bấy nhiêu ô và mờ dần trong `harvestPopSeconds`. */
   harvestPopHeight: 0.7,
   harvestPopSeconds: 0.35,

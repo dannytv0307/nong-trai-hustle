@@ -35,7 +35,8 @@
 | Meme nhái (D-017) | 35 | Chữ meme, phụ đề mèo Mướp, câu đi kèm (§6.5). Chữ to ≤ 30 ký tự, phụ đề ≤ 60 |
 | Xóm làng (D-021) | 45 | 5 dân làng phụ × 4 câu (§3.13), câu đóng cửa / theo giờ của NPC chính ~15, câu tặng quà ~10 (Could). Bong bóng ≤ 60 ký tự |
 | Bố cục Xóm mới (D-027) | 10 | Cửa nhà ông Khướt (giọng bà Khướt) 2, nhà bỏ hoang 1, sạp chợ cóc 3, bến câu gãy 2, sửa bến (nhiệm vụ 4) 2 — §2.2 |
-| **Tổng** | **~406** | Cắt được nếu trễ: "Làng đồn", phản ứng NPC khi lên bậc, meme Should/Could, câu tặng quà, một nửa câu linh tinh (còn ~300) |
+| Mua sắm + kỳ kèo (D-037) | 30 | 9 câu chọn (3 người bán × 3 kiểu), kết quả ~2 câu × 3 kết quả × 3 người bán (18), mua ít / nhiều / thiếu tiền / lần 2 của cô Tám, 1 "Làng đồn" — §6.6 |
+| **Tổng** | **~436** | Cắt được nếu trễ: "Làng đồn", phản ứng NPC khi lên bậc, meme Should/Could, câu tặng quà, một nửa câu linh tinh (còn ~300) |
 
 **Tông giọng: Nên / Không nên**
 
@@ -320,7 +321,7 @@ Ngoại hình {ten} đổi khi **đủ level và tự bỏ tiền sắm bộ đ�
 
 | Mục | Nội dung |
 |---|---|
-| Vai trò gameplay | Bán hạt giống ở quầy hiên nhà (GDD §3.4) + tab Sắm sửa bậc 2. **Cái loa của làng**: giải thích trong truyện vì sao tiếng tăm lan đi. Nói câu **"Làng đồn hôm nay…"** ở màn tổng kết ngày (Should). Nhắc mùa ("mùa mưa đừng gieo cải"). |
+| Vai trò gameplay | Bán hạt giống ở quầy hiên nhà (GDD §3.4) + tab Sắm sửa bậc 2. Cho **"kỳ kèo"** (D-037): mê nghe khoác lác vì có chuyện để đồn (§6.6). **Cái loa của làng**: giải thích trong truyện vì sao tiếng tăm lan đi. Nói câu **"Làng đồn hôm nay…"** ở màn tổng kết ngày (Should). Nhắc mùa ("mùa mưa đừng gieo cải"). |
 | Tính cách (3 từ) | **Nhanh nhảu, tò mò, hào phóng (tin đồn)** |
 | Mong muốn / nỗi sợ | Muốn: biết mọi chuyện trước tiên. Sợ: có chuyện mà mình không biết. |
 | Visual hook | **Nón lá đội ngửa ra sau + cái quạt mo cau**, miệng luôn đang nói (há). |
@@ -806,6 +807,50 @@ Giọng: lầy, ngắn, như dân làng bình luận. Chữ to ≤ 30 ký tự, 
 - Ông Gật (rào vườn): "(bộp… bộp) Khá khen. Ừ. Tao gật. Mái Mơ thì không."
 - Chú Đục (cần tre): "(bộp… bộp…) Khá khen. Khó lắm đấy. Ý tôi là… khá khen."
 
+### 6.6 Mua sắm và "Kỳ kèo" (D-037 — luật ở GDD §3.9a)
+
+Giọng: người bán trêu {ten} kiểu hàng xóm thân, **chửi yêu mức nhẹ**: "khỉ gió", "cha bố nhà em", "trời đánh", "tiên sư cái mồm em" (nhắm vào cái mồm, không nhắm vào người). Người bán **không** dùng "đéo", "mẹ kiếp", "mả cha" — các từ mạnh đó để dành cho {ten} khi đã ra khỏi quầy (§6.3). Không đùa tục, không đùa tình dục. Câu khung thoại ≤ 90 ký tự, câu chọn ≤ 60 ký tự.
+
+**Cô Tám Thóc — quầy hạt** (`NpcData.lines` theo điều kiện; kỳ kèo theo kết quả)
+
+| # | Khi | Câu |
+|---|---|---|
+| 1 | Mở sạp (sáng) | "Hạt mới về! Mua đi em, chuyện thì chị kể kèm, không tính tiền." |
+| 2 | Mở sạp (chung) | "Lại đây em. Mua hạt hay mua tin? Tin hôm nay nóng lắm." |
+| 3 | Mua ít (1–2 gói) | "Mua có một gói? Khỉ gió, chị tưởng em sắp rước vợ cơ mà." |
+| 4 | Mua nhiều (≥ 10 gói hoặc ≥ 50 quan) | "Úi giời, mua cả thúng! Chiều nay cả xóm biết em giàu." |
+| 5 | Thiếu tiền (bấm Mua khi xám) | "Tiền không đủ mà đòi mua? Cha bố nhà em, quầy chị không bán chịu." |
+| 6 | Kỳ kèo **thành công** — khoác lác | (tròn mắt) "Thật á?! Tin này đáng tiền. Chị bớt, kể tiếp đi!" |
+| 7 | Kỳ kèo **thành công** — nịnh | "Ui giời, cái miệng! Thôi chị bớt cho. Đừng kể ai đấy." |
+| 8 | Kỳ kèo **thất bại** — kể khổ | "Em nghèo thì chị biết, cả làng biết. Giá vẫn thế em ạ." |
+| 9 | Kỳ kèo **thất bại** — nịnh | "Má chị hồng tự nhiên, không phải vì em. Giá cũ." |
+| 10 | Kỳ kèo **phản tác dụng** (đồn) | (che miệng) "Tiên sư cái mồm em! Tối nay cả làng biết em kỳ kèo bà bán hạt." |
+| 11 | Kỳ kèo **phản tác dụng** (thêm giá) | "Kỳ kèo à? Gói sau chị tính thêm tiền công ngồi nghe em than." |
+| 12 | Bấm Kỳ kèo lần 2 trong ngày | "Kỳ kèo một lần thôi em. Lần hai là chị đồn." |
+| — | "Làng đồn" tối hôm phản tác dụng (Should) | "Làng đồn: thằng {ten} Khoác kỳ kèo cô Tám bớt hai xu tiền hạt. Hai xu!" |
+
+**3 câu để chọn khi kỳ kèo** (nút, ≤ 60 ký tự; nhãn nhỏ = kiểu nói; mức = `kyKeoAffinity`)
+
+| Người bán | Nịnh | Kể khổ | Khoác lác |
+|---|---|---|---|
+| Cô Tám (nịnh: vừa · khổ: yếu · khoác: **mạnh**) | "Chị Tám hôm nay má hồng thế, bớt em tí!" | "Chị ơi, em còn mỗi cái nịt thôi." | "Bớt em tí, em kể chị tin nóng: em sắp cưới!" |
+| Ông Hai Bễ (nịnh: **mạnh** · khổ: vừa · khoác: yếu) | "TAY BÚA ÔNG HAI KHỎE NHẤT VÙNG! BỚT CHÁU TÍ!" | "Ông ơi, cháu nghèo, cuốc xong là hết gạo." | "Cuốc này cháu mang sang khoe cả làng Sung!" |
+| Chú Đục (nịnh: yếu · khổ: **mạnh** · khoác: vừa) | "Chú Đục làm khéo nhất làng, bớt tí chú!" | "(thở dài) Đời khổ quá chú ạ… như chú ấy." | "Gùi này cháu đeo, cả làng Sung phải hỏi thợ nào!" |
+
+(Ông Hai Bễ nghễnh ngãng nên {ten} nói với ông bằng CHỮ IN HOA ở câu nịnh — câu đùa nhỏ.)
+
+**Ông Hai Bễ — kết quả kỳ kèo**
+- Thành công: "KHỎE NHẤT VÙNG À? ĐÚNG! BỚT CHO MÀY!"
+- Thất bại: "HẢ? NÓI TO LÊN! …THÔI, GIÁ CŨ."
+- Phản tác dụng: "HẢ? THÊM TIỀN À? ĐƯỢC, TAO THÊM!"
+
+**Chú Đục — kết quả kỳ kèo**
+- Thành công: (thở dài) "Khổ thật… giống tôi. Thôi, bớt cho anh."
+- Thất bại: "Khéo thì phải thêm tiền. Ý tôi là… giá cũ."
+- Phản tác dụng: "Khó đấy. Khó lắm. Ý tôi là… lần này thêm tiền thật."
+
+Mỗi kết quả bản đầu cần ~2 câu/NPC (đây là câu chuẩn giọng; T-037 viết đủ phần còn thiếu).
+
 ## 7. Thuật ngữ & tên riêng
 
 | Tên | Nghĩa |
@@ -837,6 +882,7 @@ Giọng: lầy, ngắn, như dân làng bình luận. Chữ to ≤ 30 ký tự, 
 | **Thúng bán** | Thùng bán cuối ngày (GDD gọi "thùng bán"), hình cái thúng tre có nắp |
 | **Gùi** | Túi đồ đeo lưng bằng tre |
 | **Làng đồn** | Dòng tin đồn của cô Tám Thóc ở màn tổng kết ngày |
+| **Kỳ kèo** | Năn nỉ, mè nheo xin bớt tiền khi mua ở quầy cô Tám, lò rèn, xưởng mộc (D-037, GDD §3.9a). Khác hẳn mặc cả sính lễ |
 | **Ăn cháo** | Ngày thiếu tiền cơm (GDD §3.11) |
 | **Meme nhái** | Khoảnh khắc hài nhái cảm xúc/câu nói của meme mạng, do nhân vật làng Lầy đóng (GDD §3.15, D-017) |
 | **Sĩ diện (số trừ)** | Số "−37 SĨ DIỆN" bay lên khi bị chê. Chỉ để cười, không phải chỉ số thật |
@@ -858,6 +904,7 @@ Giọng: lầy, ngắn, như dân làng bình luận. Chữ to ≤ 30 ký tự, 
 - (D-021) **U Hến ở chung nhà với {ten}**, không tách nhà riêng. Ông Khướt không bao giờ rời gốc đa (kể cả ban đêm) — vừa là câu đùa vừa đỡ code. Anh Tráng là một trong đám trai làng chê {ten} ở intro và là người dọn cây đổ mở Núi (không thêm câu vào intro, chỉ thêm 1 câu ở lúc mở Núi). Dân làng phụ không có chân dung, không giao nhiệm vụ.
 - (D-027) Nhà kiểu Bắc Bộ: làng Lầy phần lớn mái rạ vách đất, vài nhà ngói cũ tường gạch mộc (cô Tám Thóc, ông Gật, bà Ba Trầu); nhà {ten} là nhà tranh nghèo nhất; mọi nhà quay mặt về nam. Mỗi dân làng có một nhà trong xóm (đêm về đúng nhà đó), trừ ông Khướt (bị bà Khướt cài then cửa, ngủ gốc đa). Trẻ trâu ở chung nhà Cu Sún. Chợ cóc đầu xóm không có người bán riêng (không thêm NPC). Cô Tám Thóc vẫn xưng "chị" với {ten}.
 - (D-017) Thêm **mèo Mướp** (nhà ông Gật) chỉ để đóng meme mèo phụ đề; không có sprite trên bản đồ. Thẻ meme "chọn / không chọn" và "Ổn mà" luôn vẽ {ten} bậc 1. Tiếng mèo dùng vài tiếng đệm "ja, nein, kaputt, sehr" pha tiếng bịa, không nhại cả câu tiếng nước nào.
+- (D-037) Kỳ kèo chỉ có ở 3 quầy trong Xóm. **Bà Cân không cho kỳ kèo** (sòng phẳng, "cân sao bán vậy"), **cụ Bá Kẹo cũng không** ("Nhà tôi không kỳ kèo.") — để màn mặc cả sính lễ giữ vị riêng. Người bán chửi yêu mức nhẹ hơn {ten}.
 
 ## Changelog
 
@@ -871,3 +918,4 @@ Giọng: lầy, ngắn, như dân làng bình luận. Chữ to ≤ 30 ký tự, 
 - 2026-10-10 — D-021 (hoàn tất phần bị ngắt): nhà cô Ngóng sát hiên nhà {ten} (khớp tọa độ GDD §5); §8 ghi chú giả định cũ (U Hến, ông Gật là Should) đã được D-021 nâng sprite lên Must. Chi tiết xóm còn chờ người dùng duyệt (GDD §15 câu 21).
 - 2026-10-10 — (ghi bổ sung ngày 2026-10-13) Người dùng đã duyệt D-021 ngày 2026-10-10: làm đầy đủ Must, một bản đồ Xóm liền, cửa hàng mở 6–19h (GDD §15 câu 21). Dòng trên "chờ duyệt" đã lỗi thời.
 - 2026-10-13 — D-027: v1.4, **bố cục Xóm theo phác thảo người dùng** + **bỏ Suối** + **đổi tên**. §2.2 viết lại thành "Ba khu": Xóm 60×42, mô tả kiến trúc Bắc Bộ, khuôn viên nhà {ten} + ruộng góc tây-bắc, nhà cô Ngóng ngay dưới, quầy hạt ở hiên nhà cô Tám, lò rèn và xưởng mộc ở hàng nhà giữa, nhà dân làng (cửa nhà ông Khướt cài then), nhà bỏ hoang, chợ cóc đầu xóm (chỉ trang trí + quán chè), hồ làng + 2 bến câu + bến nước, cây đa bên hồ, đình; còn 2 cổng; mục Suối gạch bỏ; chợ làng Sung ghi rõ là chợ thật. §1: lý do mở Lv 4 thành "bến câu gãy", ngân sách chữ +10 câu (~406), dép tổ ong câu dưới hồ. Chị Thóc → **cô Tám Thóc**, ông Bễ → **ông Hai Bễ** (thay toàn file, kể cả changelog cũ; ghi chú tên ở §3.6, §3.8). §3.7 chú Đục sửa bến câu. §3.3 bà Ba Trầu ngồi quán chè. §3.13 chỗ đứng mới (quán chè ở chợ cóc, gốc đa bên hồ, bến nước). §3.14 thêm câu cho chỗ mới. §4 nhiệm vụ 4 sửa bến câu. §6 câu dép, gét gô "Hồ ơi". §7 thuật ngữ mới, bỏ "Đầu ngõ". §8 giả định D-027.
+- 2026-10-14 — D-037: v1.5, **"Kỳ kèo"** (mặc cả nhẹ khi mua). Thêm **§6.6**: luật chửi yêu của người bán (nhẹ: khỉ gió, cha bố nhà em, trời đánh, tiên sư cái mồm em; không dùng từ mạnh của {ten}, không tục), 12 câu cô Tám (mở sạp, mua ít / nhiều, thiếu tiền, kỳ kèo thành công / thất bại / phản tác dụng, lần 2) + 1 "Làng đồn", 9 câu chọn (3 người bán × nịnh / kể khổ / khoác lác) kèm mức ăn của từng người, câu kết quả của ông Hai Bễ và chú Đục. §3.8 vai trò cô Tám, §7 thuật ngữ "Kỳ kèo", ngân sách chữ +30 (~436). Sạp bà Cân và nhà cụ Bá Kẹo không có kỳ kèo (Giả định ở §8).

@@ -23,6 +23,15 @@ export interface CropData {
   harvestXp: number;
   /** Ghi chú thiết kế (không hiện trong game). */
   note?: string;
+  /**
+   * T-022: khóa texture dải hình cây `props/<sprite>.png` (3 khung 64×96: 0 non, 1 lớn, 2 chín). Không có → hạt/mầm/héo
+   * dùng hình chung, chín vẽ bằng code.
+   */
+  sprite?: string;
+  /** T-022: khóa texture icon nông sản `items/<icon>.png` (128×128). Không có → icon vẽ bằng code. */
+  icon?: string;
+  /** T-022: khóa texture icon túi hạt `items/<seedIcon>.png` (128×128). */
+  seedIcon?: string;
 }
 
 /**

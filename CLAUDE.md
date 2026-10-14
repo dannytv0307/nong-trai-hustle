@@ -19,7 +19,7 @@ Người dùng là **người mới hoàn toàn** với làm game: họ có ý t
 | `/idea <ý tưởng>` | Ý tưởng mới nảy ra giữa chừng |
 | `/gen-art <asset>` | Gen hình ảnh ngay |
 | `/gen-audio <âm thanh>` | Gen nhạc / SFX ngay |
-| `/git-commit [nội dung] [push]` | Lưu commit cục bộ (tác giả vudzai, không Co-Authored-By); kèm `push` mới đẩy lên GitHub |
+| `/git-commit [nội dung]` | Commit **toàn bộ** thay đổi (tác giả vudzai, không Co-Authored-By) và **tự push** lên GitHub |
 | `/git-pull [nhánh]` | Kéo code mới từ GitHub về an toàn, không làm mất việc đang dở |
 
 ## Đội agent (`.claude/agents/`)
@@ -77,6 +77,10 @@ Tài liệu viết **tiếng Việt có dấu**; prompt gen ảnh/nhạc viết 
   - Scene: `Boot → Preload → Garden` (+ `GardenHud` chạy song song: Sức, tiền, đồng hồ, hotbar, gùi, các cửa sổ); `?scene=sandbox` mở màn thử cũ. Debug hook QA: `window.__game` (Phaser.Game); Garden đặt `registry.gardenReady = true`, đọc trạng thái qua `getScene('Garden').debugState` và các hàm `debug*` trong `GardenScene.ts`. Cửa sổ/tạm dừng dùng `PauseReasons` (`src/systems/pause.ts`); phím thử G/F8/F9 chỉ có ở bản dev (`devCheatsEnabled`)
   - Lưu game (T-008, D-025): localStorage key `bph-save` (bản hỏng → `bph-save-corrupt`); type + kiểm tra ở `@bph/shared` (`src/save/gameSave.ts`), client `src/systems/save.ts` + `src/net/saveLocal.ts`. E2E muốn `page.reload()` vào Ngày 1 sạch thì gọi `debugClearSave()` trước
   - Nông cụ (T-009, D-026): `src/data/tools.json` — cuốc `cuoc-go` là món trong gùi, game mới ở **ô 1** (đang chọn), hạt từ ô 2; chỉ cuốc khi ô đang chọn là cuốc (`canTillWithSelected` ở `systems/items.ts`); save thiếu cuốc tự thêm khi nạp (`SaveRules.requiredItems`). Hoạt ảnh động tác: spritesheet khung 128×128 (`actionSpritesheets`, `HERO_ACTION_FRAME`, origin chân 111/128) — khung tính từ tiến độ nhát (`systems/toolAnim.ts`), không dùng anim Phaser. E2E muốn cuốc thì giữ ô 1 (hoặc `page.keyboard.press('1')`); `debugState.hoeFrame`, `inventory.heldToolUse`
+  - Động tác tưới / cúi (T-023): dải `hero-t1-{hoe,water,bend}-<hướng>` cùng chuẩn (khoá `heroActionKey`), việc → dáng ở `actionAnimFor`; việc nhanh chỉ hiện dáng khi ĐỨNG (đang đi giữ khung bước — `showActionPose`); `debugState.actionAnim`
+  - Đồ vật có hình (T-024): cỡ ảnh, chân đế, cửa, `sellerSpot`… đọc từ `public/assets/art/props/props.json` (`systems/props.ts`, nạp bằng `import.meta.glob`); `gardenLayout.json` ghi vật dạng `{ prop, x, y }` = ô trên-trái **chân đế**, `resolveLayout` (garden.ts) đổi ra TileRect. Mảnh rào tre / dâm bụt, thúng đóng/hé, tán che: `systems/propArt.ts`; ảnh nạp theo `PROP_IMAGES` (assets.ts). Tán cây depth cố định trên nhân vật. `debugState.props`. Ảnh chụp tự kiểm: `node web/e2e/diag-t023-t024.mjs`
+  - Nền tile (T-021): bản đồ chỉ ghi *loại nền* từng ô (cỏ / lối / sân / ruộng — `gardenLayout.json` `path`, `yard`, `pathBranches`, nền nhà tính là đất), code dựng Tilemap 4 lớp (lõi → viền luống → mép cỏ → góc lõm) từ các tấm `TILE_SHEETS` (`config/assets.ts`, khóa `tile-<tên>`, nạp bản `-ex` margin 1 spacing 2); logic chọn ô ở `systems/groundTiles.ts`. Ảnh thiếu → texture tạm vẽ bằng code + `console.warn`. QA đọc `debugState.ground`
+  - Cây + icon (T-022): `crops.json` mỗi cây có `sprite` / `icon` / `seedIcon` = khóa texture = tên file (`props/`, `items/`); thêm cây chỉ cần dữ liệu + file. Khung cây chọn ở `systems/cropArt.ts`; icon món qua `itemIconKey` (`systems/items.ts`), không có → vẽ bằng code. QA đọc `debugState.crops[].sprite/frame`, `hud.hotbarImages`. Script chụp nhanh nền + cây + icon: `node web/e2e/diag-t021.mjs` (cần client ở 5173)
   - E2E chạy `workers: 1`; test chờ theo trạng thái game (`expect.poll` / đếm frame), tránh `waitForTimeout` cố định (BUG-006)
 - `web/e2e/` (`@bph/e2e`) — Playwright (chromium), smoke test ở `tests/smoke.spec.ts`
 - `web/server/` (`@bph/server`) — Node 24 + TS strict + Fastify 5 + Prisma 7 (adapter `pg`) + Vitest. `src/app.ts` dựng app (test bằng `app.inject`), `src/server.ts` mở cổng, `src/config.ts` đọc `.env` có kiểm tra, `src/routes/`, sơ đồ CSDL `prisma/schema.prisma`, migration `prisma/migrations/`
@@ -90,5 +94,5 @@ Tài liệu viết **tiếng Việt có dấu**; prompt gen ảnh/nhạc viết 
 
 - Mỗi lần một bước/task nhỏ, game luôn chạy được; kiểm chứng trước khi báo xong và nói rõ cái gì đã kiểm, cái gì người dùng cần tự thử.
 - Ý tưởng ngoài scope → "Để sau" trong GDD. Từ chặng 4 trở đi hạn chế thêm tính năng.
-- Commit: khi `/next` hoàn thành một bước, tạo commit điểm lưu cục bộ (chỉ push lên GitHub `origin` khi người dùng yêu cầu). Ngoài ra chỉ commit khi người dùng yêu cầu.
+- Commit: khi `/next` hoàn thành một bước, tạo commit điểm lưu cục bộ (chỉ push lên GitHub `origin` khi người dùng yêu cầu — gõ `/git-commit` tính là yêu cầu: commit toàn bộ + push). Ngoài ra chỉ commit khi người dùng yêu cầu.
 - Không tự thêm thư viện lớn, không tạo tài nguyên GCP tốn phí, không deploy khi chưa hỏi người dùng.

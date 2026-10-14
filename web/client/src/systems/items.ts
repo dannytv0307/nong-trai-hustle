@@ -74,6 +74,17 @@ export function itemInfo(id: string): ItemInfo | null {
   return null;
 }
 
+/**
+ * T-022: khóa texture icon thật của món (bảng ánh xạ nằm trong dữ liệu — tools.json `icon`, crops.json `icon` /
+ * `seedIcon`; tên file do art đặt, không cần trùng id món). null = món chưa có icon → vẽ bằng code.
+ */
+export function itemIconKey(id: string): string | null {
+  const tool = toolOf(id);
+  if (tool) return tool.icon || null;
+  if (isSeedItem(id)) return cropById(id.slice(SEED_PREFIX.length))?.seedIcon ?? null;
+  return cropById(id)?.icon ?? null;
+}
+
 /** Cây sẽ mọc từ món hạt này (null nếu không phải hạt). */
 export function cropOfSeed(id: string): string | null {
   return isSeedItem(id) ? id.slice(SEED_PREFIX.length) : null;

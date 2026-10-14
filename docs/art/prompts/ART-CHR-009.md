@@ -1,20 +1,20 @@
-# ART-CHR-009 — {ten} động tác CÚI (gieo / hái / dọn / hái lượm) 4 hướng (bậc 1) — NHÁP
+# ART-CHR-009 — {ten} động tác CÚI (gieo / hái / dọn / hái lượm) 4 hướng (bậc 1)
 
-> **NHÁP — CHƯA GEN.** Làm ở bước **4.2** cùng lượt với ART-CHR-007/008. Khung, neo, cách cắt, ref theo hướng: **giống [ART-CHR-007](ART-CHR-007.md)**.
+> **Đã gen 2026-10-14 (T-020).** Đổi so với nháp: **4 khung** (không phải 3) để cùng chuẩn với cuốc ART-CHR-007 — khung chỉ số 2 = chạm, game-dev dùng chung hàm tính khung. Khung 128×128, tâm bàn chân x 64, đáy chân y 110, `setOrigin(0.5, 111/128)`. Cắt bằng `tools/action_split.py` (chuyển từ `hoe_split.py`). Prompt thật: `art-source/raw/lot1/prompts/{bend-right,bend-down,bend-up}.txt`. Xem: `art-source/raw/lot1/actions-strip.png`, GIF `art-source/raw/lot1/hero-anim/gif/actions-<hướng>.gif`.
 > **Một động tác dùng chung cho nhiều việc:** gieo hạt, hái cây chín, dọn cây héo, hái nấm/măng/sim (§3.5). Khác nhau ở hiệu ứng code (hạt rơi / cây bật lên bay vào gùi), không cần sprite riêng → tiết kiệm 3 bộ.
 
 | Mục | Giá trị |
 |---|---|
 | Loại | CHR (animation khung) |
 | Dùng ở | Vườn, Núi — gieo, hái, dọn (GDD §3.3 bảng "Click vào"); juice §8 |
-| Tỉ lệ gen (`--aspect`) | **16:9** — 3 khung một hướng; gen phải, xuống, lên; trái = lật gương |
-| Kích thước cuối | dải **384×128** = 3 khung 128×128 (tay không cầm gì nên vươn ít; giữ 128 cho đồng bộ neo) |
+| Tỉ lệ gen (`--aspect`) | **21:9** `--hq` — một ảnh = **4 khung** một hướng (như cuốc); gen phải, xuống, lên; trái = lật gương từng ô |
+| Kích thước cuối | dải **512×128** = 4 khung 128×128 (bản 2x 1024×256 ở `art-source/raw/lot1/hero-anim/`) |
 | Nền khi gen | `#00FF00` |
 | Pivot | bottom — hộp 64×96 tại x 32–95, y 16–111 |
-| Animation | 3 khung: 50% / 25% / 25% `actionDuration`; **khung 2 = chạm** |
+| Animation | **4 khung, khung chỉ số 2 = CHẠM** — y hệt cuốc: dùng thẳng `hoeFrameAt` (`systems/toolAnim.ts`) với `actionImpactAt` |
 | Reference (`--ref`) | như ART-CHR-007 theo hướng |
 | File trong game | `web/client/public/assets/art/characters/hero-t1-bend-<down\|up\|left\|right>.png` |
-| Trạng thái | **Planned (NHÁP)** — chưa gen |
+| Trạng thái | **Approved** (người dùng duyệt 2026-10-14; chờ game-dev gắn T-023) |
 
 ## Mô tả (tiếng Việt)
 
@@ -24,9 +24,12 @@
 
 | Khung | Tư thế | 0.4 s | Tỉ lệ |
 |---|---|---|---|
-| 1 | Khom xuống, gối chùng, tay bắt đầu với | 0–200 ms | 0–50% |
-| 2 | **CHẠM**: cúi thấp nhất, tay chạm đất ở ô trước mặt (bàn tay chụm) | 200–300 ms | **50–75%** |
-| 3 | Đứng dậy nửa chừng, tay nắm kéo lên ngang gối (chỗ game gắn icon cây vừa hái) | 300–400 ms | 75–100% |
+| 0 | Đứng, gối chùng, nhìn xuống đất trước chân | 0–100 ms | 0–25% |
+| 1 | Khom xuống, một tay chống gối, tay kia với | 100–200 ms | 25–50% |
+| 2 | **CHẠM**: cúi thấp nhất, tay chụm chạm đất ô trước mặt, nón chúc che mặt | 200–300 ms | **50–75%** |
+| 3 | Đứng dậy, tay nhón giơ lên (chỗ gắn icon vừa hái) | 300–400 ms | 75–100% |
+
+(Cập nhật 2026-10-14: 4 khung như cuốc.) **Điểm tay khung 3** (px trong ô 128, gắn icon cây vừa hái, đo thô ±4): phải (90, 65) · trái (38, 65) (lật) · xuống (36, 59) · lên (88, 61).
 
 Game: khung 2 → hạt rơi/ô lún (gieo) hoặc cây bật lên (hái); khung 3 → icon bay vào gùi. Đề xuất game-dev gắn icon vào tay theo điểm cố định của khung 3 (ghi tọa độ khi cắt sprite).
 
@@ -58,4 +61,6 @@ Avoid: holding any object, tools, plants, vegetables, seeds, basket, kneeling on
 
 | Ngày | Lần | Thay đổi prompt | Kết quả (lỗi theo checklist) | Chọn |
 |---|---|---|---|---|
-| — | — | Chưa gen (nháp 2026-10-10) | — | — |
+| 2026-10-14 | phải v1 (2 hq 21:9, ref ảnh nghiêng) | 4 khung READY / GOING DOWN / TOUCH / RISE, tay không | #1 đạt (khung chạm ngồi xổm, nón chúc, tay chụm chạm đất; khung 4 nhón tay khoe) | **#1** |
+| 2026-10-14 | xuống v1 (2 hq, ref mặt + lưng) | Biến thể FRONT | #1 đạt (khung chạm chỉ thấy chóp nón — rất dễ nhận; khung 4 hơi xoay 3/4, chấp nhận) | **#1** |
+| 2026-10-14 | lên v1 (2 hq, ref lưng) | Biến thể BACK | #2 đạt (khung chạm mông chổng — lộ **miếng vá chàm ở đũng quần**, chỉ thấy khi cúi: giữ làm câu đùa, Giả định); #1 các khung quay 3/4 | **#2** |

@@ -54,12 +54,12 @@ Màu lấy cảm hứng từ màu tranh Đông Hồ (đen than lá tre, đỏ so
 | Xanh nước (hồ, giếng) | `#6E9FA6` | 145 | Mặt nước sáng |
 | Trắng điệp (highlight, nón lá, giấy UI) | `#EFE4C8` | 228 | Điểm sáng, mắt, mặt nón lá, giấy UI, bọt nước |
 
-Màu phụ cho phép khi cần (chỉ thêm khi asset bắt buộc, ghi changelog): tím sim `#6B3F6E`, đỏ gạch làng Sung `#9C4A32`, da người `#E2B48A`.
+Màu phụ cho phép khi cần (chỉ thêm khi asset bắt buộc, ghi changelog): tím sim `#6B3F6E`, đỏ gạch làng Sung `#9C4A32`, da người `#E2B48A`, **đất nện** `#D9B577` (L 184 — lối đi, sân đất; lấy từ ảnh mẫu `sample-dat-nen-bui-cay.png`) + **vệt mòn sáng** `#E6CD8B` (L 205, chỉ dùng trong texture lối đi), **hồng hoa mười giờ** `#C96A7A` (chỉ cho cánh hoa nhỏ). Xem §7.1.
 
 **Kiểm tra thang xám (đã tính):**
 - Đạt: cây con (156) và rơm/xu (171) nổi rõ trên đất cuốc (85); viền mực (36) tách mọi thứ khỏi nền; trắng điệp (228) luôn là điểm sáng nhất.
 - **Rủi ro 1:** đỏ son (84) ≈ nâu đất (85) ≈ xanh đồng (90) ở thang xám. Vì vậy **nguy hiểm không được chỉ dựa vào màu đỏ**: vật nguy hiểm (gai, cây héo, rắn, mũi tên) phải có **hình nhọn/răng cưa + viền mực dày + điểm trắng điệp**; vật có lợi **tròn + vàng hoa hòe**. Nón lá của {ten} (228) là điểm sáng nhất trên bản đồ nên nhận ra ngay ở mọi nền; quai đỏ chỉ là điểm nhấn màu.
-- **Rủi ro 2:** xanh nước (145) ≈ xanh mạ (156) ≈ gỗ (143). Mép nước bắt buộc có **viền mực + một dải bọt trắng điệp**; đường mòn gỗ/đất khô có viền mép đất nâu.
+- **Rủi ro 2:** xanh nước (145) ≈ xanh mạ (156) ≈ gỗ (143). Mép nước bắt buộc có **viền mực + một dải bọt trắng điệp**; đường mòn gỗ/đất khô có viền mép đất nâu. Lối đi trong làng dùng **đất nện `#D9B577` (184)** — sáng hơn cỏ (156) ~30 bậc và có vai đường nâu `#7A4B2A` (85) chạy dọc mép, nên tách khỏi cỏ cả ở thang xám (đo trên ảnh mẫu: lối 187 / cỏ 158 / vai đường 114); vẫn tối hơn nón lá (228) nên {ten} không chìm khi đứng trên đường.
 - Mỗi asset mới phải qua `process_image.py preview` (sáng / tối / xám) trước khi duyệt.
 
 ## 6. Hình khối, tỉ lệ, ánh sáng
@@ -94,6 +94,42 @@ Màu phụ cho phép khi cần (chỉ thêm khi asset bắt buộc, ghi changelo
 | Vật phẩm, icon | Nhìn chính diện hơi nghiêng, đơn lẻ, giữa khung |
 | Chân dung thoại | Chính diện hoặc 3/4, ngang ngực, tông tranh dân gian |
 | Ảnh toàn cảnh (menu, cưới) | Tự do bố cục, giữ đúng nét và màu |
+
+### 7.1 Mặt đất & thảm thực vật (người dùng yêu cầu 2026-10-14)
+
+> Ảnh mẫu: `art-source/reference/sample-dat-nen-bui-cay.png` (chờ người dùng xác nhận). Ảnh này chỉ để chốt **hình dung**; game không dùng nguyên ảnh mà dựng từ tile + sprite rời.
+
+**Mặt đất — 3 loại, mỗi loại có vai trò rõ:**
+
+| Loại | Ở đâu | Hình | Màu |
+|---|---|---|---|
+| **Đất nện (lối đi)** | Mọi lối đi trong làng và vườn: đường xóm, ngõ trái, ngõ giữa, đường cái, lối từ cửa nhà ra cổng, lối quanh ruộng | Đất nện chặt, phẳng, nhẵn: vài vệt mòn sáng loang, **2 vệt bánh xe** mờ chạy dọc (chỉ ở đường xóm/đường cái; ngõ nhỏ không có), vài **dấu chân trần**, lác đác **sỏi nhỏ** (hình bầu dục viền mực). **Không phải cỏ**, không lát đá, không đá kè mép | Nền `#D9B577`, vệt mòn `#E6CD8B`, vệt bánh xe/vết chân nét `#B98550` + mực mảnh |
+| **Mép lối đi** (chuyển sang cỏ) | Mọi chỗ đất nện giáp cỏ | **Mép mềm**: cỏ lấn vào đất thành **răng cưa tròn nhỏ** không đều (búi cỏ nét lặp), dưới mép cỏ là **vai đường** nâu sẫm hẹp (~6–8 px ở ô 64) — không có đường kẻ thẳng, không bó vỉa | Vai đường `#7A4B2A`, viền mực `#2E2118` mảnh ở mép cỏ |
+| **Sân nhà** | Trước hiên mỗi nhà (sân {ten} y 7–8 GDD §5, sân giếng, bãi trống) | Sân nhà tranh = **đất nện** như lối đi nhưng **không vệt bánh xe**, ít sỏi; sân nhà ngói, sân đình = **gạch bát** (ART-TIL-007). Sân nối liền với lối đi (không có mép cỏ giữa sân và ngõ ở chỗ cổng) | Như lối đi / gạch `#9C4A32` |
+| **Cỏ** | Mọi phần còn lại (khe giữa nhà, vườn, bờ hồ, mép lũy tre) | Như ART-TIL-001 | `#93B04F` + nét `#3D6B4B` |
+
+**Thảm thực vật — theo cụm, không rải đều.** 4 nhóm, vẽ thành sprite rời (tách nền `#FF00FF` vì nhiều xanh lá), góc 3/4 như vật thể, gốc ở đáy ảnh:
+
+| Nhóm | Gồm | Kích thước | Hình (giữ quy tắc tròn = hiền) | Va chạm |
+|---|---|---|---|---|
+| **Bụi cỏ** | cỏ gà thấp, cỏ lau thấp (bông nâu), búi cỏ có vài hoa dại | ≤ 1 ô | Búi nét lá lặp, gọn | Không chặn (đi xuyên được; lá rung bằng code — Should) |
+| **Khóm tre lẻ** | 4–6 cây tre + chùm lá lông chim, 1 gốc chung | 1×1 gốc, cao 2–3 ô | Khác **lũy tre viền** (bức tường tre dày ở mép bản đồ): khóm lẻ thưa, thấy rõ từng thân | Chặn 1 ô gốc |
+| **Lùm cây** | chè tàu (gối tròn lá nhỏ, cắt tỉa), duối (bụi lá nhỏ rậm, hơi bù xù), cây bụi tán thấp | 1–2 ô | Khối **gối tròn** tô lá lặp, 2 tông xanh `#93B04F`/`#3D6B4B` | Chặn theo chân đế |
+| **Lùm hoa** | dâm bụt (bụi lá tròn xanh đậm + hoa đỏ son `#A93226`), hoa mười giờ (thảm hồng `#C96A7A` thấp), cúc dại (trắng điệp nhụy vàng), **sen** ở hồ (thuộc ART-ENV-006) | 1 ô (dâm bụt tới 2 ô) | Hoa là chấm tròn nổi trên nền lá | Dâm bụt chặn; mười giờ, cúc không chặn |
+
+**Quy tắc đặt (cho `game-dev` khi dựng bản đồ trong Tiled):**
+1. **Không bao giờ đặt trên lối đi hay sân** — kể cả bụi cỏ không chặn (lối phải sạch, đọc ngay là đường).
+2. Đặt **thành cụm 2–4 món khác nhóm**, giữa các cụm để trống cỏ ≥ 2–3 ô. Mật độ: khoảng **1/4–1/3 diện tích cỏ hở** có cây; cỏ trống vẫn nhiều hơn.
+3. Chỗ đặt ưu tiên: **dọc mép đường** (cách mép 0–1 ô, không chắn cửa/cổng), **góc rào** (dâm bụt hợp nhất), **quanh giếng / gốc đa / bờ hồ** (bờ hồ: lau sậy + cỏ lau; gốc đa: cỏ + hoa dại), **khe 1–2 ô giữa nhà** (lùm cây chặn đi tắt — GDD §5 "bụi cây").
+4. Mỗi cụm có **một vật cao** (khóm tre hoặc lùm cây) + 1–2 vật thấp (bụi cỏ, hoa) để có nhịp cao–thấp.
+5. Lặp: cùng một sprite không đứng cạnh nhau; dùng lật ngang (`setFlipX`) để có thêm biến thể miễn phí.
+6. Không che vật tương tác (thùng bán, quầy, bến, ruộng): chừa ≥ 1 ô quanh chúng.
+7. Ruộng {ten} chưa mở: vài bụi cỏ + đá nhỏ trên ruộng (gỡ đi khi mở ruộng).
+
+**Cách dựng lối đi (rẻ, khớp code hiện tại — ô 64, texture lõi 4×4 lấy theo `x mod 4, y mod 4`):**
+- AI chỉ gen **texture lõi** đất nện 4×4 ô (seamless), ảnh mẫu dùng làm `--ref` màu/nét.
+- **Mép mềm do script vẽ** thành lớp phủ trong suốt đặt trên đất nện: bộ **16 ô 4-bit** (bitmask cạnh N=1 E=2 S=4 W=8 giáp cỏ) + **4 ô góc lõm** (xét ô chéo, cho ngã ba/ngã tư như ảnh mẫu) = 20 ô. Mép vẽ bằng: dải vai `#7A4B2A` + răng cưa cỏ cắt từ texture cỏ + viền mực mảnh. Không cần bộ 47 ô ở 64 px.
+- Trong Tiled chỉ vẽ **loại nền** mỗi ô (cỏ / đất nện / sân gạch / ruộng / nước); code chọn ô viền lúc nạp (đã ghi ở asset-list §3).
 
 ## 8. Character tokens
 
@@ -209,3 +245,6 @@ Thư mục gốc: `web/client/public/assets/art/` (nếu chưa có `web/client/`
 - 2026-10-09 — ART-CHR-003 (4 bậc ngoại hình, D-015): thêm §10.3 bài học (prompt "thay đồ giữ người", cách tả khăn xếp không thành mũ/turban, nón đeo sau lưng, cắt chung khung cho các bậc). Màu áo the bậc 4: nâu đỏ sẫm giữa `#7A4B2A` và `#9C4A32` (Giả định, không thêm màu khóa).
 - 2026-10-09 — ART-CHR-004 (chu trình đi bậc 1): thêm §10.4 bài học (sheet 21:9 nhiều khung, ref lưng để khóa góc chính diện, lệnh `sheet-split`).
 - 2026-10-13 — ART-CHR-007 cuốc 4 hướng + ART-ITM-001 icon cuốc (T-009): thêm §10.5 bài học.
+- 2026-10-14 — Người dùng muốn lối đi trong làng là đất nện + có bụi cỏ, bụi tre, lùm cây, lùm hoa: thêm **§7.1 Mặt đất & thảm thực vật** (3 loại mặt đất, 4 nhóm cây theo cụm, quy tắc đặt, cách dựng mép lối đi 16+4 ô bằng script). Thêm màu phụ đất nện `#D9B577`, vệt mòn `#E6CD8B`, hồng mười giờ `#C96A7A` (§5). Ảnh mẫu `art-source/reference/sample-dat-nen-bui-cay.png` (3 ảnh nhanh, 0,20 USD).
+- 2026-10-14 — T-019 (Lô 1 phần 1): bài học tile — ref thứ 3 cùng loại làm model chép gần y ảnh ref (lổn nhổn chép vỡ cỏ) → chỉ ref ảnh mẫu + ảnh **giai đoạn kề sau**; gen "cục đất" dễ thành đá → tả là luống méo + vụn đất nhỏ; cỏ thưa model xếp thành lưới đều → script rải lại búi (không cắt qua mép ô). Lõi đất nện bỏ vệt bánh xe (texture lặp 2 chiều). Mép cỏ / viền luống / đất tưới do `tools/tile_edges.py` vẽ.
+- 2026-10-14 — T-020 (Lô 1 phần 2): bài học — (1) vật thể/nhà dễ bị vẽ **chéo góc kiểu isometric** (nhà, bếp, quầy, giường đều có 1/2 bản chéo) → thêm khối "seen STRAIGHT FROM THE FRONT… front face a flat rectangle parallel to the bottom edge, NO side face" + Avoid "isometric cube, object seen from a corner"; (2) dáng hướng xuống với ref mặt 3/4 lại ra 3/4 → tả "body square to the camera, tool centered, spout pointing straight toward the viewer"; (3) sheet nhiều món dễ vẽ cỡ đều nhau → thu từng món về cỡ đích riêng (bụi cỏ ≤ 1 ô, dâm bụt 1–2 ô); (4) tách nền magenta bằng **khóa màu** (r−g>60 và b−g>60) thay cho loang từ mép — xóa luôn khe nan giường và bóng tím; (5) rào lặp: tre cắt đúng 1 nhịp tâm trụ→tâm trụ, dâm bụt lặp bằng **soi gương** (A + lật A) — không lộ nối. Động tác tưới/cúi đổi sang 4 khung như cuốc.

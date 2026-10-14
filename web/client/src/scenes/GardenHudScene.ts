@@ -166,6 +166,10 @@ interface SlotView {
 /** Icon đang bay: từ toạ độ màn (ô ruộng) tới ô hotbar / nút gùi. */
 interface Flyer {
   g: Phaser.GameObjects.Graphics;
+  /** T-022: icon ảnh thật (ẩn khi món vẽ bằng code). */
+  img: Phaser.GameObjects.Image;
+  /** Tỷ lệ gốc của ảnh để ra cỡ hiện (0 = đang dùng Graphics). */
+  imgBase: number;
   t: number;
   fromX: number;
   fromY: number;
@@ -190,6 +194,8 @@ const HINT_SIDE = ['Chuột phải: ăn món đang chọn'];
 const HINT_DEV = ['Phím thử: G qua đêm', 'F8 −20 Sức · F9 +1 giờ'];
 
 const FLY_POOL = gameConfig.actionQueueMax + 2;
+/** T-022: cỡ hiện (px màn) của icon ảnh 128×128 (có đệm 6 px) ở nút sạp hạt và icon bay — ngang cỡ icon vẽ bằng code. */
+const ICON_IMAGE_SIZE = { stall: 80, flyer: 72 } as const;
 /** Icon bay vồng lên bao nhiêu px trước khi rơi vào ô. */
 const FLY_ARC = 140;
 
@@ -356,7 +362,15 @@ export class GardenHudScene extends Phaser.Scene {
     this.buildNight();
 
     for (let i = 0; i < FLY_POOL; i++) {
-      this.flyers.push({ g: this.add.graphics().setVisible(false).setDepth(100), t: 0, fromX: 0, fromY: 0, target: -1 });
+      this.flyers.push({
+        g: this.add.graphics().setVisible(false).setDepth(100),
+        img: this.add.image(0, 0, '__DEFAULT').setVisible(false).setDepth(100),
+        imgBase: 0,
+        t: 0,
+        fromX: 0,
+        fromY: 0,
+        target: -1,
+      });
     }
 
     const onGained = (e: ItemGainedEvent) => this.spawnFlyer(e);
@@ -880,8 +894,17 @@ export class GardenHudScene extends Phaser.Scene {
     for (let i = 0; i < items.length; i++) {
       const b = stallButtonRect(i, items.length);
       const bg = this.add.graphics();
-      const icon = this.add.graphics().setPosition(b.x + 56, b.y + b.h / 2);
-      drawItemIcon(icon, seedItemId(items[i].cropId), 72);
+      const seedId = seedItemId(items[i].cropId);
+      const tex = itemIconTexture(seedId);
+      // T-022: icon túi hạt thật; ảnh tải lỗi → vẽ bằng code như cũ.
+      let icon: Phaser.GameObjects.Image | Phaser.GameObjects.Graphics;
+      if (tex && this.textures.exists(tex)) {
+        icon = this.add.image(b.x + 56, b.y + b.h / 2, tex).setDisplaySize(ICON_IMAGE_SIZE.stall, ICON_IMAGE_SIZE.stall);
+      } else {
+        const g = this.add.graphics().setPosition(b.x + 56, b.y + b.h / 2);
+        drawItemIcon(g, seedId, 72);
+        icon = g;
+      }
       const label = this.add
         .text(b.x + 112, b.y + b.h / 2, '', { fontFamily: uiFontFamily, fontSize: '32px', fontStyle: 'bold', color: cssColor('ink') })
         .setOrigin(0, 0.5);
@@ -1214,12 +1237,28 @@ export class GardenHudScene extends Phaser.Scene {
     const f = this.flyers.find((x) => x.t <= 0);
     if (!f) return;
     f.g.clear();
-    drawItemIcon(f.g, e.itemId, 64);
+    const tex = itemIconTexture(e.itemId);
+    if (tex && this.textures.exists(tex)) {
+      // Ảnh 128 → base ~74 px (cỡ icon vẽ 64 px + đệm trong ảnh); setScale sau đó nhân thêm như Graphics.
+      f.img.setTexture(tex);
+      f.imgBase = ICON_IMAGE_SIZE.flyer / f.img.width;
+      f.g.setVisible(false);
+    } else {
+      drawItemIcon(f.g, e.itemId, 64);
+      f.imgBase = 0;
+      f.img.setVisible(false);
+    }
     f.fromX = e.screenX;
     f.fromY = e.screenY;
     f.target = e.slot >= 0 && e.slot < this.hotbar.length ? e.slot : -1;
     f.t = gameConfig.harvestFlySeconds;
-    f.g.setPosition(f.fromX, f.fromY).setScale(1.2).setAlpha(1).setVisible(true);
+    this.placeFlyer(f, f.fromX, f.fromY, 1.2);
+  }
+
+  /** Đặt icon bay (ảnh thật hoặc Graphics dự phòng) ở (x, y) với hệ số phóng `scale`. */
+  private placeFlyer(f: Flyer, x: number, y: number, scale: number): void {
+    if (f.imgBase > 0) f.img.setPosition(x, y).setScale(f.imgBase * scale).setAlpha(1).setVisible(true);
+    else f.g.setPosition(x, y).setScale(scale).setAlpha(1).setVisible(true);
   }
 
   private updateFlyers(dt: number): void {
@@ -1233,9 +1272,10 @@ export class GardenHudScene extends Phaser.Scene {
       const ease = p * p * (3 - 2 * p);
       const x = f.fromX + (to.x - f.fromX) * ease;
       const y = f.fromY + (to.y - f.fromY) * ease - FLY_ARC * Math.sin(Math.PI * p);
-      f.g.setPosition(x, y).setScale(1.2 - 0.35 * p);
+      this.placeFlyer(f, x, y, 1.2 - 0.35 * p);
       if (f.t <= 0) {
         f.g.setVisible(false);
+        f.img.setVisible(false);
         this.landed++;
         if (f.target >= 0) this.bounceT[f.target] = gameConfig.hotbarBounceSeconds;
         else this.bagBounceT = gameConfig.hotbarBounceSeconds;

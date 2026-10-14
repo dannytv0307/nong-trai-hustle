@@ -3,7 +3,7 @@
 // tên game (tiếng Việt có dấu), đồng hồ ngày chạy thật, 4 bậc ngoại hình + 1 chân dung,
 // trạng thái kết nối server. Click lần đầu → nhạc Vườn; Space → tiếng nhặt xu.
 import Phaser from 'phaser';
-import { heroTextureKey } from '../config/assets';
+import { heroTextureKey, TILE_SHEET, tileKey } from '../config/assets';
 import { gameConfig } from '../config/gameConfig';
 import { cssColor, palette } from '../config/palette';
 import { textStyles } from '../config/theme';
@@ -13,7 +13,7 @@ import { facingFromDirection, moveVelocity, type Facing } from '../systems/movem
 import { formatClock, realSecondsToGameHour } from '../systems/time';
 import { fillPlayerName } from '../utils/text';
 
-/** Mỗi ảnh tile thử 256×256 = 4×4 ô 64px (Art Bible §9.1). */
+/** Mỗi ảnh tile 256×256 = 4×4 ô 64px (Art Bible §9.1). */
 const TILE_TEXTURE_CELLS = 4;
 const TILES_PER_TEXTURE = TILE_TEXTURE_CELLS * TILE_TEXTURE_CELLS;
 
@@ -75,9 +75,11 @@ export class SandboxScene extends Phaser.Scene {
     }
 
     const map = this.make.tilemap({ data, tileWidth: t, tileHeight: t });
-    const grass = map.addTilesetImage('grass', 'tile-grass-test', t, t, 0, 0, 0);
-    const dirt = map.addTilesetImage('dirt', 'tile-dirt-test', t, t, 0, 0, TILES_PER_TEXTURE);
-    if (!grass || !dirt) throw new Error('Không tạo được tileset thử — kiểm tra tile-grass-test/tile-dirt-test');
+    // T-021: dùng tile Lô 1 (bản -ex có đệm 1 px) thay tile thử cũ.
+    const { margin, spacing } = TILE_SHEET;
+    const grass = map.addTilesetImage('grass', tileKey('grass'), t, t, margin, spacing, 0);
+    const dirt = map.addTilesetImage('dirt', tileKey('soil-tilled'), t, t, margin, spacing, TILES_PER_TEXTURE);
+    if (!grass || !dirt) throw new Error('Không tạo được tileset — kiểm tra tile-grass / tile-soil-tilled');
     map.createLayer(0, [grass, dirt], 0, 0)?.setDepth(-1000);
 
     this.mapWidthPx = map.widthInPixels;

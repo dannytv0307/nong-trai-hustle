@@ -1,19 +1,19 @@
-# ART-CHR-008 — {ten} động tác TƯỚI 4 hướng (bậc 1) — NHÁP
+# ART-CHR-008 — {ten} động tác TƯỚI 4 hướng (bậc 1)
 
-> **NHÁP — CHƯA GEN.** Làm ở bước **4.2** cùng lượt với ART-CHR-007 (T-003 cần tưới). Khung, neo, cách cắt, ref theo hướng: **giống hệt [ART-CHR-007](ART-CHR-007.md)**.
+> **Đã gen 2026-10-14 (T-020).** Đổi so với nháp: **4 khung** (không phải 3) để cùng chuẩn với cuốc ART-CHR-007 — khung chỉ số 2 = chạm, game-dev dùng chung hàm tính khung. Khung 128×128, tâm bàn chân x 64, đáy chân y 110, `setOrigin(0.5, 111/128)`. Cắt bằng `tools/action_split.py` (chuyển từ `hoe_split.py`). Prompt thật: `art-source/raw/lot1/prompts/{water-right,water-down-v2,water-up}.txt`. Xem: `art-source/raw/lot1/actions-strip.png`, GIF `art-source/raw/lot1/hero-anim/gif/actions-<hướng>.gif`.
 
 | Mục | Giá trị |
 |---|---|
 | Loại | CHR (animation khung) |
 | Dùng ở | Vườn — click ô đã gieo chưa tưới (GDD §3.3); juice "Tưới" §8 |
-| Tỉ lệ gen (`--aspect`) | **16:9** — một ảnh = 3 khung một hướng; gen phải, xuống, lên; trái = lật gương |
-| Kích thước cuối | dải **384×128** = 3 khung 128×128 |
+| Tỉ lệ gen (`--aspect`) | **21:9** `--hq` — một ảnh = **4 khung** một hướng (như cuốc); gen phải, xuống, lên; trái = lật gương từng ô |
+| Kích thước cuối | dải **512×128** = 4 khung 128×128 (bản 2x 1024×256 ở `art-source/raw/lot1/hero-anim/`) |
 | Nền khi gen | `#00FF00` |
 | Pivot | bottom — hộp 64×96 tại x 32–95, y 16–111 (như ART-CHR-007) |
-| Animation | 3 khung: 50% / 25% / 25% `actionDuration`; **khung 2 = chạm** |
+| Animation | **4 khung, khung chỉ số 2 = CHẠM** — y hệt cuốc: dùng thẳng `hoeFrameAt` (`systems/toolAnim.ts`) với `actionImpactAt` |
 | Reference (`--ref`) | như ART-CHR-007 theo hướng |
 | File trong game | `web/client/public/assets/art/characters/hero-t1-water-<down\|up\|left\|right>.png` |
-| Trạng thái | **Planned (NHÁP)** — chưa gen |
+| Trạng thái | **Approved** (người dùng duyệt 2026-10-14; chờ game-dev gắn T-023) |
 
 ## Mô tả (tiếng Việt)
 
@@ -25,9 +25,12 @@
 
 | Khung | Tư thế | 0.4 s | Tỉ lệ |
 |---|---|---|---|
-| 1 | Nhấc bình lên ngang bụng, vòi chĩa về trước | 0–200 ms | 0–50% |
-| 2 | **CHẠM**: nghiêng bình, nước chảy thành dòng xuống ô trước mặt | 200–300 ms | **50–75%** |
-| 3 | Nghiêng tiếp, nước nhỏ giọt cuối / dựng bình lại | 300–400 ms | 75–100% |
+| 0 | Nhấc bình ngang bụng, vòi chĩa trước (chưa có nước) | 0–100 ms | 0–25% |
+| 1 | Bắt đầu nghiêng, 2 giọt đầu | 100–200 ms | 25–50% |
+| 2 | **CHẠM**: nghiêng hẳn, dòng nước + vũng bắn ở ô trước mặt (xuống: giữa hai chân, thấp hơn ngón chân; lên: cạnh chân phải) | 200–300 ms | **50–75%** |
+| 3 | Dựng bình lại, 2–3 giọt cuối | 300–400 ms | 75–100% |
+
+(Cập nhật 2026-10-14: 4 khung, chia như cuốc — `hoeFrameAt(progress, actionImpactAt, windupShare, impactShare)`.)
 
 Game phát giọt nước bắn + đổi ô sẫm (ART-TIL-005) + tiếng "róc rách" đúng lúc hiện khung 2. Tưới liên tiếp khi rê chuột: lặp khung 2–3 cũng được (game-dev chọn).
 
@@ -60,4 +63,7 @@ Avoid: figures touching each other, large figures filling the whole height, thre
 
 | Ngày | Lần | Thay đổi prompt | Kết quả (lỗi theo checklist) | Chọn |
 |---|---|---|---|---|
-| — | — | Chưa gen (nháp 2026-10-10) | — | — |
+| 2026-10-14 | phải v1 (2 hq 21:9, ref ảnh nghiêng + icon bình tưới nền xanh) | 4 khung LIFT / TILT / POUR / LAST DROPS, bình tưới = icon `item-binh-tuoi` | #1 đạt (góc 3/4 như dải cuốc phải, khung 3 bước chân nhẹ); giọt nước khung 2 bị gán nhầm sang khung kề → `clean_specks.py` xóa | **#1** |
+| 2026-10-14 | xuống v1 (2 hq, ref mặt + lưng + bình) | Biến thể FRONT | Cả 2 ra 3/4 quay phải, nước đổ sang bên → trùng hướng phải | — |
+| 2026-10-14 | xuống v2 (2 hq) | Thêm "thân vuông với camera, bình giữa bụng, vòi chĩa THẲNG về người xem, nước rơi giữa hai chân" + Avoid quay phải | #1 đạt (chính diện, dòng nước giữa); #2 quần xanh chàm (sai token) | **#1** (khung 3 hạ 3 px: đáy vũng nước làm lệch dò chân) |
+| 2026-10-14 | lên v1 (2 hq, ref lưng + bình) | Biến thể BACK | #2 đạt (vòi ló bên hông, dòng nước bên chân); #1 khung 2 quay nghiêng | **#2** |
