@@ -3,8 +3,12 @@
 // tồn tại không, ô ruộng có khớp bản đồ không, số nhát cuốc tối đa…) do client làm lúc nạp (client/src/systems/save.ts).
 // Không dùng thư viện kiểm tra (zod…) — viết tay cho nhẹ, dễ đọc.
 
-/** Phiên bản định dạng save hiện tại. Đổi cấu trúc → tăng số này + thêm một bước trong SAVE_MIGRATIONS. */
-export const GAME_SAVE_VERSION = 1;
+/**
+ * Phiên bản định dạng save hiện tại. Đổi cấu trúc → tăng số này + thêm một bước trong SAVE_MIGRATIONS.
+ * - 1 (T-008): bản đầu.
+ * - 2 (T-093): thêm `chest` (rương trong nhà {ten}); `player.area` có thêm giá trị 'house' (cảnh trong nhà).
+ */
+export const GAME_SAVE_VERSION = 2;
 
 export type SaveFacing = 'up' | 'down' | 'left' | 'right';
 export type SaveSoil = 'untilled' | 'tilled';
@@ -44,9 +48,9 @@ export interface GameSaveV1 {
   player: {
     /** Tên nhân vật ({ten}). */
     name: string;
-    /** Khu đang đứng (prototype chỉ có 'garden'). */
+    /** Khu đang đứng: 'garden' (Vườn) hoặc 'house' (trong nhà {ten}, từ version 2). Khu lạ → client cho đứng ở Vườn. */
     area: string;
-    /** Toạ độ px giữa hộp chân trong khu. */
+    /** Toạ độ px giữa hộp chân, tính TỪ GÓC TRÊN-TRÁI của khu (không phải toạ độ thế giới Phaser). */
     x: number;
     y: number;
     facing: SaveFacing;
@@ -63,8 +67,15 @@ export interface GameSaveV1 {
   sellBox: { slots: (SaveStack | null)[] };
 }
 
+/** Version 2 (T-093): như version 1 + rương trong nhà. */
+export interface GameSaveV2 extends Omit<GameSaveV1, 'version'> {
+  version: 2;
+  /** Đồ trong rương (cất giữ, không bán). Save version 1 nâng lên → rương trống. */
+  chest: { slots: (SaveStack | null)[] };
+}
+
 /** Save ở định dạng hiện tại. */
-export type GameSave = GameSaveV1;
+export type GameSave = GameSaveV2;
 
 export type SaveParseResult =
   | { ok: true; save: GameSave; /** Phiên bản gốc trước khi nâng cấp (= GAME_SAVE_VERSION nếu không cần nâng). */ fromVersion: number }
@@ -72,10 +83,11 @@ export type SaveParseResult =
 
 /**
  * Các bước nâng cấp save cũ: khóa n = hàm biến save phiên bản n thành phiên bản n + 1 (object thô, chưa kiểm).
- * Hiện mới có phiên bản 1 nên chưa có bước nào. Ví dụ khi lên phiên bản 2:
- *   1: (old) => ({ ...old, version: 2, toolDurability: {} })
+ * 1 → 2 (T-093): thêm rương trống; khu cũ ('garden') giữ nguyên — người chơi vẫn đứng ở Vườn như lúc lưu.
  */
-export const SAVE_MIGRATIONS: Readonly<Record<number, (old: Record<string, unknown>) => Record<string, unknown>>> = {};
+export const SAVE_MIGRATIONS: Readonly<Record<number, (old: Record<string, unknown>) => Record<string, unknown>>> = {
+  1: (old) => ({ ...old, version: 2, chest: { slots: [] } }),
+};
 
 /** Ghi save ra chuỗi JSON (để lưu localStorage / gửi server). */
 export function serializeGameSave(save: GameSave): string {
@@ -110,7 +122,7 @@ export function validateGameSave(raw: unknown): SaveParseResult {
       return { ok: false, reason: `nâng version ${n} lỗi` };
     }
   }
-  const problem = checkV1(cur);
+  const problem = checkCurrent(cur);
   if (problem) return { ok: false, reason: problem };
   return { ok: true, save: cur as unknown as GameSave, fromVersion: v };
 }
@@ -152,9 +164,9 @@ function checkPlot(p: unknown): boolean {
   );
 }
 
-/** Trả về mô tả trường sai đầu tiên, hoặc null nếu đúng hình dạng phiên bản 1. */
-function checkV1(s: Record<string, unknown>): string | null {
-  if (s.version !== 1) return 'version';
+/** Trả về mô tả trường sai đầu tiên, hoặc null nếu đúng hình dạng phiên bản hiện tại (2). */
+function checkCurrent(s: Record<string, unknown>): string | null {
+  if (s.version !== GAME_SAVE_VERSION) return 'version';
   if (!isStr(s.savedAt)) return 'savedAt';
   const p = s.player;
   if (!isObj(p) || !isStr(p.name) || !isStr(p.area) || !isNum(p.x) || !isNum(p.y) || !isStr(p.facing) || !FACINGS.includes(p.facing)) {
@@ -173,5 +185,7 @@ function checkV1(s: Record<string, unknown>): string | null {
   }
   const box = s.sellBox;
   if (!isObj(box) || !checkSlots(box.slots)) return 'sellBox';
+  const chest = s.chest;
+  if (!isObj(chest) || !checkSlots(chest.slots)) return 'chest';
   return null;
 }

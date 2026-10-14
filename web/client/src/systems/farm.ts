@@ -277,6 +277,15 @@ export function inReach(centerX: number, centerY: number, tx: number, ty: number
 }
 
 /**
+ * T-096b (D-038 bổ sung): đứng đủ SÁT ô ruộng để làm chưa — tâm chân cách tâm ô ≤ `rangeTiles` ô (`farmWorkRange` 1.5:
+ * đứng ở ô kề, kể cả ô chéo) và KHÔNG đứng ngay trên ô đó (đứng trên ô thì bước ra ô bên cạnh rồi mới làm).
+ */
+export function inFarmWorkRange(centerX: number, centerY: number, tx: number, ty: number, tileSize: number, rangeTiles: number): boolean {
+  const onTile = Math.floor(centerX / tileSize) === tx && Math.floor(centerY / tileSize) === ty;
+  return !onTile && inReach(centerX, centerY, tx, ty, tileSize, rangeTiles);
+}
+
+/**
  * Hướng nhân vật nên quay mặt để làm việc trên ô (tx, ty) (GDD §3.3 "quay mặt về phía ô được click").
  * Lệch ngang nhiều hơn → trái/phải, ngược lại → lên/xuống. Ô ngay dưới chân (lệch ~0) → giữ hướng cũ.
  */

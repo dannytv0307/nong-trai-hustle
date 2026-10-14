@@ -83,7 +83,7 @@ export const TILE_SHEET = { margin: 1, spacing: 2 } as const;
 
 /**
  * T-024: ảnh đồ vật Vườn (props/, khoá = tên file). Cỡ, chân đế, điểm cửa… ở props/props.json (systems/props.ts).
- * Nội thất trong nhà (house-bed, stove-…, backgrounds/house-interior) nạp ở T-093.
+ * T-093: nội thất trong nhà (giường, rương, hũ gạo, nón ông nội, bếp rơm; bếp gạch nạp sẵn cho lúc nâng cấp).
  */
 export const PROP_IMAGES: readonly string[] = [
   'house-hero',
@@ -95,7 +95,16 @@ export const PROP_IMAGES: readonly string[] = [
   'tree-nhan-trunk',
   'tree-nhan-canopy',
   ...FENCE_KEYS,
+  'house-bed',
+  'house-ruong',
+  'house-hu-gao',
+  'house-non-ong',
+  'stove-rom',
+  'stove-gach',
 ];
+
+/** T-093: nền phòng trong nhà (backgrounds/house-interior.png, 1280×720 — props.json `_interior`). */
+export const HOUSE_INTERIOR_KEY = 'bg-house-interior';
 
 /** Dữ liệu hình của 5 cây (crops.json) — cây chưa trồng được (T-045) vẫn nạp sẵn. */
 const CROP_ART: readonly CropData[] = cropsJson as CropData[];
@@ -137,6 +146,7 @@ export const images: Record<string, string> = {
   [ITEM_HOE_ICON]: `${ART}/items/item-hoe.png`,
   // T-024: đồ vật Vườn (nhà, thúng, quầy hạt, cọc, cây nhãn, rào)
   ...Object.fromEntries(PROP_IMAGES.map((k) => [k, `${ART}/props/${k}.png`])),
+  [HOUSE_INTERIOR_KEY]: `${ART}/backgrounds/house-interior.png`,
 };
 
 /** Kích thước một khung trong mọi spritesheet nhân vật (px). */

@@ -111,6 +111,7 @@ export function createTileActionEvents(): TileActionEvents {
  * Tiến thời gian `dt` giây.
  * - `stillValid(t)` được hỏi ngay trước khi BẮT ĐẦU một ô trong hàng đợi (ô có thể đã được làm xong, hoặc
  *   đã ra ngoài tầm) — trả false thì bỏ ô đó, xét ô kế.
+ * - `canStart(t)` (T-096b): ô hợp lệ nhưng chưa bắt đầu được (chưa đứng sát ô) → để nguyên đầu hàng, không làm gì.
  * - `strikesFor(t)` = số nhát cần làm ở ô này, hỏi lúc bắt đầu (ô cuốc dở 4/6 → 2). Mặc định 1 (việc nhanh).
  * Mỗi lần gọi chạm tối đa một lần (frame giật dài không bổ 2 nhát cùng lúc). Phần thời gian dư cuối một nhát
  * được chuyển sang nhát sau để tổng thời gian một ô đúng (6 × 0.85 s). Xong ô thì bắt đầu ô kế ngay trong
@@ -123,6 +124,7 @@ export function stepTileAction(
   stillValid: (t: TileXY) => boolean,
   out: TileActionEvents,
   strikesFor: (t: TileXY) => number = () => 1,
+  canStart: (t: TileXY) => boolean = () => true,
 ): TileActionEvents {
   out.started = null;
   out.impact = null;
@@ -156,8 +158,14 @@ export function stepTileAction(
   }
 
   while (s.queue.length > 0) {
-    const next = s.queue.shift()!;
-    if (!stillValid(next)) continue;
+    const next = s.queue[0];
+    if (!stillValid(next)) {
+      s.queue.shift();
+      continue;
+    }
+    // T-096b: ô đầu hàng còn hợp lệ nhưng chưa đứng sát (canStart false) → GIỮ trong hàng, chờ scene đi tới.
+    if (!canStart(next)) break;
+    s.queue.shift();
     s.current = next;
     s.elapsed = 0;
     s.impacted = false;

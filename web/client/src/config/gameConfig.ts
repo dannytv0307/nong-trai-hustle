@@ -308,6 +308,48 @@ export const gameConfig = {
    */
   turnFrameMs: 70,
 
+  // ---- Click đâu đi đó + tự tìm đường (T-096, D-038, GDD §3.3, §4) ----
+  /** Dấu đích (vòng tròn chỗ click) hiện rồi mờ dần trong bấy nhiêu giây. */
+  clickMoveMarkerSeconds: 0.6,
+  /** Bán kính dấu đích (px thế giới) lúc mới hiện; co dần còn ~60%. */
+  clickMoveMarkerRadius: 16,
+  /** Tìm đường: mở tối đa bấy nhiêu ô (nút A*) — Xóm 60×42 = 2520 ô nên 6000 là dư; quá thì coi như không có đường. */
+  pathMaxNodes: 6000,
+  /** Click vào ô bị chặn (tường, ao, cây…) → đi tới ô đi được gần nhất trong bán kính bấy nhiêu ô. */
+  clickMoveBlockedSearchRadius: 6,
+  /** Cách điểm cuối ≤ bấy nhiêu px là coi như tới nơi. */
+  clickMoveArrivePx: 3,
+  /** Đi theo đường mà bấy nhiêu giây không lại gần thêm (bị vật lý chặn) → lập lại đường; quá `clickMoveMaxReplans` lần thì thôi. */
+  clickMoveStuckSeconds: 0.5,
+  clickMoveMaxReplans: 2,
+  /**
+   * Chọn chỗ đứng làm việc: tầm với dùng khi LẬP ĐƯỜNG = `interactRange` − số này (ô) — chừa chút cho chắc tới nơi là với
+   * tới. Trên đường đi, hễ với tới (đúng `interactRange`) là dừng làm luôn.
+   */
+  clickMoveReachMargin: 0.15,
+  /**
+   * T-096b (góp ý người dùng sau khi thử: "đứng hơi xa ô canh tác"): việc RUỘNG (cuốc / gieo / tưới / hái / dọn) chỉ làm khi
+   * đứng SÁT ô — tâm chân cách tâm ô ≤ số này (ô). 1.2 = đứng ở ô kề thẳng (cách 1), hoặc ô kề chéo nhưng xích vào góc chung
+   * (`farmStandDiagonalInset`). Xa hơn (kể cả trong `interactRange`) → tự bước tới rồi làm; rê cả luống = bước dọc luống từng
+   * ô. Vật khác (thùng bán, rương, bếp…) vẫn dùng `interactRange`.
+   */
+  farmWorkRange: 1.2,
+  /**
+   * Chọn chỗ đứng cạnh ô ruộng: chi phí = độ dài đường đi (ô) + phạt: đứng ô chéo, đứng trên ô ruộng khác (giẫm luống),
+   * đứng phía bắc / đông / tây thay vì phía nam (phía nam → quay mặt lên, nhìn rõ động tác). Phạt chéo > 1 ô: rê cả luống thì bước sang ô kề thẳng kế bên thay vì đứng góc với chéo.
+   */
+  farmStandDiagonalPenalty: 1.25,
+  farmStandOnPlotPenalty: 1,
+  farmStandNotSouthPenalty: 0.3,
+  /** Đứng ô kề chéo: xích về phía ô ruộng bấy nhiêu ô mỗi trục (tâm ô chéo cách 1,41 ô; xích 0,3 → cách ~0,99 ô). */
+  farmStandDiagonalInset: 0.3,
+  /** Làm mượt đường: kiểm một đoạn thẳng bằng cách đặt thử hộp chân mỗi bấy nhiêu px. */
+  pathSmoothStepPx: 8,
+  /** Hộp chân "đặt thử" khi tìm đường nới thêm bấy nhiêu px mỗi bên (để đường không sượt mép vật rồi bị vật lý chặn). */
+  pathClearancePx: 2,
+  /** Lưới tìm đường trong nhà: ô cỡ bấy nhiêu px (phòng không khớp lưới 64 px của Vườn). */
+  houseNavCellPx: 32,
+
   // ---- 3.4 Ruộng và cây trồng ----
   startPlots: 9,
   plotExpansionSize: 3,
@@ -329,6 +371,30 @@ export const gameConfig = {
    * (1 = đứng ở ô kề, kể cả ô chéo). Click thì dùng interactRange như ô ruộng.
    */
   interactKeyRange: 1,
+  /** T-093: số ô rương trong nhà (GDD §3.9, Should 10–30). Mỗi ô chồng tối đa stackMax như gùi. */
+  chestSlots: 20,
+
+  // ---- Cảnh trong nhà + chuyển khu (T-093, D-034) ----
+  /** Chuyển khu: màn tối dần bấy nhiêu giây, rồi sáng dần bấy nhiêu giây ở khu mới (Giả định). */
+  areaFadeSeconds: 0.4,
+  /** Tên khu ("Nhà Tý") hiện đậm bao lâu sau khi vào, rồi mờ dần trong bao lâu (giây). */
+  areaBannerHoldSeconds: 1.6,
+  areaBannerFadeSeconds: 0.6,
+  /** Chạm cửa: mép hộp chân cách mép cửa ≤ bấy nhiêu px là tính "đã chạm" (vào / ra nhà khi đang bấm đi về phía cửa). */
+  doorTouchPx: 3,
+  /**
+   * Trời tối dần cũng phủ trong nhà nhưng nhẹ hơn (trong nhà có mái, có bếp) — nhân độ đục lớp trời với số này.
+   * 0.6 = tối bằng 60% ngoài vườn (Giả định, chỉnh khi thử).
+   */
+  houseSkyAlphaMultiplier: 0.6,
+  /** Nền tối phía sau phòng (ngoài tường ảnh phòng trong suốt) — Art Bible #1C1612. */
+  houseBackdropColor: 0x1c1612,
+  /** Bếp rơm: than hồng nhấp nháy (số đốm, nhịp/giây) + khói bốc (số cụm khói, giây sống, bay lên px) — trang trí, chưa nấu (T-048). */
+  stoveEmberCount: 3,
+  stoveFlickerRate: 7,
+  stoveSmokeCount: 3,
+  stoveSmokeLifeSeconds: 2.4,
+  stoveSmokeRisePx: 70,
   /** Sạp hạt: Shift+click mua tối đa bấy nhiêu hạt một lần (thiếu tiền / gùi gần đầy thì mua được bao nhiêu hay bấy nhiêu). */
   seedBulkBuyCount: 5,
   /** Dòng báo trong cửa sổ thùng bán / sạp hạt ("Hạt giống không bán được", "Không đủ tiền"…) hiện bao lâu (giây). */

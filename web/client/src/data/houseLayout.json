@@ -1,0 +1,12 @@
+{
+  "_note": "T-093: đồ đạc trong nhà {ten}. Toạ độ px TRONG ẢNH NỀN PHÒNG (backgrounds/house-interior.png 1280×720, gốc trên-trái) — không phải toạ độ thế giới. `at` = điểm neo của ảnh: tâm-đáy (origin mặc định 0.5, 1), riêng ảnh có `origin` trong props.json (nón: 0.5, 0.5) thì là tâm ảnh. Chân đế va chạm + vùng click đọc từ props.json. Vị trí lấy từ props.json `_interior.suggested` (±8 px). `label` = bảng tên nhỏ trên vật (null = không). wakeSpot = chỗ đứng (giữa hộp chân) khi thức dậy — bên phải giường. exitX = khoảng x của khe cửa: đứng sát tường trước trong khoảng này + bấm S = ra ngoài.",
+  "objects": [
+    { "id": "bed", "prop": "house-bed", "at": [200, 420], "label": null },
+    { "id": "chest", "prop": "house-ruong", "at": [330, 300], "label": "Rương" },
+    { "id": "riceJar", "prop": "house-hu-gao", "at": [400, 300], "label": null },
+    { "id": "stove", "prop": "stove-rom", "at": [1040, 330], "label": "Bếp" },
+    { "id": "grandpaHat", "prop": "house-non-ong", "at": [732, 152], "label": null }
+  ],
+  "wakeSpot": [300, 400],
+  "exitX": [576, 716]
+}

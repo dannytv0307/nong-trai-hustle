@@ -3,12 +3,12 @@
 //   của vật — vật to nhiều ô thì với tới ô nào cũng được).
 // - Phím F: "đứng cạnh" = khoảng cách từ tâm hộp chân tới MÉP vật ≤ `interactKeyRange` ô; nhiều vật thì lấy vật gần nhất
 //   (GDD §4: F = tương tác với vật gần nhất).
-// Sau này giường (T-007), bếp, rương… chỉ cần thêm tên vào INTERACT_TARGETS + toạ độ trong gardenLayout.json.
+// Vật trong nhà (giường, rương, bếp… — T-093) đo theo px ở systems/house.ts (phòng không khớp lưới ô Vườn).
 import type { GardenLayout, TileRect } from './garden';
 
 export type InteractTarget = 'sellBox' | 'seedStall' | 'bed';
 
-/** T-007: giường trong nhà — click / F để đi ngủ (từ earliestSleepHour). */
+/** 'bed' = chõng trên hiên (T-007 / T-024 ngủ ở đây; T-093: chỉ nhắc vào nhà mà ngủ). */
 export const INTERACT_TARGETS: readonly InteractTarget[] = ['sellBox', 'seedStall', 'bed'];
 
 export function targetRect(layout: GardenLayout, t: InteractTarget): TileRect {

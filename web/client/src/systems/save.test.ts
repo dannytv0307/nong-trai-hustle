@@ -8,7 +8,7 @@ import { cropById } from './crops';
 import { createWallet } from './economy';
 import { createFarm, plantSeed, plotAt, strikeTill, waterPlot, type FarmState } from './farm';
 import { createInventory, setSlot } from './inventory';
-import { itemInfo } from './items';
+import { HOE_ITEM_ID as HOE, itemInfo } from './items';
 import { applySave, captureSave, type SaveRules, type SaveWorld } from './save';
 import { createStamina } from './stamina';
 import { createDayClock } from './time';
@@ -184,7 +184,7 @@ describe('save hỏng / sai version / thiếu trường → không nạp', () =>
     });
   });
 
-  it('save đúng thì qua, fromVersion = phiên bản hiện tại (khung nâng cấp: version 1 không cần bước nào)', () => {
+  it('save đúng thì qua, fromVersion = phiên bản hiện tại (save mới không cần nâng)', () => {
     const r = validateGameSave(good());
     expect(r.ok).toBe(true);
     if (r.ok) expect(r.fromVersion).toBe(GAME_SAVE_VERSION);
@@ -303,5 +303,91 @@ describe('localStorage (saveLocal.ts)', () => {
     expect(writeLocalSave(captureSave(freshWorld(), NOW), broken)).toBe(false);
     expect(() => clearLocalSave(broken)).not.toThrow();
     expect(loadLocalSave(null).status).toBe('none');
+  });
+});
+
+describe('T-093: khu trong nhà + rương trong save (version 2)', () => {
+  const HOUSE_RULES: SaveRules = { ...RULES, otherAreas: { house: { width: 1280, height: 720 } }, requiredItems: [HOE] };
+  const withChest = (): SaveWorld => {
+    const w = freshWorld();
+    w.chest = createInventory(gameConfig.chestSlots, gameConfig.chestSlots, gameConfig.stackMax);
+    setSlot(w.inventory, 0, HOE, 1);
+    return w;
+  };
+
+  it('save version 1 (T-008, chưa có rương) nâng lên version hiện tại: rương trống, vẫn đứng ở Vườn chỗ cũ', () => {
+    const v1 = JSON.parse(serializeGameSave(captureSave(richWorld(), NOW))) as Record<string, unknown>;
+    v1.version = 1;
+    delete v1.chest;
+    const r = validateGameSave(v1);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.fromVersion).toBe(1);
+    expect(r.save.version).toBe(GAME_SAVE_VERSION);
+    expect(r.save.chest).toEqual({ slots: [] });
+    const w = withChest();
+    setSlot(w.chest!, 4, 'rau-cai', 3); // rác trong rương mới phải bị xoá theo save
+    const applied = applySave(r.save, w, HOUSE_RULES);
+    expect(applied.area).toBe('garden');
+    expect(applied.position).toEqual({ x: 1234.56, y: 987.65 });
+    expect(w.chest!.slots.every((s) => s === null)).toBe(true);
+  });
+
+  it('version 2 thiếu rương → hỏng (không nạp nửa vời)', () => {
+    const s = JSON.parse(serializeGameSave(captureSave(withChest(), NOW))) as Record<string, unknown>;
+    delete s.chest;
+    expect(validateGameSave(s).ok).toBe(false);
+  });
+
+  it('đứng trong nhà + đồ trong rương: lưu → JSON → nạp ra đúng khu, đúng chỗ (toạ độ trong phòng), rương còn nguyên', () => {
+    const w = withChest();
+    w.area = 'house';
+    w.x = 640;
+    w.y = 400;
+    w.facing = 'up';
+    setSlot(w.chest!, 0, 'khoai-lang', 5);
+    setSlot(w.chest!, 19, 'hat-rau-cai', 2);
+    const parsed = parseGameSave(serializeGameSave(captureSave(w, NOW)));
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.save.player.area).toBe('house');
+    const target = withChest();
+    const applied = applySave(parsed.save, target, HOUSE_RULES);
+    expect(applied.area).toBe('house');
+    expect(applied.position).toEqual({ x: 640, y: 400 });
+    expect(applied.facing).toBe('up');
+    expect(target.chest!.slots[0]).toEqual({ id: 'khoai-lang', count: 5 });
+    expect(target.chest!.slots[19]).toEqual({ id: 'hat-rau-cai', count: 2 });
+    expect(target.chest).toEqual(w.chest);
+  });
+
+  it('khu lạ (vd bản game mới hơn) → về Vườn, chỗ xuất phát; toạ độ ngoài phòng → trong nhà nhưng ở chỗ vào', () => {
+    const s = captureSave(withChest(), NOW);
+    s.player.area = 'nui';
+    const a = applySave(s, withChest(), HOUSE_RULES);
+    expect(a.area).toBe('garden');
+    expect(a.position).toBeNull();
+    s.player.area = 'house';
+    s.player.x = 5000;
+    const b = applySave(s, withChest(), HOUSE_RULES);
+    expect(b.area).toBe('house');
+    expect(b.position).toBeNull();
+    // Luật không biết khu nhà (otherAreas thiếu) → coi như khu lạ.
+    expect(applySave(s, withChest(), RULES).area).toBe('garden');
+  });
+
+  it('cuốc cất trong rương → nạp KHÔNG thêm cái cuốc thứ hai', () => {
+    const w = withChest();
+    setSlot(w.inventory, 0, null, 0);
+    setSlot(w.chest!, 2, HOE, 1);
+    const target = withChest();
+    setSlot(target.inventory, 0, null, 0);
+    const applied = applySave(captureSave(w, NOW), target, HOUSE_RULES);
+    expect(applied.addedItems).toEqual([]);
+    expect(target.chest!.slots[2]).toEqual({ id: HOE, count: 1 });
+  });
+
+  it('thế giới không có rương (kiểu cũ) vẫn lưu được: rương trống trong save', () => {
+    expect(captureSave(freshWorld(), NOW).chest).toEqual({ slots: [] });
   });
 });

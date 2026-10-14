@@ -14,8 +14,9 @@ import type { DayClockState } from './time';
 /** Mọi trạng thái game được lưu (scene gom lại rồi gọi captureSave / applySave). */
 export interface SaveWorld {
   playerName: string;
+  /** Khu đang đứng ('garden' | 'house' — T-093). */
   area: string;
-  /** Toạ độ px giữa hộp chân. */
+  /** Toạ độ px giữa hộp chân, tính từ góc trên-trái của KHU (trong nhà: góc ảnh nền phòng). */
   x: number;
   y: number;
   facing: Facing;
@@ -25,6 +26,8 @@ export interface SaveWorld {
   farm: FarmState;
   inventory: Inventory;
   sellBox: Inventory;
+  /** T-093: rương trong nhà (thiếu = coi như không có rương — test cũ, lưu ra rương trống). */
+  chest?: Inventory;
 }
 
 /** Luật game dùng khi nạp (lấy từ gameConfig / dữ liệu). */
@@ -33,9 +36,14 @@ export interface SaveRules {
   strikesPerPlot: number;
   /** Độ dài một ngày (giây thật) — giờ lưu không vượt quá. */
   dayLengthSeconds: number;
-  /** Kích thước khu (px) — toạ độ ngoài khu bị bỏ (đứng ở chỗ xuất phát). */
+  /** Kích thước Vườn (px) — toạ độ ngoài khu bị bỏ (đứng ở chỗ xuất phát). */
   areaWidth: number;
   areaHeight: number;
+  /**
+   * T-093: cỡ (px) của các khu KHÁC Vườn nạp được (vd `house`). Save đứng ở khu không có trong đây (khu của bản game mới
+   * hơn, hoặc gõ sai) → về Vườn, chỗ xuất phát.
+   */
+  otherAreas?: Readonly<Record<string, { width: number; height: number }>>;
   isKnownItem: (id: string) => boolean;
   isKnownCrop: (cropId: string) => boolean;
   /**
@@ -45,9 +53,11 @@ export interface SaveRules {
   requiredItems?: readonly string[];
 }
 
-/** Kết quả nạp: vị trí nhân vật (null = toạ độ hỏng → để scene đặt ở chỗ xuất phát), tên, hướng mặt. */
+/** Kết quả nạp: khu + vị trí nhân vật (null = toạ độ hỏng → để scene đặt ở chỗ xuất phát của khu), tên, hướng mặt. */
 export interface AppliedSave {
   playerName: string;
+  /** Khu sẽ đứng (khu lạ trong save → 'garden'). */
+  area: string;
   position: { x: number; y: number } | null;
   facing: Facing;
   /** Món bắt buộc vừa được thêm vì save chưa có (vd cuốc với save trước T-009) — để QA / log. */
@@ -77,6 +87,7 @@ export function captureSave(w: SaveWorld, now: Date): GameSave {
     },
     inventory: { slots: w.inventory.slots.map(copyStack), selected: w.inventory.selected, lastSeedId: w.inventory.lastSeedId },
     sellBox: { slots: w.sellBox.slots.map(copyStack) },
+    chest: { slots: w.chest ? w.chest.slots.map(copyStack) : [] },
   };
 }
 
@@ -103,8 +114,11 @@ export function applySave(save: GameSave, w: SaveWorld, rules: SaveRules): Appli
   const last = save.inventory.lastSeedId;
   w.inventory.lastSeedId = last !== null && rules.isKnownItem(last) ? last : null;
   loadSlots(w.sellBox, save.sellBox.slots, rules);
+  if (w.chest) loadSlots(w.chest, save.chest.slots, rules);
   const addedItems: string[] = [];
-  for (const id of rules.requiredItems ?? []) if (ensureItem(w.inventory, w.sellBox, id)) addedItems.push(id);
+  // Món bắt buộc (cuốc) cất trong rương cũng tính là "đang có" — không thêm cái thứ hai.
+  const elsewhere = w.chest ? [w.chest] : [];
+  for (const id of rules.requiredItems ?? []) if (ensureItem(w.inventory, w.sellBox, id, elsewhere)) addedItems.push(id);
 
   // Tiền, Sức (trần Sức theo game hiện tại, không theo save), đồng hồ.
   w.wallet.money = normalizeMoney(save.money);
@@ -114,9 +128,12 @@ export function applySave(save: GameSave, w: SaveWorld, rules: SaveRules): Appli
   w.clock.elapsedSeconds = Math.min(Math.max(0, save.clock.elapsedSeconds), Math.max(0, rules.dayLengthSeconds - 0.001));
 
   const p = save.player;
-  const inside = p.area === w.area && p.x >= 0 && p.y >= 0 && p.x <= rules.areaWidth && p.y <= rules.areaHeight;
+  const size = p.area === 'garden' ? { width: rules.areaWidth, height: rules.areaHeight } : rules.otherAreas?.[p.area];
+  const area = size ? p.area : 'garden';
+  const inside = size !== undefined && p.x >= 0 && p.y >= 0 && p.x <= size.width && p.y <= size.height;
   return {
     playerName: p.name.trim() !== '' ? p.name : w.playerName,
+    area,
     position: inside ? { x: p.x, y: p.y } : null,
     facing: p.facing,
     addedItems,
@@ -128,8 +145,8 @@ export function applySave(save: GameSave, w: SaveWorld, rules: SaveRules): Appli
  * (hiếm) → bỏ vào thùng bán (món không bán được thì nằm yên trong thùng qua đêm, mở thùng lấy lại được) chứ không đẩy
  * món nào của người chơi ra. Thùng cũng kín → đành không thêm. Trả về true nếu đã thêm.
  */
-export function ensureItem(inv: Inventory, sellBox: Inventory, id: string): boolean {
-  if (countOf(inv, id) > 0 || countOf(sellBox, id) > 0) return false;
+export function ensureItem(inv: Inventory, sellBox: Inventory, id: string, elsewhere: readonly Inventory[] = []): boolean {
+  if (countOf(inv, id) > 0 || countOf(sellBox, id) > 0 || elsewhere.some((o) => countOf(o, id) > 0)) return false;
   const empty = inv.slots.indexOf(null);
   if (empty >= 0) {
     inv.slots[empty] = { id, count: 1 };

@@ -80,9 +80,10 @@ Mục tiêu: từ prototype "một ngày ở Vườn" thành game trọn vòng *
 | T-091 | B Vườn thật | 4.2 | Gen hình **Lô 1** phần 3: giao diện vườn (khung cửa sổ, ô hotbar, nút, khung HUD, icon HUD, bong bóng) | art-director | M | asset list Lô 1 | ⬜ |
 | T-021 | B Vườn thật | 4.2 | Gắn Lô 1: đất ruộng 3 trạng thái, viền tự nối, nấc cuốc dở | game-dev | M | T-019 | ✅ |
 | T-022 | B Vườn thật | 4.2 | Gắn Lô 1: cây trồng theo giai đoạn + icon món | game-dev | M | T-019 | ✅ |
-| T-023 | B Vườn thật | 4.2 | Gắn Lô 1: động tác tưới và cúi (gieo / hái / dọn) | game-dev | M | T-020 | 👀 |
-| T-024 | B Vườn thật | 4.2 | Gắn Lô 1: nhà {ten} (bên ngoài), thúng bán, cọc rào, quầy hạt thay sạp hạt hộp, cây nhãn, rào, đường đất | game-dev | M | T-020 | 👀 |
-| T-093 | B Vườn thật | 4.4 | **Cảnh trong nhà {ten}**: bước qua cửa vào phòng riêng (giường, bếp, rương), chuyển cảnh dùng chung, save nhớ trong / ngoài nhà | game-dev | L | T-024 | ⬜ |
+| T-023 | B Vườn thật | 4.2 | Gắn Lô 1: động tác tưới và cúi (gieo / hái / dọn) | game-dev | M | T-020 | ✅ |
+| T-024 | B Vườn thật | 4.2 | Gắn Lô 1: nhà {ten} (bên ngoài), thúng bán, cọc rào, quầy hạt thay sạp hạt hộp, cây nhãn, rào, đường đất | game-dev | M | T-020 | ✅ |
+| T-093 | B Vườn thật | 4.4 | **Cảnh trong nhà {ten}**: bước qua cửa vào phòng riêng (giường, bếp, rương), chuyển cảnh dùng chung, save nhớ trong / ngoài nhà | game-dev | L | T-024 | ✅ |
+| T-096 | B Vườn thật | 4.4 | **Click đâu đi đó + tự tìm đường** (chuột và chạm như nhau — chuẩn bị bản điện thoại, D-038) | game-dev | L | T-093 | ✅ |
 | T-092 | B Vườn thật | 4.2 | Gắn giao diện Lô 1 vào HUD và các cửa sổ đang có | game-dev | M | T-091 | ⬜ |
 | T-025 | B Vườn thật | 4.3 | Làm âm thanh **Lô 1** (tiếng vườn còn thiếu, nhạc đêm, cửa nhà) | audio-director | L | audio list Lô 1 | ⬜ |
 | T-026 | B Vườn thật | 4.3 | Gắn âm thanh Lô 1 + tách kênh Nhạc / Hiệu ứng | game-dev | M | T-025 | ⬜ |
@@ -155,7 +156,9 @@ Mục tiêu: từ prototype "một ngày ở Vườn" thành game trọn vòng *
 
 **Người dùng chốt (2026-10-14, D-034):** giữ đủ Must, soát giờ thật ở T-052 · bậc ngoại hình 2–3 đủ động tác, **bậc 4 chỉ đi / đứng, làm việc mượn khung bậc 3** · **level + nhiệm vụ (T-041 … T-043) chen lên ngay sau T-027** (đợt "B2") · **có cảnh trong nhà riêng** (T-093). Đội chọn: intro 4 khung + cảnh cưới vẽ trọn tranh; Xóm dùng nhạc ngày bản B; mỗi NPC một bộ giọng lẩm bẩm tổng hợp. Lô asset theo đúng `docs/art/asset-list.md` (nhà {ten}, trong nhà, quầy hạt, cây nhãn, rào, đường đất, giao diện HUD ở **Lô 1**; {ten} bậc 2 ở **Lô 2**; intro ở **Lô 4**).
 
-**Theo bước:** 4.2 = 24 task (16 gen hình + 8 gắn hình) · 4.3 = 9 task · 4.4 = 41 task · 4.5 = 4 task. Tổng **78 task**: 4 S + 45 M + 29 L. (ID T-091 … T-095 thêm sau nên nằm xen trong bảng; làm theo thứ tự dòng, không theo số.)
+**Theo bước:** 4.2 = 24 task (16 gen hình + 8 gắn hình) · 4.3 = 9 task · 4.4 = 42 task · 4.5 = 4 task. Tổng **79 task**: 4 S + 45 M + 30 L. (ID T-091 … T-096 thêm sau nên nằm xen trong bảng; làm theo thứ tự dòng, không theo số.)
+
+**Cập nhật D-038 (2026-10-14, click đâu đi đó):** thêm T-096 (L, ~7 giờ, đợt B ngay sau T-093) → **≈ 320–429 giờ, mốc ≈ 375 giờ** (4.4 ≈ 191,5 giờ) → 21,5–28,5 tuần, **mốc kế hoạch lùi ~3–4 ngày, ~14/04/2027**.
 
 **Cập nhật D-037 (2026-10-14, kỳ kèo):** thêm T-095 (M, 3,5 giờ) + phần nhỏ ở T-037 (+0,5 giờ, vẫn S) và T-050 (+0,5–1 giờ, vẫn L) → **≈ 314–421 giờ, mốc ≈ 368 giờ** (4.4 ≈ 184,5 giờ) → 21–28 tuần, **mốc kế hoạch lùi ~2 ngày, ~10/04/2027**. Các con số D-034 bên dưới giữ để đối chiếu.
 
@@ -754,15 +757,59 @@ Mục tiêu: từ prototype "một ngày ở Vườn" thành game trọn vòng *
 **Mục tiêu:** bước qua cửa nhà là vào một cảnh nhỏ bên trong (giường, bếp, rương) — có cảm giác "về nhà"; đồng thời làm sẵn **chuyển cảnh dùng chung** cho cổng Núi / làng Sung sau này.
 
 **Điều kiện xong:**
-- [ ] Đi vào **điểm cửa** nhà → màn mờ → cảnh trong nhà (nền phòng + nội thất Lô 1, va chạm tường, camera cố định hoặc bám nhẹ); đi ra cửa → về đứng trước cửa. Hàm chuyển cảnh chung (mờ, điểm xuất hiện, tên khu, tự lưu) để T-054 dùng lại.
-- [ ] Bên trong: **giường** (ngủ / hỏi "Đi ngủ?" như cũ, `wakeSpot` trong nhà), **bếp** (đặt sẵn, nấu ở T-048), **rương** (cửa sổ 2 lưới gùi ⇄ rương như thùng bán, `chestSlots` 20 ô — rương lên Must theo D-034).
-- [ ] Save: `player.area` thêm giá trị `house`; F5 trong nhà vào lại trong nhà; ngủ gục ngoài đồng → sáng dậy trong nhà cạnh giường; save cũ (đứng ngoài) nạp bình thường.
-- [ ] Đồng hồ vẫn chạy trong nhà; trời tối dần cũng phủ trong nhà (nhẹ hơn — game-dev chọn, ghi chú).
-- [ ] e2e: vào / ra nhà, ngủ trong nhà, F5 trong nhà, rương cất / lấy không mất đồ.
+- [x] Đi vào **điểm cửa** nhà → màn mờ → cảnh trong nhà (nền phòng + nội thất Lô 1, va chạm tường, camera cố định hoặc bám nhẹ); đi ra cửa → về đứng trước cửa. Hàm chuyển cảnh chung (mờ, điểm xuất hiện, tên khu, tự lưu) để T-054 dùng lại.
+- [x] Bên trong: **giường** (ngủ / hỏi "Đi ngủ?" như cũ, `wakeSpot` trong nhà), **bếp** (đặt sẵn, nấu ở T-048), **rương** (cửa sổ 2 lưới gùi ⇄ rương như thùng bán, `chestSlots` 20 ô — rương lên Must theo D-034).
+- [x] Save: `player.area` thêm giá trị `house`; F5 trong nhà vào lại trong nhà; ngủ gục ngoài đồng → sáng dậy trong nhà cạnh giường; save cũ (đứng ngoài) nạp bình thường.
+- [x] Đồng hồ vẫn chạy trong nhà; trời tối dần cũng phủ trong nhà (nhẹ hơn — game-dev chọn, ghi chú).
+- [ ] ~~e2e: vào / ra nhà, ngủ trong nhà, F5 trong nhà, rương cất / lấy không mất đồ~~ — không viết e2e theo D-036; thay bằng unit test (`house.test.ts`, `areas.test.ts`, `save.test.ts`) + script chụp `web/e2e/diag-t093.mjs` (chạy đủ các bước này bằng phím thật).
 
 **Thông số / ghi chú:** thêm `chestSlots` 20 (GDD §3.9), `areaFadeSeconds` 0.4 (Giả định).
 
 **Bạn thử thế nào:** đi tới cửa nhà: màn mờ, vào trong thấy giường, bếp, rương. Cất 5 củ khoai vào rương, F5: vẫn ở trong nhà, khoai còn trong rương. Ra cửa: đứng trước nhà.
+
+**Ghi chú khi làm (game-dev, 2026-10-14) — T-093 → 👀 chờ bạn thử:**
+- **Cách làm:** phòng là một **khu** nằm cùng thế giới với Vườn nhưng đặt dưới bản đồ Vườn 4 ô (`systems/house.ts`, `HOUSE_GAP_TILES`); camera + giới hạn vật lý đổi theo khu nên chỉ thấy một khu một lúc. Nhờ vậy đồng hồ, Sức, gùi, bong bóng, chuỗi đêm, tự lưu… chạy y nguyên trong nhà, không phải tách scene. Số đo phòng (sàn, khe cửa, chỗ vào) đọc từ `props.json` `_interior`; vị trí đồ đạc + chỗ thức dậy + bề ngang khe cửa ở `src/data/houseLayout.json` (lấy đúng vị trí gợi ý của art).
+- **Vào / ra:** đứng ô sân ngay dưới bậc thềm (x 10–11, hàng 11) bấm **W** chạm bậc → màn mờ 0,4 s (`areaFadeSeconds`) → đứng ở cửa trong nhà (640, 520), mặt hướng lên, tên khu "Nhà {ten}" hiện giữa trên màn rồi mờ. Trong nhà đứng sát tường trước trong khe cửa (x 576–716) bấm **S** → ra đứng ô sân dưới bậc, mặt hướng xuống ("Vườn nhà {ten}"). Lúc mờ màn: việc dở trên ô dừng như khi ngủ, cửa sổ đóng, đồng hồ đứng (lý do `areaFade`). Đổi khu xong **tự lưu** (lý do `area`).
+- **Chuyển khu dùng chung** (`systems/areas.ts`): máy trạng thái `out → swap → in` + `beginAreaChange(khu, chỗ đứng, hướng)` trong GardenScene — T-054 chỉ cần thêm id khu vào `AreaId` / `AREA_NAMES` và gọi lại.
+- **Camera trong nhà cố định:** ảnh phòng 1280×720 × zoom 1,5 = đúng 1920×1080; ngoài tường là nền tối `houseBackdropColor` #1C1612. Tường = giới hạn vật lý = sàn phòng (không cần hộp tường).
+- **Đồ đạc:** giường (chân đế 2×2 ô — click / F hỏi "Đi ngủ?" như cũ, từ 18h), **rương** (cửa sổ 2 lưới như thùng bán, `chestSlots` 20 ô = 3 hàng; cất được mọi món kể cả hạt và cuốc; dòng chân "Rương: n/20 ô có đồ"), **bếp rơm** (va chạm 2×1 ô; than hồng nhấp nháy + khói lững lờ vẽ bằng code tại điểm `fire`; F → "Bếp nguội ngắt. Nấu nướng tính sau." — nấu ở T-048), **hũ gạo** (va chạm; F → câu đùa, nấu cơm ở T-048), **nón ông nội** treo vách (đi xuyên; đứng sát vách dưới nón bấm F / click → "Nón ông nội. Rách thế mà ông vẫn cưới được bà!" — câu tạm, Giả định, game-planner duyệt). Bảng tên "Rương", "Bếp". `stove-gach.png` đã nạp, chưa dùng. Bếp + hũ gạo + nón đọc bong bóng kiểu "warn" (click chủ động thì luôn hiện).
+- **Chõng trên hiên** không ngủ được nữa: F / click → "Ngủ hiên à? Muỗi nó khiêng đi mất!".
+- **Ngủ / thức:** sáng ra luôn đứng **trong nhà cạnh giường** (`wakeSpot` (300, 400) trong ảnh phòng, bên phải giường), kể cả ngủ gục ngoài đồng; bản lưu ngay sau qua đêm cũng ghi khu `house`.
+- **Trời trong nhà:** cùng màu lớp trời, độ đục × `houseSkyAlphaMultiplier` 0,6 (Giả định — trong nhà có mái, có bếp).
+- **Save version 2** (`@bph/shared`): thêm `chest.slots`; `player.area` = `garden` | `house`; toạ độ người tính **từ góc khu** (trong nhà: góc ảnh phòng). Save version 1 tự nâng (rương trống, vẫn đứng ở Vườn chỗ cũ). Khu lạ → về Vườn chỗ xuất phát; chỗ đứng trong nhà đè đồ đạc / ngoài sàn → đứng ở cửa. Cuốc cất trong rương thì nạp không thêm cuốc thứ hai.
+- **Lỗi đã gặp + sửa:** Phaser `Body.reset` kiểm giới hạn thế giới NGAY lúc gọi → phải đổi giới hạn sang khu mới trước khi đặt người (không thì vào nhà xong dính tường sau, ra vườn trôi xuống mép bản đồ).
+- **Kiểm:** tsc + lint + Vitest 31 file / 376 test xanh (thêm `house.test.ts`, `areas.test.ts`, 6 test save T-093). Script `web/e2e/diag-t093.mjs` (phím thật trên stack Docker): vào bằng W (màn mờ tới 1, tên khu, tự lưu), va chạm tường sau / trái / phải / trước, giường, rương, bếp đúng mép; nón F ra câu; rương cất 5 khoai (Shift+click) → F5 vẫn trong nhà, khoai còn; 21h trong nhà tối nhẹ; ngủ ở giường → Ngày 2 cạnh giường; ra cửa bằng S → đứng ô (11, 11) trước bậc; ngủ gục ngoài ruộng → sáng dậy trong nhà, save `house` version 2. Ảnh `web/e2e/screenshots/t093-*.png`.
+- **Để ý:** e2e cũ ngủ ở chõng (`day.spec`, `qa-t007`, `qa-t008`, `save.spec`) sẽ đỏ — muốn chạy lại thì `debugEnterArea('house')` + đứng `area.house.wakeSpot` (D-036: không bắt buộc). Tiếng mở cửa nhà chưa có (T-025). Nón ông nội treo vách trong khi {ten} vẫn đang đội nón ông — story bible nói nón treo vách là sau "lột xác" (§8); để tạm, game-planner quyết.
+
+---
+
+### T-096 — Click đâu đi đó + tự tìm đường (chuột và chạm như nhau)
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** L (1 ngày) · **Cần trước:** T-093 · **Quyết định:** D-038
+
+**Mục tiêu:** đi lại hợp cả PC lẫn điện thoại sau này: click / chạm chỗ nào thì {ten} tự tìm đường đi tới, có việc thì tới nơi làm luôn; WASD vẫn dùng được.
+
+**Điều kiện xong:**
+- [x] Click ô / vật **trong tầm** → làm ngay như cũ (giữ chuột rê cả luống, hàng chờ, phải cầm cuốc mới cuốc — D-026; không cầm cuốc → bong bóng như cũ).
+- [x] Click **ngoài tầm** ô có việc hợp lệ với món đang cầm (cuốc / gieo / tưới / hái / dọn) → đi tới chỗ đứng gần nhất trong tầm rồi làm (cuốc bắt đầu nhát như click thường); trên đường hễ với tới là dừng làm. Việc không hợp lệ (không cầm cuốc, hết hạt, gùi đầy) hay ô trống → chỉ đi tới.
+- [x] Click thùng bán / quầy hạt / chõng (Vườn), giường / rương / bếp / hũ gạo / nón (trong nhà) ngoài tầm → tới nơi rồi mở / dùng. Click **khung cửa nhà** (Vườn: ô bậc thềm + hàng trên; trong nhà: khung cửa tường trước) gần hay xa → đi tới cửa rồi vào / ra (màn mờ, tự lưu như T-093).
+- [x] **Tự tìm đường vòng** (A* 8 hướng không cắt góc + làm mượt, tự viết) qua nhà, rào, cây, ao, quầy, đồ trong nhà; ô đích bị chặn → ô đi được gần nhất; không có đường → bong bóng `noPath`, không đi. Hiệu năng đủ cho Xóm 60×42 (test 200 lần tìm).
+- [x] **Dấu đích** (vòng tròn vẽ bằng code, mờ dần `clickMoveMarkerSeconds`); đi bằng hoạt ảnh đi bộ thật, đổi hướng theo đường, tốc độ `walkSpeed` (đuối chậm như cũ).
+- [x] Bấm **WASD** = huỷ đường + việc chờ; mở cửa sổ cũng huỷ; click lên hotbar / nút gùi / cửa sổ không đi; chuột phải vẫn là ăn.
+- [x] **Bổ sung (góp ý người dùng, D-038 bổ sung):** việc ruộng phải đứng **sát ô** (`farmWorkRange` 1.2): click ô ruộng xa hơn — kể cả trong tầm 2.5 — tự bước tới đứng cạnh ô (ô kề gần nhất, ưu tiên ô thẳng, không giẫm luống, ưu tiên phía nam), quay mặt rồi làm; rê cả luống = bước dọc luống tới sát từng ô (hàng chờ giữ nguyên, WASD bỏ cả hàng); ô ruộng có việc luôn viền sáng. Unit test `farmStand.test.ts`.
+- [x] **Chạm** (touch) = click trái, không phụ thuộc hover; giữ ngón rê = giữ chuột rê. Ghi chỗ còn phụ thuộc bàn phím ở GDD §4 (bản mobile).
+- [x] Logic thuần + unit test (`systems/pathfind.ts`, `systems/clickMove.ts`, phần mới ở `house.ts`, `garden.ts`, `movement.ts`); tham số trong `gameConfig.ts`; debug hook `debugState.clickMove`, `debugWorldToScreen`. Không e2e (D-036) — script chụp `web/e2e/diag-t096.mjs`.
+
+**Thông số mới:** `clickMoveMarkerSeconds` 0.6, `clickMoveMarkerRadius` 16, `pathMaxNodes` 6000, `clickMoveBlockedSearchRadius` 6, `clickMoveArrivePx` 3, `clickMoveStuckSeconds` 0.5, `clickMoveMaxReplans` 2, `clickMoveReachMargin` 0.15, `pathSmoothStepPx` 8, `pathClearancePx` 2, `houseNavCellPx` 32 (Giả định, chỉnh khi thử).
+
+**Bạn thử thế nào:** mở http://localhost:5173. (1) Đứng trước sân, click bãi cỏ **sau nhà** → {ten} tự đi vòng hông nhà ra sau (vòng tròn nhỏ hiện chỗ click rồi mờ). (2) Cầm cuốc (ô 1), click một ô ruộng ở xa → đi tới cạnh ruộng rồi tự cuốc. Đổi sang ô hạt rồi click ô cỏ chưa cuốc ở xa → chỉ đi tới, không cuốc. (3) Click **thùng bán** từ xa → tới nơi mở cửa sổ. (4) Click **cửa nhà** từ xa → đi tới rồi vào nhà; trong nhà click **bếp** → đi tới, "Bếp nguội ngắt…"; click **khung cửa** (phần trên hotbar) → ra Vườn. (5) Đang đi bấm **A/D** → dừng ngay, điều khiển bằng phím như cũ. (6) Click giữa **ao** → đi tới bờ ao gần nhất. (7) Nếu có laptop màn cảm ứng / mở DevTools chế độ điện thoại: chạm chỗ nào đi chỗ đó. Cảm giác cần bạn tự đánh giá: tốc độ phản hồi, đường đi có "ngố" không, dấu đích có đủ rõ không.
+
+**Ghi chú khi làm (game-dev, 2026-10-14) — T-096 → 👀 chờ bạn thử:**
+- **Tìm đường** `src/systems/pathfind.ts`: lưới `NavGrid` (Uint8Array), `PathFinder` A* 8 hướng dùng lại bộ nhớ (heap nhị phân, "số thế hệ" thay vì xoá mảng), không cắt góc; `search(isGoal, heuristic)` dùng chung cho "tới đúng ô" (A* octile) và "tới ô gần nhất làm được việc" (Dijkstra); `nearestFreeCell` (ô chặn → ô trống gần nhất, hoà thì gần người); `smoothPath` "kéo dây" kiểm bằng cách đặt thử hộp chân dọc đoạn thẳng. Vườn dùng thẳng `blockedGrid` (cây tính cả ô — đường né rộng gốc cây); trong nhà lưới ô 32 px (`houseNavGrid`: ô đi được = hộp chân đứng vừa ở tâm ô, theo `isFreeHouseSpot`). Xóm 60×42 (T-032) chỉ cần đưa lưới vật cản mới vào.
+- **Đi theo đường** `src/systems/clickMove.ts`: `planWalk` (điểm / chỗ đứng làm việc), `stepClickMove` (vận tốc mỗi frame, điểm cuối chạy chậm vừa đủ, phát hiện kẹt → GardenScene lập lại đường tối đa `clickMoveMaxReplans` lần). Hướng mặt theo vectơ có "trễ" (`facingFromVector`) để đi chéo không lật mặt liên tục.
+- **Bổ sung "đứng sát ô ruộng" (sau góp ý người dùng):** `planFarmStand` (`clickMove.ts`) thử 8 ô kề ô ruộng (ô chéo thì điểm đứng xích vào góc chung `farmStandDiagonalInset`), chi phí = đường đi + phạt (chéo 1.25, giẫm luống 1, không ở phía nam 0.3) → chọn rẻ nhất. `stepTileAction` thêm `canStart`: ô đầu hàng hợp lệ mà chưa đứng sát thì **giữ trong hàng** (không bỏ như trước); `GardenScene.driveTileQueue` thấy rảnh + ô đầu hàng chưa sát → lập đường tới chỗ đứng, tới nơi mới bắt đầu (không bắt đầu giữa đường). Kẹt quá `clickMoveMaxReplans` lần → bỏ ô đó. Rê chỉ xếp thêm ô khi con trỏ (màn) thật sự di chuyển. Diag: click ô (14, 14) từ (8, 17) → đứng cách đúng **1,0 ô** rồi cuốc (`t096-3-toi-roi-cuoc.png`); rê hàng y = 15 → đứng (13, 16) rồi (14, 16) — ngay dưới từng ô, mặt quay lên (`t096-3b-re-ca-luong.png`). Ô giữa ruộng 3×3 thì ô kề nào cũng là luống → đứng trên luống bên cạnh (không tránh được).
+- **Đo trên Docker (headless):** lập đường 0,1–5 ms; Vườn đi vòng nhà 21 ô mở; tới thùng bán 155 ô mở.
+- **Để ý:** trong nhà nửa dưới khung cửa nằm dưới hotbar → click nửa trên khung cửa (hoặc bấm S như cũ). Đi ra sau nhà thì mái che {ten} (đúng thiết kế T-024). Lưới Vườn tính cả ô gốc cây là chặn nên đường đi hơi "né rộng" cây.
 
 ---
 
@@ -1837,6 +1884,11 @@ Mục tiêu: từ prototype "một ngày ở Vườn" thành game trọn vòng *
 
 ## Changelog
 
+- 2026-10-14 — T-093 ✅, T-096 ✅ (người dùng thử: ổn, gồm bản "đứng sát ô ruộng"). Bắt đầu T-091.
+- 2026-10-14 — T-096 bổ sung (góp ý người dùng "đứng hơi xa ô canh tác"): việc ruộng phải bước tới sát ô (`farmWorkRange` 1.2), rê cả luống bước dọc luống; vẫn 👀.
+- 2026-10-14 — D-038: thêm **T-096 "Click đâu đi đó + tự tìm đường"** (L, đợt B, cần T-093) → 👀 (game-dev): click / chạm ngoài tầm tự đi tới (A* 8 hướng tự viết, làm mượt, dấu đích mờ dần), tới nơi làm luôn (ruộng, thùng bán, quầy hạt, đồ trong nhà, cửa nhà vào / ra), WASD huỷ, chạm = click. Tổng 79 task (4 S + 45 M + 30 L) ≈ 320–429 giờ, mốc ≈ 375 → mốc kế hoạch ~14/04/2027.
+- 2026-10-14 — T-093 👀 (game-dev): cảnh trong nhà {ten} — W ở bậc thềm vào nhà (màn mờ 0,4 s, tên khu, tự lưu), S ở khe cửa ra; giường (ngủ, sáng dậy cạnh giường kể cả ngủ gục ngoài đồng), rương 20 ô (cửa sổ như thùng bán), bếp rơm có than + khói (nấu ở T-048), hũ gạo, nón ông nội; chõng hiên thôi ngủ; save version 2 (rương + khu `house`, save cũ tự nâng); chuyển khu dùng chung `systems/areas.ts` cho T-054. Chờ người dùng thử.
+- 2026-10-14 — T-023 ✅, T-024 ✅ (người dùng thử: ổn). Bắt đầu T-093.
 - 2026-10-14 — T-023 👀, T-024 👀 (game-dev): dáng tưới / cúi thật (khung theo tiến độ, đang đi giữ khung bước, icon hái bay từ tay); Vườn có nhà tranh 6×5 (chõng hiên = giường tạm), thúng bán đóng / hé, quầy hạt (chừa `sellerSpot`), cọc rào ẩn, 12 cây nhãn tách tán / gốc, rào tre 4 cạnh; vật đặt theo `props/props.json`. Chờ người dùng thử.
 - 2026-10-14 — T-020 ✅ người dùng duyệt (rào tre dọc vẽ lại bằng script, giữ miếng vá đũng quần). Trước đó — T-020 👀 (art-director): gen xong Lô 1 phần 2 (động tác tưới / cúi 4 hướng **4 khung như cuốc**, nhà {ten} + trong nhà + nội thất + 2 bếp, thúng bán, cọc rào, quầy hạt không người bán, cây nhãn tách tán / gốc, rào tre + dâm bụt, bụi cỏ / hoa / lùm cây); `props/props.json` cho game-dev; 4,42 USD (gồm rào dọc).
 - 2026-10-14 — D-037: người dùng giữ kế hoạch người bán ở đợt C; thêm **T-095 "Kỳ kèo"** (M, đợt C, cần T-036 + T-037) — mặc cả nhẹ khi mua, hệ dùng chung. Thêm điều kiện xong vào T-036 (câu mua sắm cô Tám, chừa chỗ nút + hàm giá chung), T-037 (câu kỳ kèo), T-050 (bật kỳ kèo ở 2 thợ), T-039 (SFX kỳ kèo nếu audio list có). Tổng 78 task (4 S + 45 M + 29 L) ≈ 314–421 giờ, mốc ≈ 368 → mốc kế hoạch ~10/04/2027.

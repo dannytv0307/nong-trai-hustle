@@ -161,6 +161,15 @@ Phải đủ **cả** các điều kiện sau thì bà mối mới chịu đến
 
 **Đi lại**: WASD (hoặc phím mũi tên) đi 8 hướng, va chạm với vật cản trên Tilemap (tường, cây, nước). Không có phím chạy nhanh (Giả định: cho đơn giản; bản đồ chỉ 1,5–2 màn mỗi chiều nên đi bộ đủ nhanh).
 
+**Click đâu đi đó (D-038, người dùng chọn 2026-10-14 — thêm lại một phần ý D-008, chuẩn bị bản điện thoại):**
+- Click (hoặc **chạm** màn hình) vào ô / vật **trong tầm** `interactRange` mà có việc → làm ngay như cũ (giữ chuột rê làm cả luống, hàng chờ, phải cầm cuốc mới cuốc — D-026).
+- Click **ngoài tầm**: nhân vật **tự đi tới**. Ô / vật đó có việc hợp lệ với món đang cầm (cuốc / gieo / tưới / hái / dọn, thùng bán, quầy hạt, rương, bếp, giường, **cửa nhà vào / ra**) → đi tới **chỗ đứng gần nhất trong tầm** rồi tự làm (cuốc thì bắt đầu nhát như click thường; trên đường hễ với tới là dừng làm luôn). Ô trống / không có việc (hay việc không hợp lệ: không cầm cuốc, hết hạt, gùi đầy) → chỉ đi tới đó. Click khung cửa nhà (gần hay xa) = đi tới cửa rồi vào / ra.
+- **Tự tìm đường vòng** qua nhà, rào, cây, quầy, đồ trong nhà (A* 8 hướng trên lưới ô, không cắt góc vật cản, làm mượt đường). Click vào ô bị chặn (tường, ao, gốc cây) → đi tới ô đi được gần nhất. Không có đường → bong bóng "Đường đâu mà đi? Mọc cánh chắc?", không đi.
+- **Dấu đích**: vòng tròn nhỏ chỗ click, mờ dần (`clickMoveMarkerSeconds`). Đi bằng hoạt ảnh đi bộ thật, đổi hướng theo đường, tốc độ `walkSpeed` (đuối thì chậm như đi bằng phím).
+- **Việc ruộng phải đứng SÁT ô (D-038 bổ sung, góp ý người dùng sau khi thử T-096 "đứng hơi xa ô canh tác")**: cuốc / gieo / tưới / hái / dọn chỉ làm khi tâm chân cách tâm ô ≤ `farmWorkRange` (1.2 ô — đứng ở ô kề thẳng, hoặc ô kề chéo nhưng xích vào góc chung). Click ô ruộng có việc hợp lệ mà đứng xa hơn (**kể cả trong `interactRange`**) → tự bước tới đứng cạnh ô, quay mặt vào ô rồi làm; không dừng giữa đường ở tầm 2,5 nữa. Chỗ đứng: ô kề gần nhất theo đường đi, ưu tiên ô kề thẳng (phạt chéo `farmStandDiagonalPenalty`), không giẫm luống khác (`farmStandOnPlotPenalty`), ưu tiên phía nam (mặt quay lên, `farmStandNotSouthPenalty`). Đứng ngay trên ô đó thì bước sang ô bên rồi mới làm. **Giữ chuột / ngón tay rê cả luống**: hàng chờ vẫn như cũ (`actionQueueMax` / `tillQueueMax`), nhân vật **bước dọc luống** tới sát từng ô rồi làm (đi bộ thật); rê chỉ tính khi con trỏ thật sự di chuyển (camera chạy theo người không tự xếp thêm ô). WASD bỏ cả hàng chờ. Ô ruộng có việc luôn viền **sáng** khi trỏ (click được vì sẽ tự đi tới). `interactRange` 2.5 giờ chỉ còn dùng cho: vật (thùng bán, quầy hạt, rương, bếp, giường, nón — tới trong tầm 2.5 là mở, như cũ), viền ô không có việc, và ranh giới "việc không hợp lệ thì nhắc bằng bong bóng (trong tầm) hay chỉ đi tới (ngoài tầm)".
+- **WASD vẫn dùng song song**: bấm phím đi = thôi đường đang đi (và thôi việc chờ làm khi tới nơi). Click mới = lệnh mới. Mở cửa sổ (gùi, thùng bán…) cũng thôi đi. Click lên hotbar / nút gùi / cửa sổ không đi. Đang đi theo click thì giữ chuột rê không xếp việc (tới nơi rồi rê tiếp như thường). Click xa khi đang cuốc = bỏ dở như bấm WASD (D-022).
+
+
 **Làm việc: click chuột trái vào ô/vật thể trong tầm với.**
 - Ô dưới con trỏ được **viền sáng** nếu nằm trong tầm `interactRange` quanh nhân vật; ngoài tầm thì viền xám và click không làm gì.
 - **Giữ chuột trái và rê** qua các ô liền nhau → làm lần lượt từng ô (mỗi `actionDuration` một ô). Gieo, tưới, hái cả luống chỉ cần giữ chuột và đi dọc luống. **Riêng cuốc** thì khác: nhân vật đứng yên cuốc từng ô, rê chuột chỉ xếp hàng tối đa `tillQueueMax` ô (§3.3a, D-022).
@@ -194,11 +203,19 @@ Phải đủ **cả** các điều kiện sau thì bà mối mới chịu đến
 |---|---|---|---|---|
 | `walkSpeed` | 4 | ô/giây | 3–6 | Nhanh nhẹn hay ì ạch. Bản đồ lớn nên nhanh hơn bản điện thoại |
 | `exhaustedWalkSpeed` | — | — | — | = `walkSpeed` × `staminaExhaustedSpeedMultiplier` |
-| `interactRange` | 2.5 (người dùng chỉnh sau thử T-002) | ô (tính từ tâm nhân vật) | 1–2.5 | Với tới bao xa. Nhỏ thì phải đi sát, lớn thì làm nhanh |
+| `interactRange` | 2.5 (người dùng chỉnh sau thử T-002) | ô (tính từ tâm nhân vật) | 1–2.5 | Với tới vật (thùng bán, rương, bếp…) bao xa. **Từ D-038 bổ sung: việc ruộng dùng `farmWorkRange`** (đứng sát); số này chỉ còn quyết định nhắc bằng bong bóng hay chỉ đi tới khi việc ruộng không hợp lệ |
 | `actionDuration` | 0.4 | giây | 0.2–0.8 | Thời gian một động tác **nhanh** (gieo, tưới, hái, dọn, hái lượm). Ngắn thì "đã tay". Cuốc không dùng số này (D-022, §3.3a) |
 | `actionImpactAt` | 0.5 | tỷ lệ động tác | 0–0.8 | Lúc "chạm" trong một động tác / một nhát cuốc (ô đổi, bụi, tiếng) |
 | `actionQueueMax` | 4 | ô | 2–6 | Giữ chuột rê việc nhanh: nhớ tối đa bấy nhiêu ô chờ làm |
 | `hotbarSlots` | 9 | ô | 6–10 | Số ô hotbar (phím 1–9) |
+| `clickMoveMarkerSeconds` | 0.6 | giây | 0.3–1 | Dấu đích chỗ click hiện rồi mờ dần (D-038) |
+| `farmWorkRange` | 1.2 | ô (tâm chân → tâm ô) | 1–1.5 | Việc ruộng chỉ làm khi đứng sát ô; xa hơn tự bước tới (D-038 bổ sung) |
+| `farmStandDiagonalPenalty` / `farmStandOnPlotPenalty` / `farmStandNotSouthPenalty` | 1.25 / 1 / 0.3 | ô | — | Chọn chỗ đứng cạnh ô ruộng: phạt đứng chéo (> 1 → rê luống thì bước sang ô kế), giẫm luống, không ở phía nam |
+| `farmStandDiagonalInset` | 0.3 | ô | 0.2–0.4 | Đứng ô kề chéo thì xích vào góc chung bấy nhiêu (để còn trong `farmWorkRange`) |
+| `pathMaxNodes` | 6000 | ô (nút A*) | 3000–10000 | Giới hạn tìm đường mỗi lần click; Xóm 60×42 = 2520 ô nên dư |
+| `clickMoveBlockedSearchRadius` | 6 | ô | 3–10 | Click ô bị chặn → tìm ô đi được gần nhất trong bán kính này |
+| `clickMoveReachMargin` | 0.15 | ô | 0–0.5 | Lúc chọn chỗ đứng làm việc dùng tầm `interactRange` trừ số này cho chắc với tới |
+| `clickMoveStuckSeconds` / `clickMoveMaxReplans` | 0.5 / 2 | giây / lần | — | Bị vật lý chặn quá lâu → lập lại đường, quá số lần thì thôi |
 
 ### 3.3a Cuốc đất là "việc nặng" (D-022)
 
@@ -843,8 +860,8 @@ Người chơi không sống một mình giữa mảnh vườn: nhà {ten} nằm
 
 | Phím / chuột | Hành động | Ghi chú |
 |---|---|---|
-| **W A S D** (hoặc mũi tên) | Đi lại 8 hướng | Đang cuốc: bấm = **bỏ dở** (giữ tiến độ, §3.3a) |
-| **Chuột trái** (click) | Làm việc với ô/vật thể dưới con trỏ trong tầm với (§3.3) | Tự chọn nông cụ đúng. Cuốc: 1 click = cả ô (≈ 5 giây) |
+| **W A S D** (hoặc mũi tên) | Đi lại 8 hướng | Đang cuốc: bấm = **bỏ dở** (giữ tiến độ, §3.3a). Đang đi theo click: bấm = **thôi đi** (bỏ cả việc chờ) |
+| **Chuột trái** (click) / **chạm** | Ô ruộng có việc: tự bước tới **sát ô** rồi làm (`farmWorkRange`, D-038 bổ sung). Vật trong tầm với: dùng ngay (§3.3). **Ngoài tầm** hoặc ô không có việc: **tự đi tới** (tìm đường vòng), có việc hợp lệ thì tới nơi làm luôn (D-038) | Cuốc phải cầm cuốc (D-026): 1 click = cả ô (≈ 5 giây). Dấu đích mờ dần chỗ click. Click khung cửa nhà = đi tới rồi vào / ra |
 | **Giữ chuột trái + rê** | Làm liên tục các ô dưới con trỏ | Gieo/tưới/hái cả luống; cuốc thì xếp hàng tối đa 3 ô |
 | **Chuột phải** | Dùng món đang chọn trên hotbar: ăn đồ ăn | Click NPC/vật bằng chuột phải cũng = nói chuyện/mở |
 | **1 – 9** / **cuộn chuột** | Chọn ô hotbar (hạt, đồ ăn, lễ vật) | |
@@ -857,6 +874,7 @@ Người chơi không sống một mình giữa mảnh vườn: nhà {ten} nằm
 | **Click** / phím **1–4** (thoại, mặc cả, cửa hàng) | Chọn lựa chọn | Space/click để qua câu thoại |
 | **K** (trong cửa sổ cửa hàng ở Xóm) | **Kỳ kèo** — xin bớt tiền, 1 lần/quầy/ngày (§3.9a) | Rồi chọn câu bằng 1–3; Esc thôi, không mất lượt |
 
+- **Điện thoại (sau này, D-038)**: **không làm cần điều khiển ảo** — chạm đâu đi đó. Click đi dùng pointer chung của Phaser nên **chạm = click trái, giữ ngón rê = giữ chuột rê** (đã chạy từ T-096, không phụ thuộc rê chuột / hover). Còn phụ thuộc bàn phím, phải có nút chạm ở bản mobile: **E** (mở gùi — đã có nút "Gùi" trên HUD), **F** (tương tác — thay được bằng chạm vật), **Esc** (Tạm dừng / đóng cửa sổ), **1–9 / cuộn** (chọn hotbar — chạm ô hotbar được rồi), **chuột phải** (ăn — cần nút "Ăn" hoặc chạm giữ ô hotbar), **Enter** (Có / Ngày mới — các hộp đã có nút chạm), **Shift+click** (chuyển cả chồng / mua 5), **Q** (sổ nhiệm vụ), **K** (kỳ kèo), **Space** (câu cá / bắn nỏ — mini-game đã cho dùng click), **bậc thềm W / khe cửa S** (đã thay được bằng chạm cửa).
 - **Gamepad (tay cầm)**: **Could**. Do có lớp action và trình duyệt hỗ trợ Gamepad API nên thêm được về sau: cần trái đi, nút A làm việc với ô phía trước mặt, LB/RB đổi hotbar.
 - **Đổi phím**: Won't ở bản đầu.
 
@@ -1543,4 +1561,6 @@ Tổng ≈ 363 giờ (310–416); **sau D-037 (kỳ kèo, +T-095 và phần nh�
 - 2026-10-13 — D-034 (bước 4.1): v0.15. §14: ghi chú đầu mục (ước lượng mới), lộ trình chặng 4 (73 task T-018 … T-090, 290–395 giờ ≈ 19,5–26 tuần, mốc kế hoạch ~30/03/2027, mốc giữa chặng = T-052) và chặng 5 (thêm 5.5 tài khoản, ~giữa 05/2027); thêm mục **"Kế hoạch sản xuất chặng 4 (D-034)"** (phạm vi, thứ tự, 15 giờ/tuần, ngân sách ~100 USD, 4 lô asset, bảng 9 đợt + giả thuyết PT-000 được kiểm) và **"Thứ tự cắt khi sản xuất (D-034)"** (C0 … C10 gắn với task). Sửa dòng Must "nông cụ tự chọn" → "chọn trên hotbar (D-026)".
 - 2026-10-14 — D-034 chốt: 77 task, 310–416 giờ (mốc 363), xong chặng 4 ~08/04/2027, phát hành ~cuối 05/2027; bảng đợt thêm B2 (level + nhiệm vụ chen sớm), T-093 cảnh trong nhà, T-091/T-092 giao diện Lô 1, T-094 âm Lô 4. **Cảnh trong nhà riêng** (§3.9, §5, Must) + **rương lên Must**. **Bậc 4 chỉ đi / đứng, làm việc mượn khung bậc 3** (§3.14, Must, C2). §3.8: bình tưới bậc 1 đổi tên "gáo dừa" → **"bình tưới cũ"**; độ bền hiện trên ô hotbar. §11: bỏ ô HUD "Nông cụ" góc dưới trái, sửa dòng Túi đồ.
 - 2026-10-14 — D-035 (bước 4.2): §5 thêm mục **"Lối đi đất nện và cụm thực vật"**: mọi lối đi ở Xóm (đường xóm, ngõ, đường cái, sân, lối vào ruộng, lối cổng, bãi giếng, nền chợ cóc, lối xuống bến, gốc đa) là đất nện; 6 loại cụm thực vật (bụi cỏ, mười giờ / cúc dại đi xuyên; dâm bụt, chè tàu / duối, khóm tre lẻ chặn; sen trên hồ) đặt theo vùng; luật đặt (không chặn lối chính, cách điểm tương tác ≥ 1 ô, bít khe giữa nhà); tham số Could `foliageRustleSeconds`, `foliageRustleAngle`. Vườn prototype: thêm sân đất + nhánh, không thêm cụm thực vật. Thay dòng "Bụi cây" trong bảng vị trí.
+- 2026-10-14 — D-038 bổ sung (góp ý người dùng sau khi thử T-096): **việc ruộng phải đứng sát ô** — §3.3 thêm mục, 3 dòng tham số (`farmWorkRange` 1.2, `farmStand*`), sửa ý nghĩa `interactRange`, §4 dòng chuột trái.
+- 2026-10-14 — D-038: v0.17, **click đâu đi đó + tự tìm đường** (người dùng chọn, chuẩn bị bản điện thoại): §3.3 thêm mục "Click đâu đi đó" + 5 tham số (`clickMoveMarkerSeconds`, `pathMaxNodes`, `clickMoveBlockedSearchRadius`, `clickMoveReachMargin`, `clickMoveStuckSeconds` / `clickMoveMaxReplans`); §4 bảng phím (chuột trái / chạm, WASD huỷ đường) + ghi chú bản điện thoại (không cần điều khiển ảo, danh sách chỗ còn phụ thuộc bàn phím). Task T-096.
 - 2026-10-14 — D-037: v0.16. Người dùng thử Vườn có hình thật, góp ý "sạp hạt không có người bán, muốn giao tiếp hài khi mua sắm". (1) **Giữ kế hoạch**: người bán + thoại lầy vẫn ở đợt C (T-034, T-036, T-037). (2) Thêm **§3.9a "Kỳ kèo"** — mặc cả nhẹ khi mua ở quầy cô Tám, lò rèn, xưởng mộc: 1 lần/quầy/ngày, 3 kiểu nói (nịnh / kể khổ / khoác lác), mỗi NPC ăn một kiểu theo tính cách, thành công bớt 5–15% một lần trả tiền, thất bại bị cà khịa (+ meme trừ sĩ diện), phản tác dụng +10% (tối đa 20 quan) hoặc cô Tám đồn; level cao dễ được; trần 20% / 40 quan; bảng so với mặc cả sính lễ; bảng tham số `kyKeo*`. Sửa §3.8 (bỏ "mặc cả với thợ: Để sau"), §4 phím K, §8 juice 3 dòng, §11 cửa sổ cửa hàng, §14 Must (thêm), Could (gạch dòng mặc cả với thợ), bảng đợt C (+T-095, 82,5 giờ), tổng ≈ 368 giờ / 78 task, mục cắt C4b.

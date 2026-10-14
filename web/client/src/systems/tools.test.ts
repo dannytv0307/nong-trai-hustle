@@ -140,9 +140,9 @@ describe('ensureItem / nạp save cũ chưa có cuốc', () => {
     sellBox: createInventory(gameConfig.sellBoxSlots, gameConfig.sellBoxSlots, gameConfig.stackMax),
   });
 
-  /** Save version 1 kiểu T-008 (trước khi có cuốc): hạt ở ô 1–2, đang chọn ô 1. */
+  /** Save kiểu T-008 (trước khi có cuốc): hạt ở ô 1–2, đang chọn ô 1 (đã nâng lên version hiện tại: thêm rương trống). */
   const oldSave = (): GameSave => ({
-    version: GAME_SAVE_VERSION as 1,
+    version: GAME_SAVE_VERSION as 2,
     savedAt: '2026-10-12T08:30:00.000Z',
     player: { name: 'Tèo', area: 'garden', x: 500, y: 600, facing: 'left' },
     clock: { day: 3, elapsedSeconds: 120 },
@@ -155,6 +155,7 @@ describe('ensureItem / nạp save cũ chưa có cuốc', () => {
       lastSeedId: 'hat-rau-cai',
     },
     sellBox: { slots: [] },
+    chest: { slots: [] },
   });
 
   it('save cũ: cuốc vào ô trống đầu tiên (ô 3), đồ cũ và ô đang chọn giữ nguyên', () => {

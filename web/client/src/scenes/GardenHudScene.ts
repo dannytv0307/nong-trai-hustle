@@ -177,6 +177,20 @@ interface Flyer {
   target: number;
 }
 
+/** Cửa sổ 2 lưới gùi ⇄ thùng bán / rương (T-093): các phần cần cập nhật mỗi frame. */
+interface TransferView {
+  kind: 'sellBox' | 'chest';
+  win: Phaser.GameObjects.Container;
+  bag: SlotView[];
+  box: SlotView[];
+  hover: Phaser.GameObjects.Graphics;
+  total: Phaser.GameObjects.Text;
+  status: Phaser.GameObjects.Text;
+}
+
+/** T-093: tâm dọc (px màn) của tên khu khi vừa vào. */
+const AREA_BANNER_Y = 150;
+
 /** Sự kiện GardenScene phát khi nhận đồ (hái). */
 export interface ItemGainedEvent {
   itemId: string;
@@ -189,7 +203,7 @@ export interface ItemGainedEvent {
 /** Gợi ý phím (GDD §11). Dòng chính dài nằm trên nút gùi; dòng ngắn ở khe bên phải nút gùi. */
 const HINT_MAIN = 'WASD đi · Click làm · 1–9 chọn · E Gùi · Esc Menu';
 /** T-006: dòng thứ hai của khối gợi ý chính (phím mới F, Shift). */
-const HINT_MAIN_2 = 'F mở thùng bán / sạp hạt · Shift+click: cả chồng';
+const HINT_MAIN_2 = 'F dùng thùng / sạp / rương · Shift+click: cả chồng';
 const HINT_SIDE = ['Chuột phải: ăn món đang chọn'];
 const HINT_DEV = ['Phím thử: G qua đêm', 'F8 −20 Sức · F9 +1 giờ'];
 
@@ -260,9 +274,12 @@ export class GardenHudScene extends Phaser.Scene {
   private sellWindow!: Phaser.GameObjects.Container;
   private readonly sellBagSlots: SlotView[] = [];
   private readonly sellBoxSlots: SlotView[] = [];
-  private sellHoverFrame!: Phaser.GameObjects.Graphics;
   private sellTotalText!: Phaser.GameObjects.Text;
   private sellStatusText!: Phaser.GameObjects.Text;
+  private sellView!: TransferView;
+  /** T-093: cửa sổ rương (cùng bố cục với thùng bán) + tên khu khi vừa vào. */
+  private chestView!: TransferView;
+  private areaBanner!: Phaser.GameObjects.Text;
   private stallWindow!: Phaser.GameObjects.Container;
   private stallMoneyText!: Phaser.GameObjects.Text;
   private stallStatusText!: Phaser.GameObjects.Text;
@@ -357,7 +374,14 @@ export class GardenHudScene extends Phaser.Scene {
 
     this.buildBagWindow();
     this.buildSellWindow();
+    this.chestView = this.buildTransferWindow('chest');
     this.buildStallWindow();
+    // T-093: tên khu khi vừa vào (giữa trên màn — trống giữa thanh Sức và đồng hồ).
+    this.areaBanner = this.add
+      .text(w / 2, AREA_BANNER_Y, '', { ...textStyles.subtitle, fontSize: '44px', strokeThickness: 8 })
+      .setOrigin(0.5)
+      .setDepth(40)
+      .setVisible(false);
     this.buildPauseWindow();
     this.buildNight();
 
@@ -805,13 +829,14 @@ export class GardenHudScene extends Phaser.Scene {
   }
 
   /**
-   * Cửa sổ thùng bán (GDD §11): nền tối mờ, khung giữa màn; trái "Gùi" (2 × 9, hàng trên = hotbar), phải "Thùng bán"
-   * (2 × 9); giữa có mũi tên ⇄. Dưới: "Cuối ngày bán được: N quan" (vàng), dòng báo, dòng hướng dẫn. Chữ ≥ 24px.
+   * Cửa sổ 2 lưới (GDD §11): nền tối mờ, khung giữa màn; trái "Gùi" (2 × 9, hàng trên = hotbar), phải "Thùng bán" (2 × 9)
+   * hoặc "Rương" (T-093, chestSlots ô); giữa có mũi tên ⇄. Dưới: dòng tổng (vàng), dòng báo, dòng hướng dẫn. Chữ ≥ 24px.
    */
-  private buildSellWindow(): void {
+  private buildTransferWindow(kind: 'sellBox' | 'chest'): TransferView {
     const { gameWidth: w, gameHeight: h } = gameConfig;
+    const chest = kind === 'chest';
     const nBag = this.garden.inventory.slots.length;
-    const nBox = this.garden.sellBox.slots.length;
+    const nBox = (chest ? this.garden.chest : this.garden.sellBox).slots.length;
     const p = sellPanelRect(nBag, nBox);
     const parts: Phaser.GameObjects.GameObject[] = [this.add.rectangle(0, 0, w, h, palette.ink, 0.55).setOrigin(0)];
     const g = this.add.graphics();
@@ -831,18 +856,22 @@ export class GardenHudScene extends Phaser.Scene {
     const ay = (bagO.y + gridsBottom) / 2;
     parts.push(g);
     parts.push(this.add.text(bagO.x, p.y + 24, 'Gùi', textStyles.subtitle).setOrigin(0, 0));
-    parts.push(this.add.text(boxO.x, p.y + 24, 'Thùng bán', textStyles.subtitle).setOrigin(0, 0));
+    parts.push(this.add.text(boxO.x, p.y + 24, chest ? 'Rương' : 'Thùng bán', textStyles.subtitle).setOrigin(0, 0));
     parts.push(
       this.add
-        .text(p.x + p.w - SELL_WINDOW.pad, p.y + 40, 'Cuối ngày tự bán theo giá gốc', { ...textStyles.body, fontSize: '24px', strokeThickness: 5 })
+        .text(p.x + p.w - SELL_WINDOW.pad, p.y + 40, chest ? 'Cất đồ — không bán, không mất' : 'Cuối ngày tự bán theo giá gốc', {
+          ...textStyles.body,
+          fontSize: '24px',
+          strokeThickness: 5,
+        })
         .setOrigin(1, 0),
     );
     parts.push(this.add.text(ax, ay, '⇄', { ...textStyles.subtitle, fontSize: '56px', color: cssColor('gold') }).setOrigin(0.5));
-    this.sellTotalText = this.add
+    const total = this.add
       .text(p.x + p.w / 2, gridsBottom + 26, '', { ...textStyles.subtitle, fontSize: '34px', color: cssColor('gold') })
       .setOrigin(0.5, 0);
-    this.sellStatusText = this.add.text(p.x + p.w / 2, gridsBottom + 86, '', { ...textStyles.body, fontSize: '24px', strokeThickness: 5 }).setOrigin(0.5, 0);
-    parts.push(this.sellTotalText, this.sellStatusText);
+    const status = this.add.text(p.x + p.w / 2, gridsBottom + 86, '', { ...textStyles.body, fontSize: '24px', strokeThickness: 5 }).setOrigin(0.5, 0);
+    parts.push(total, status);
     parts.push(
       this.add
         .text(p.x + p.w / 2, p.y + p.h - 22, 'Click: chuyển 1 món · Shift+click: cả chồng · F / Esc: đóng', { ...textStyles.body, fontSize: '24px', strokeThickness: 5 })
@@ -851,21 +880,35 @@ export class GardenHudScene extends Phaser.Scene {
     // Ô dưới con trỏ: "đế" vàng hoa hòe viền mực đặt SAU ô (ô vẽ đè lên → còn lại một vòng vàng quanh ô). Không dùng
     // strokeRoundedRect nét dày vì WebGL vẽ lòi một mũi nhọn ở chỗ nối nét.
     const s = SELL_WINDOW.slot;
-    this.sellHoverFrame = this.add.graphics().setVisible(false);
-    this.sellHoverFrame.fillStyle(palette.ink, 1).fillRoundedRect(-s / 2 - 10, -s / 2 - 10, s + 20, s + 20, 16);
-    this.sellHoverFrame.fillStyle(palette.gold, 1).fillRoundedRect(-s / 2 - 7, -s / 2 - 7, s + 14, s + 14, 14);
-    parts.push(this.sellHoverFrame);
-    this.sellWindow = this.add.container(0, 0, parts).setDepth(50).setVisible(false);
+    const hover = this.add.graphics().setVisible(false);
+    hover.fillStyle(palette.ink, 1).fillRoundedRect(-s / 2 - 10, -s / 2 - 10, s + 20, s + 20, 16);
+    hover.fillStyle(palette.gold, 1).fillRoundedRect(-s / 2 - 7, -s / 2 - 7, s + 14, s + 14, 14);
+    parts.push(hover);
+    const win = this.add.container(0, 0, parts).setDepth(50).setVisible(false);
+    const bag: SlotView[] = [];
+    const box: SlotView[] = [];
     for (let i = 0; i < nBag; i++) {
       const v = this.makeSlot(sellSlotRect('bag', i, nBag, nBox), i < gameConfig.hotbarSlots ? String(i + 1) : null);
-      this.sellBagSlots.push(v);
-      this.sellWindow.add(v.root);
+      bag.push(v);
+      win.add(v.root);
     }
     for (let i = 0; i < nBox; i++) {
       const v = this.makeSlot(sellSlotRect('box', i, nBag, nBox), null);
-      this.sellBoxSlots.push(v);
-      this.sellWindow.add(v.root);
+      box.push(v);
+      win.add(v.root);
     }
+    return { kind, win, bag, box, hover, total, status };
+  }
+
+  /** Thùng bán: dựng cửa sổ 2 lưới + giữ các trường cũ (QA đọc debugState). */
+  private buildSellWindow(): void {
+    const v = this.buildTransferWindow('sellBox');
+    this.sellWindow = v.win;
+    this.sellBagSlots.push(...v.bag);
+    this.sellBoxSlots.push(...v.box);
+    this.sellTotalText = v.total;
+    this.sellStatusText = v.status;
+    this.sellView = v;
   }
 
   /** Cửa sổ sạp hạt: tiêu đề "Sạp hạt" + "Tiền: 60 quan", mỗi hạt một nút (icon, "Hạt cải — 4 quan", số đang có), dòng báo, hướng dẫn. */
@@ -965,33 +1008,50 @@ export class GardenHudScene extends Phaser.Scene {
     }
   }
 
-  /** Cửa sổ thùng bán mỗi frame: hiện/ẩn, viền ô dưới con trỏ, dòng báo; lưới + tổng vẽ lại khi inventoryRevision đổi. */
-  private updateSellWindow(redraw: boolean): void {
-    const open = this.garden.shopWindow === 'sellBox';
-    this.sellWindow.setVisible(open);
+  /** Cửa sổ 2 lưới mỗi frame: hiện/ẩn, viền ô dưới con trỏ, dòng báo; lưới + dòng tổng vẽ lại khi inventoryRevision đổi. */
+  private updateTransferWindow(v: TransferView, redraw: boolean): void {
+    const open = this.garden.shopWindow === v.kind;
+    v.win.setVisible(open);
     if (redraw) {
       const inv = this.garden.inventory;
-      const box = this.garden.sellBox;
-      for (let i = 0; i < this.sellBagSlots.length; i++) this.drawSlot(this.sellBagSlots[i], inv.slots[i] ?? null);
-      for (let i = 0; i < this.sellBoxSlots.length; i++) this.drawSlot(this.sellBoxSlots[i], box.slots[i] ?? null);
-      this.sellTotalText.setText(`Cuối ngày bán được: ${sellBoxTotal(box)} quan`);
+      const box = v.kind === 'chest' ? this.garden.chest : this.garden.sellBox;
+      for (let i = 0; i < v.bag.length; i++) this.drawSlot(v.bag[i], inv.slots[i] ?? null);
+      for (let i = 0; i < v.box.length; i++) this.drawSlot(v.box[i], box.slots[i] ?? null);
+      if (v.kind === 'chest') {
+        const used = box.slots.filter((st) => st !== null).length;
+        v.total.setText(`Rương: ${used}/${box.slots.length} ô có đồ`);
+      } else {
+        v.total.setText(`Cuối ngày bán được: ${sellBoxTotal(box)} quan`);
+      }
     }
     if (!open) return;
     const hv = this.garden.shopHover;
     if (hv) {
-      const v = (hv.side === 'bag' ? this.sellBagSlots : this.sellBoxSlots)[hv.index];
-      if (v) this.sellHoverFrame.setPosition(v.root.x, v.root.y).setVisible(true);
+      const slot = (hv.side === 'bag' ? v.bag : v.box)[hv.index];
+      if (slot) v.hover.setPosition(slot.root.x, slot.root.y).setVisible(true);
     } else {
-      this.sellHoverFrame.setVisible(false);
+      v.hover.setVisible(false);
     }
     const status = this.garden.shopStatus;
-    if (this.sellStatusText.text !== status.text) this.sellStatusText.setText(status.text);
-    this.sellStatusText.setColor(cssColor(status.warn ? 'gold' : 'paper'));
+    if (v.status.text !== status.text) v.status.setText(status.text);
+    v.status.setColor(cssColor(status.warn ? 'gold' : 'paper'));
+  }
+
+  /** T-093: tên khu ("Nhà Tý") giữa trên màn khi vừa vào khu — hiện đậm rồi mờ dần (GardenScene giữ nhịp). */
+  private updateAreaBanner(): void {
+    const a = this.garden.areaBannerOpacity;
+    if (a <= 0.001) {
+      if (this.areaBanner.visible) this.areaBanner.setVisible(false);
+      return;
+    }
+    if (this.areaBanner.text !== this.garden.areaBannerText) this.areaBanner.setText(this.garden.areaBannerText);
+    this.areaBanner.setAlpha(a).setVisible(true);
   }
 
   /** Cỡ chữ nhỏ nhất (px) trong cửa sổ đang mở — cho QA kiểm "chữ ≥ 24px". */
   private shopMinFontPx(): number {
-    const win = this.garden.shopWindow === 'sellBox' ? this.sellWindow : this.garden.shopWindow === 'seedStall' ? this.stallWindow : null;
+    const sw = this.garden.shopWindow;
+    const win = sw === 'sellBox' ? this.sellWindow : sw === 'chest' ? this.chestView.win : sw === 'seedStall' ? this.stallWindow : null;
     if (!win) return 0;
     let min = Number.POSITIVE_INFINITY;
     const visit = (o: Phaser.GameObjects.GameObject) => {
@@ -1167,7 +1227,9 @@ export class GardenHudScene extends Phaser.Scene {
       for (let i = 0; i < this.hotbar.length; i++) this.drawSlot(this.hotbar[i], inv.slots[i] ?? null);
       for (let i = 0; i < this.bagSlots.length; i++) this.drawSlot(this.bagSlots[i], inv.slots[i] ?? null);
     }
-    this.updateSellWindow(redraw);
+    this.updateTransferWindow(this.sellView, redraw);
+    this.updateTransferWindow(this.chestView, redraw);
+    this.updateAreaBanner();
     this.updateStallWindow();
     this.updateMoney(dt);
     const sel = this.hotbar[inv.selected];

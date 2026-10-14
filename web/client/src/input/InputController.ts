@@ -88,6 +88,9 @@ export class InputController {
 
     this.input = scene.input;
     scene.input.on(Phaser.Input.Events.POINTER_DOWN, (p: Phaser.Input.Pointer) => {
+      // T-096: chạm màn hình (điện thoại) không có "rê chuột vào khung" trước → lần chạm đầu cũng tính là con trỏ trong khung.
+      // Phaser coi một ngón chạm như chuột TRÁI (buttons = 1) → chạm = click trái, giữ ngón rê = giữ chuột rê.
+      this.pointerInside = true;
       this.buf.pointerDown(p.leftButtonDown(), p.rightButtonDown());
       // T-006: Shift+click (chuyển cả chồng / mua 5) — đọc Shift NGAY LÚC BẤM từ sự kiện chuột, không đọc phím Shift
       // lúc xử lý (người chơi có thể đã nhả Shift trước frame kế).

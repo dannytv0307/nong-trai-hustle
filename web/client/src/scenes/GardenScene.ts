@@ -20,7 +20,9 @@
 // T-008: tự lưu vào localStorage (systems/save.ts + net/saveLocal.ts, cấu trúc save ở @bph/shared): mỗi autoSaveIntervalSeconds,
 // khi Tạm dừng / mất focus / ẩn tab / đóng tab (pagehide), trước khi ngủ, ngay lúc qua đêm và sau "Ngày mới". Mở game có save
 // thì nạp lại (create). Cửa sổ Tạm dừng có "Đã lưu lúc…" + nút "Chơi lại từ đầu" (hỏi Có/Không → xóa save, dựng lại scene mới).
-// Nhà, cây, ao, rào, thùng bán, sạp hạt là hình khối màu theo palette (chưa có asset thật).
+// T-093: cảnh trong nhà {ten} (systems/house.ts) — phòng là một KHU nằm dưới bản đồ Vườn trong cùng thế giới; bước vào bậc
+// thềm (bấm W) → màn mờ (systems/areas.ts, dùng chung cho các khu sau) → trong nhà: giường (ngủ), rương (cửa sổ 2 lưới
+// như thùng bán), bếp rơm (đặt sẵn, nấu ở T-048), hũ gạo, nón ông nội. Ra khe cửa (bấm S) → đứng trước nhà. Save nhớ khu.
 import Phaser from 'phaser';
 import {
   bendHandOffset,
@@ -31,6 +33,7 @@ import {
   heroTextureKey,
   heroTurnKey,
   heroWalkKey,
+  HOUSE_INTERIOR_KEY,
   TILE_SHEET,
   TILE_SHEETS,
   tileKey,
@@ -42,8 +45,11 @@ import { textStyles, uiFontFamily } from '../config/theme';
 import bubbles from '../data/bubbles.json';
 import { InputController } from '../input/InputController';
 import {
+  blockedGrid,
   cornerNudge,
   gardenLayout as L,
+  houseDoorClickRect,
+  isHouseDoorTile,
   tileOf,
   tileSolidGrid,
   type TileRect,
@@ -54,6 +60,7 @@ import {
   cropStage,
   facingToward,
   harvestPlot,
+  inFarmWorkRange,
   inReach,
   isRipe,
   jobFor,
@@ -88,7 +95,35 @@ import {
 } from '../systems/items';
 import { actionAnimFor, actionFrameAt, isActionTextureKey, showActionPose, type ActionAnim } from '../systems/toolAnim';
 import { borderFenceLines, canopyCoversHero, fencePieces, HEDGE_MID_COLS, sellBasketKey, type FencePiece } from '../systems/propArt';
-import { propPlacement, propSpec } from '../systems/props';
+import { propMarker, propPlacement, propSpec } from '../systems/props';
+import {
+  houseExitSpot,
+  houseExitStandSpot,
+  houseNavGrid,
+  houseObject,
+  houseOrigin,
+  houseSize,
+  houseTargetAt,
+  houseTargetInReach,
+  isFreeHouseSpot,
+  isHouseDoorAt,
+  nearestHouseTarget,
+  resolveHouseLayout,
+  shouldEnterHouse,
+  shouldExitHouse,
+  type HouseTarget,
+} from '../systems/house';
+import {
+  areaBannerAlpha,
+  areaName,
+  createAreaTransition,
+  isAreaId,
+  isTransitioning,
+  startAreaTransition,
+  stepAreaTransition,
+  transitionAlpha,
+  type AreaId,
+} from '../systems/areas';
 import {
   buySeeds,
   canSellItem,
@@ -187,7 +222,18 @@ import {
 } from '../systems/groundTiles';
 import { cropVisual, OWN_FRAME_RIPE, thirstyTint, type CropVisual } from '../systems/cropArt';
 import type { GardenHudScene, HudDebugState } from './GardenHudScene';
-import { facingFromDirection, moveVelocity, type Facing } from '../systems/movement';
+import { facingFromDirection, facingFromVector, moveVelocity, type Facing } from '../systems/movement';
+import { boxFitsGrid, navFromBoolGrid, PathFinder, type NavGrid } from '../systems/pathfind';
+import {
+  cancelClickMove,
+  createClickMove,
+  planFarmStand,
+  planWalk,
+  startClickMove,
+  stepClickMove,
+  type ClickMoveParams,
+  type WalkGoal,
+} from '../systems/clickMove';
 import { pulseAlpha } from '../systems/pulse';
 import {
   actionPose,
@@ -319,8 +365,15 @@ const OBJECT_HIGHLIGHT_KEY = 1_000_000;
 /** Hàng ở sạp hạt tạm (data/seedStall.json) — bỏ dòng có cây không còn trong crops.json. */
 const SEED_STALL: readonly SeedStallItem[] = (seedStallJson.items as SeedStallItem[]).filter((it) => seedPriceOf(it.cropId) !== null);
 
-/** Tên khu trong save (prototype chỉ có Vườn). */
-const SAVE_AREA = 'garden';
+/** T-093: phòng trong nhà {ten} (toạ độ thế giới) — nằm dưới bản đồ Vườn, camera chỉ nhìn một khu một lúc. */
+const HOUSE = resolveHouseLayout(houseOrigin(L.rows, T), T);
+/** Màn mờ khi chuyển khu: trên mọi thứ trong cảnh (kể cả bong bóng); HUD ở scene khác nên vẫn hiện. */
+const DEPTH_AREA_FADE = 8000;
+/**
+ * Click vật trong nhà: tầm tính từ tâm chân tới MÉP chân đế vật. Ngoài Vườn tầm click (interactRange) đo tới TÂM ô gần nhất
+ * của vật → đổi ra "tới mép" thì bớt nửa ô, để trong nhà cũng xa gần như ngoài vườn.
+ */
+const HOUSE_CLICK_RANGE_PX = (gameConfig.interactRange - 0.5) * T;
 /** Luật game khi nạp save (systems/save.ts): số nhát cuốc, độ dài ngày, cỡ khu, món / cây có thật. */
 const SAVE_RULES: SaveRules = {
   strikesPerPlot: gameConfig.tillStrikesPerPlot,
@@ -331,14 +384,26 @@ const SAVE_RULES: SaveRules = {
   isKnownCrop: (cropId) => cropById(cropId) !== undefined,
   // T-009: save trước khi có cuốc → nạp xong tự thêm cuốc vào ô trống đầu tiên.
   requiredItems: gameConfig.startTools,
+  // T-093: save đứng trong nhà (toạ độ trong ảnh phòng).
+  otherAreas: { house: houseSize() },
 };
 
 /** Origin Y của sprite nhân vật: khung đi/đứng 64×96 chân sát đáy (1); khung động tác 128×128 chân ở hàng footY. */
 const HERO_ORIGIN_Y_WALK = 1;
 const HERO_ORIGIN_Y_ACTION = HERO_ACTION_FRAME.footY / HERO_ACTION_FRAME.height;
 
-/** Cửa sổ "cửa hàng" đang mở: thùng bán hoặc sạp hạt (trùng tên lý do dừng trong systems/pause.ts). Giường không phải cửa hàng. */
-export type ShopWindow = Exclude<InteractTarget, 'bed'>;
+/**
+ * Cửa sổ "cửa hàng" đang mở: thùng bán, sạp hạt hoặc rương trong nhà (T-093) — trùng tên lý do dừng trong systems/pause.ts.
+ * Giường không phải cửa hàng.
+ */
+export type ShopWindow = 'sellBox' | 'seedStall' | 'chest';
+
+/** T-096: việc chờ làm khi đi theo click tới nơi (ô ruộng, vật Vườn, vật trong nhà, cửa nhà). */
+export type ClickAction =
+  | { kind: 'tile'; x: number; y: number; job: TileJob }
+  | { kind: 'gardenObject'; target: InteractTarget }
+  | { kind: 'houseObject'; target: HouseTarget }
+  | { kind: 'door'; to: AreaId };
 /**
  * Giường (T-024: chõng tre vẽ trong ảnh nhà, mép trên chõng ở px 245 của ảnh ≈ 11 px trên hàng ô giường) nhô lên trên ô
  * bấy nhiêu px — viền khi trỏ chuột bao cả hình.
@@ -634,10 +699,50 @@ export interface GardenDebugState {
     window: ShopWindow | null;
     status: string;
     statusWarn: boolean;
-    opens: { sellBox: number; seedStall: number };
-    /** Số lần bấm F; vật đứng cạnh lúc này (null = không đứng cạnh vật nào). */
+    opens: { sellBox: number; seedStall: number; chest: number };
+    /** Số lần bấm F; vật đứng cạnh lúc này (null = không đứng cạnh vật nào; trong nhà là vật trong nhà). */
     keyPresses: number;
-    nearby: InteractTarget | null;
+    nearby: InteractTarget | HouseTarget | null;
+  };
+  /**
+   * T-093: khu đang đứng, đang chuyển khu (bước + độ tối màn), tên khu đang hiện, số lần vào / ra nhà, vật trong nhà dưới con
+   * trỏ, rương (đồ + số lần chuyển), toạ độ phòng (thế giới), chỗ đứng trong khu (px tính từ góc khu — như trong save).
+   */
+  area: {
+    current: AreaId;
+    transition: 'idle' | 'out' | 'in';
+    fade: number;
+    banner: { text: string; alpha: number };
+    enters: number;
+    exits: number;
+    houseHover: { target: HouseTarget; inReach: boolean } | null;
+    local: { x: number; y: number };
+    house: { origin: { x: number; y: number }; floor: { x: number; y: number; w: number; h: number }; spawn: { x: number; y: number }; wakeSpot: { x: number; y: number } };
+  };
+  chest: {
+    slots: ({ id: string; count: number; name: string } | null)[];
+    transfers: number;
+  };
+  /**
+   * T-096: click đâu đi đó — đang đi không, việc chờ (kiểu + ô / vật), các điểm còn phải qua (px thế giới), dấu đích có
+   * đang hiện, bộ đếm (bắt đầu đi, tới nơi, làm việc chờ, huỷ, không có đường, lập lại đường), lần lập đường gần nhất (số
+   * ô đã mở, mili-giây), việc chờ gần nhất đã làm.
+   */
+  clickMove: {
+    active: boolean;
+    action: ClickAction | null;
+    waypoints: { x: number; y: number }[];
+    index: number;
+    markerVisible: boolean;
+    starts: number;
+    arrivals: number;
+    actionsDone: number;
+    cancels: number;
+    noPath: number;
+    replans: number;
+    lastExpanded: number;
+    lastPlanMs: number;
+    lastAction: string;
   };
   /** Thùng bán: đồ trong thùng, tổng tiền cuối ngày (giá gốc), ô dưới con trỏ, số lần chuyển món. */
   sellBox: {
@@ -941,6 +1046,8 @@ export class GardenScene extends Phaser.Scene {
   readonly wallet = createWallet(gameConfig.startMoney);
   /** Đồ trong thùng bán — chưa thành tiền, cuối ngày (T-007) mới bán. HUD đọc để vẽ; vẽ lại theo inventoryRevision. */
   readonly sellBox: Inventory = createInventory(gameConfig.sellBoxSlots, gameConfig.sellBoxSlots, gameConfig.stackMax);
+  /** T-093: rương trong nhà (chestSlots ô) — cất đồ, không bán. HUD đọc để vẽ; vẽ lại theo inventoryRevision. */
+  readonly chest: Inventory = createInventory(gameConfig.chestSlots, gameConfig.chestSlots, gameConfig.stackMax);
   /** Hàng ở sạp hạt (HUD đọc để vẽ nút). */
   readonly seedStallItems: readonly SeedStallItem[] = SEED_STALL;
   /** Cửa sổ thùng bán / sạp hạt đang mở (null = không). Mở = "modal" như gùi. */
@@ -955,7 +1062,8 @@ export class GardenScene extends Phaser.Scene {
   private shopNotice = '';
   private shopNoticeWarn = false;
   private shopNoticeT = 0;
-  private readonly shopOpens = { sellBox: 0, seedStall: 0 };
+  private readonly shopOpens = { sellBox: 0, seedStall: 0, chest: 0 };
+  private chestTransfers = 0;
   private readonly purchases: { cropId: string; count: number; cost: number }[] = [];
   private transfers = 0;
   private interactKeyPresses = 0;
@@ -1023,6 +1131,52 @@ export class GardenScene extends Phaser.Scene {
   restartConfirmOpen = false;
   restartConfirmHover: 'yes' | 'no' | null = null;
 
+  // ---- Cảnh trong nhà + chuyển khu (T-093) ----
+  /** Khu đang đứng. Công khai để HUD đọc (vd tên khu). */
+  area: AreaId = 'garden';
+  private readonly areaTransition = createAreaTransition();
+  /** Màn mờ chuyển khu (một hình cỡ màn, không cuộn theo camera — như lớp trời). */
+  private areaFadeRect!: Phaser.GameObjects.Rectangle;
+  /** Giây kể từ lúc vào khu gần nhất (tên khu hiện rồi mờ dần); âm = không hiện. */
+  private areaBannerT = -1;
+  /** Tên khu đang hiện (HUD vẽ ở giữa trên màn). */
+  areaBannerText = '';
+  private areaEnters = 0;
+  private areaExits = 0;
+  /** Khu lấy từ save lúc mở game (vị trí loadedFoot tính trong khu này). */
+  private loadedArea: AreaId = 'garden';
+  /** Vật trong nhà dưới con trỏ (viền) + có trong tầm click không. */
+  private houseHover: { target: HouseTarget; inReach: boolean } | null = null;
+  /** Bếp rơm: đốm than hồng + cụm khói (pool, tạo một lần) — chỉ cập nhật khi đang ở trong nhà. */
+  private readonly stoveEmbers: Phaser.GameObjects.Arc[] = [];
+  private readonly stoveSmoke: Phaser.GameObjects.Arc[] = [];
+  private readonly stoveSmokeAge: number[] = [];
+  private stoveFire = { x: 0, y: 0 };
+  private stoveT = 0;
+
+  // ---- Click đâu đi đó + tự tìm đường (T-096, D-038) ----
+  /** Đường đang đi theo click + việc chờ làm khi tới nơi. */
+  private readonly clickMove = createClickMove<ClickAction>();
+  private readonly pathFinder = new PathFinder();
+  /** Lưới tìm đường: Vườn (ô 64 px, từ lưới vật cản — cây tính cả ô) và trong nhà (ô houseNavCellPx). Dựng một lần. */
+  private gardenNav!: NavGrid;
+  private houseNav!: NavGrid;
+  /** Vận tốc đi theo đường (dùng lại, không tạo object mỗi frame). */
+  private readonly pathVel = { x: 0, y: 0 };
+  /** Đích đang đi (để lập lại đường khi kẹt). */
+  private clickGoal: WalkGoal | null = null;
+  private clickReplans = 0;
+  /** Dấu đích (vòng tròn chỗ click), mờ dần; thời gian còn lại (giây, ≤ 0 = ẩn). */
+  private clickMarker!: Phaser.GameObjects.Graphics;
+  private clickMarkerT = 0;
+  /** Bộ đếm cho QA (debugState.clickMove). */
+  /** Con trỏ (màn) lần xét rê trước — rê chỉ tính khi con trỏ di chuyển (T-096b). */
+  private dragScreenX = Number.NaN;
+  private dragScreenY = Number.NaN;
+  /** Số lần kẹt khi đi tới ô đầu hàng chờ (quá clickMoveMaxReplans → bỏ ô đó). */
+  private farmStuck = 0;
+  private clickStats = { starts: 0, arrivals: 0, actionsDone: 0, cancels: 0, noPath: 0, replans: 0, lastExpanded: 0, lastPlanMs: 0, lastAction: '' };
+
   gardenReady = false;
 
   constructor() {
@@ -1034,8 +1188,6 @@ export class GardenScene extends Phaser.Scene {
   }
 
   create(): void {
-    const mapW = L.cols * T;
-    const mapH = L.rows * T;
     this.controls = new InputController(this);
     // T-008: nạp save TRƯỚC khi dựng ruộng / nhân vật — buildGround vẽ ô đã cuốc theo trạng thái ruộng, buildPlayer đặt
     // nhân vật ở toạ độ trong save. Không có save (hoặc save hỏng) → giữ trạng thái Ngày 1 như cũ.
@@ -1044,15 +1196,19 @@ export class GardenScene extends Phaser.Scene {
     this.bakeTextures();
     this.buildGround();
     const solids = this.buildObstacles();
+    const houseSolids = this.buildHouse();
     this.buildPlayer();
     this.buildDustPool();
     this.buildTileHighlight();
     this.buildFarmJuice();
     this.buildFloatPool();
 
-    this.physics.world.setBounds(0, 0, mapW, mapH);
+    // Giới hạn vật lý + camera theo KHU đang đứng (applyAreaView) — Vườn: cả bản đồ; trong nhà: sàn phòng / ảnh phòng.
     this.physics.add.collider(this.feet, solids);
+    this.physics.add.collider(this.feet, houseSolids);
     this.physics.add.collider(this.feet, this.buildCollisionLayer());
+    this.buildNavGrids();
+    this.buildClickMarker();
     if (physicsDebugFromSearch(window.location.search)) {
       this.physics.world.drawDebug = true;
       this.physics.world.createDebugGraphic();
@@ -1060,13 +1216,12 @@ export class GardenScene extends Phaser.Scene {
 
     // Camera: phóng to cho dễ nhìn, không ra ngoài bản đồ (không lộ khoảng đen), bám theo mượt.
     const cam = this.cameras.main;
-    cam.setBounds(0, 0, mapW, mapH);
     cam.setZoom(gameConfig.cameraZoom);
-    cam.setBackgroundColor(palette.jade);
-    cam.centerOn(this.feet.x, this.feet.y);
     cam.startFollow(this.feet, true, gameConfig.cameraLerp, gameConfig.cameraLerp);
 
     this.buildSkyOverlay();
+    this.buildAreaFade();
+    this.applyAreaView();
     this.updateSky();
     this.listenFocusLoss();
 
@@ -1274,7 +1429,7 @@ export class GardenScene extends Phaser.Scene {
     }
 
     // Nhà {ten} (bên ngoài): một ảnh, chân đế 6×2 ô chặn; mái phía trên đi sau được (depth = đáy nhà → mái che người).
-    // Chõng trên hiên = giường tạm (L.bed) tới T-093 — đã vẽ sẵn trong ảnh nhà.
+    // Chõng trên hiên (L.bed, vẽ sẵn trong ảnh nhà): từ T-093 không ngủ ở đây nữa — F / click chỉ nhắc vào nhà mà ngủ.
     this.addProp(L.houseProp.prop, L.houseProp.x, L.houseProp.y);
 
     // Ao nước: nằm sát đất, chặn cả khối (hình khối tới T-033).
@@ -1397,11 +1552,24 @@ export class GardenScene extends Phaser.Scene {
     const [fw, fh] = gameConfig.playerFootHitbox;
     // T-008: đứng ở toạ độ trong save, trừ khi ô đó là vật cản (bản đồ đổi sau khi lưu) → về chỗ xuất phát.
     const saved = this.loadedFoot;
-    const savedTile = saved ? tileOf(saved.x, saved.y, T) : null;
-    // (Lưới ô chặn tính thẳng ở đây — this.solidGrid chỉ có sau buildCollisionLayer, chạy sau buildPlayer.)
-    const savedOk = saved !== null && savedTile !== null && tileSolidGrid(L)[savedTile.y]?.[savedTile.x] === false;
-    const x = savedOk ? saved.x : L.spawn.x * T;
-    const y = savedOk ? saved.y : L.spawn.y * T;
+    let x: number;
+    let y: number;
+    if (this.loadedArea === 'house') {
+      // T-093: save trong nhà — toạ độ tính từ góc ảnh phòng. Chỗ đó không còn trống (đồ đạc dời) → đứng ở cửa.
+      const wx = saved ? HOUSE.origin.x + saved.x : Number.NaN;
+      const wy = saved ? HOUSE.origin.y + saved.y : Number.NaN;
+      const ok = saved !== null && isFreeHouseSpot(HOUSE, wx, wy, fw, fh);
+      x = ok ? wx : HOUSE.spawn.x;
+      y = ok ? wy : HOUSE.spawn.y;
+      this.area = 'house';
+    } else {
+      const savedTile = saved ? tileOf(saved.x, saved.y, T) : null;
+      // (Lưới ô chặn tính thẳng ở đây — this.solidGrid chỉ có sau buildCollisionLayer, chạy sau buildPlayer.)
+      const savedOk = saved !== null && savedTile !== null && tileSolidGrid(L)[savedTile.y]?.[savedTile.x] === false;
+      x = savedOk ? saved.x : L.spawn.x * T;
+      y = savedOk ? saved.y : L.spawn.y * T;
+      this.area = 'garden';
+    }
     this.feet = this.add.zone(x, y, fw, fh);
     this.physics.add.existing(this.feet);
     this.feetBody = this.feet.body as Phaser.Physics.Arcade.Body;
@@ -1501,6 +1669,12 @@ export class GardenScene extends Phaser.Scene {
       this.controls.endFrame();
       return;
     }
+    // T-093: đang chuyển khu (màn mờ) → nhân vật đứng yên, phím bỏ qua, đồng hồ đứng (lý do 'areaFade'); vài giây là xong.
+    if (isTransitioning(this.areaTransition)) {
+      this.updateAreaTransition(dt);
+      this.controls.endFrame();
+      return;
+    }
     // Tốc độ chuẩn (đủ Sức) — dùng để đo nhịp bước. Đuối thì đi chậm (moveSpeed) → tỷ lệ tốc độ thật ~0.5 → anim
     // bước tự chậm theo (walkTimeScale), chân không "trượt".
     const speed = gameConfig.walkSpeed * T;
@@ -1529,6 +1703,7 @@ export class GardenScene extends Phaser.Scene {
     // Cửa sổ gùi / thùng bán / sạp hạt mở = "modal": không đi, việc trên ô đứng yên (không mất nhát), click không xuống ruộng.
     const modal = this.windowOpen;
     if (this.shopNoticeT > 0) this.shopNoticeT = Math.max(0, this.shopNoticeT - dt);
+    if (this.areaBannerT >= 0) this.areaBannerT += dt;
     const wantDir = modal ? NO_DIR : this.controls.moveDirection();
     const wantsToMove = wantDir.x !== 0 || wantDir.y !== 0;
     // Chạm phím đi (kể cả nhấn + nhả lọt giữa hai frame — BUG-007). Luôn "tiêu thụ" mỗi frame để lần chạm cũ
@@ -1538,6 +1713,13 @@ export class GardenScene extends Phaser.Scene {
     // D-022: bấm phím đi khi đang CUỐC = BỎ DỞ — dừng ngay, đi được luôn trong frame này. Ô giữ số nhát
     // đã chạm (nhát đang giơ chưa chạm thì không tính), hàng chờ bị xóa. Việc nhanh (gieo/tưới/hái/dọn) thì không.
     if ((wantsToMove || tappedMove) && this.isTilling()) this.abandonTill();
+    // T-096: bấm WASD = thôi đi theo click (và thôi việc chờ làm khi tới nơi). Cửa sổ mở cũng thôi.
+    if ((wantsToMove || tappedMove || modal) && this.clickMove.active) this.cancelWalk();
+    // T-096b: WASD cũng bỏ hàng chờ việc ruộng (đang đi tới ô kế). Việc nhanh đang làm dở thì làm nốt.
+    if ((wantsToMove || tappedMove) && this.action.queue.length > 0) {
+      this.action.queue.length = 0;
+      if (!isBusy(this.action)) this.action.kind = null;
+    }
 
     // Khựng hình (nhát cuối): đứng hình cả động tác lẫn bụi trong vài chục mili-giây — cảm giác "chốt".
     const frozen = this.hitStop > 0;
@@ -1546,20 +1728,32 @@ export class GardenScene extends Phaser.Scene {
 
     // Chỉ ô bằng chuột → xin việc cho ô → tiến việc đang làm (quay mặt, chạm, xong ô).
     this.updatePointer(dt, wantsToMove);
-    this.updateTileAction(workDt, wantsToMove);
+    if (!wantsToMove && !modal && !frozen) this.driveTileQueue();
+    this.updateTileAction(workDt, wantsToMove || this.clickMove.active);
     // Đang CUỐC thì đứng yên (GDD §3.3a) — phím đi đã xử lý ở trên (bỏ dở). Việc nhanh vẫn đi được (D-022).
     const busy = isBusy(this.action);
     const dir = this.isTilling() ? NO_DIR : wantDir;
-    const v = moveVelocity(dir, moveSpeed); // đi chéo đã chuẩn hoá, không nhanh hơn đi thẳng
-    // Nắn vào cửa: đi thẳng vào tường mà chỉ lệch mép khe ≤ cornerNudgePx → tự trượt ngang vào khe.
-    const b = this.feetBody;
-    const blockedAhead = (dir.y < 0 && b.blocked.up) || (dir.y > 0 && b.blocked.down) || (dir.x < 0 && b.blocked.left) || (dir.x > 0 && b.blocked.right);
-    if (blockedAhead) {
-      const nudge = cornerNudge(this.solidGrid, b, dir, T, gameConfig.cornerNudgePx);
-      if (nudge.x !== 0) v.x = nudge.x * moveSpeed;
-      if (nudge.y !== 0) v.y = nudge.y * moveSpeed;
+    // T-096: không bấm WASD mà đang có đường click → đi theo đường (tới tầm với / tới nơi thì làm việc chờ).
+    const following = this.clickMove.active && !wantsToMove && !modal && !this.isTilling();
+    let v: { x: number; y: number };
+    if (following) {
+      v = this.followClickPath(dt, moveSpeed);
+    } else {
+      v = moveVelocity(dir, moveSpeed); // đi chéo đã chuẩn hoá, không nhanh hơn đi thẳng
+      // Nắn vào cửa: đi thẳng vào tường mà chỉ lệch mép khe ≤ cornerNudgePx → tự trượt ngang vào khe.
+      const b = this.feetBody;
+      const blockedAhead = (dir.y < 0 && b.blocked.up) || (dir.y > 0 && b.blocked.down) || (dir.x < 0 && b.blocked.left) || (dir.x > 0 && b.blocked.right);
+      // (Trong nhà không nắn: lưới ô chặn chỉ có cho Vườn; phòng không có khe hẹp nào cần nắn.)
+      if (blockedAhead && this.area === 'garden') {
+        const nudge = cornerNudge(this.solidGrid, b, dir, T, gameConfig.cornerNudgePx);
+        if (nudge.x !== 0) v.x = nudge.x * moveSpeed;
+        if (nudge.y !== 0) v.y = nudge.y * moveSpeed;
+      }
     }
     this.feetBody.setVelocity(v.x, v.y);
+    // T-093: bấm đi vào cửa nhà (W ở bậc thềm) / ra khe cửa (S trong nhà) → chuyển khu (màn mờ bắt đầu từ frame sau).
+    // Đi theo click thì cửa do việc chờ 'door' lo (followClickPath), không xét ở đây.
+    if (!following) this.checkDoors(dir.y);
 
     // Tốc độ THẬT (sau va chạm) quyết định nhịp bước: bị tường chặn thì đứng, không giậm chân tại chỗ.
     const fx = this.feetBody.center.x;
@@ -1571,9 +1765,11 @@ export class GardenScene extends Phaser.Scene {
     // Làm mượt: màn 144Hz có frame không có bước vật lý nào (vật lý chạy 60 lần/giây) → tốc độ đo
     // nhảy 0 ↔ 2.4; lấy trung bình ngắn để anim không giật dừng/chạy.
     this.speedRatio = smoothSpeedRatio(this.speedRatio, rawRatio, dt, gameConfig.walkSpeedSmoothing);
-    if (dir.x !== 0) this.lastDirX = dir.x;
+    if (following) {
+      if (Math.abs(v.x) > 1) this.lastDirX = Math.sign(v.x);
+    } else if (dir.x !== 0) this.lastDirX = dir.x;
 
-    const newFacing = facingFromDirection(dir, this.facing);
+    const newFacing = following ? facingFromVector(v.x, v.y, this.facing) : facingFromDirection(dir, this.facing);
     // Tiến khung xoay đang dở TRƯỚC, rồi mới bắt đầu cú xoay mới (nếu có) — cú mới giữ đủ thời gian.
     stepTurn(this.turn, dt, TURN_FRAME_SEC);
     if (newFacing !== this.facing) {
@@ -1602,6 +1798,7 @@ export class GardenScene extends Phaser.Scene {
 
     this.fadeTreesInFront(fx, footBottom);
     this.updateSellBasket();
+    if (this.area === 'house') this.updateStove(dt);
     this.updateDust(dt);
     this.updateTillDust(workDt);
     this.updateSweat(workDt);
@@ -1612,6 +1809,7 @@ export class GardenScene extends Phaser.Scene {
     this.updateCropVisuals();
     this.updateBubble(dt);
     this.updateFloats(dt);
+    this.updateClickMarker(dt);
     // Bỏ các lần nhấn phím / cuộn chưa ai dùng tới, để không lọt sang frame sau.
     this.controls.endFrame();
   }
@@ -1726,6 +1924,12 @@ export class GardenScene extends Phaser.Scene {
     }
 
     const pt = this.controls.pointerWorld(this.cameras.main, this.pointerWorldPt);
+    if (this.area === 'house') {
+      h.valid = false;
+      this.updateHousePointer(pressed, inside, pt.x, pt.y, dt);
+      return;
+    }
+    this.houseHover = null;
     const tx = Math.floor(pt.x / T);
     const ty = Math.floor(pt.y / T);
     h.valid = inside && tx >= 0 && ty >= 0 && tx < L.cols && ty < L.rows;
@@ -1737,6 +1941,21 @@ export class GardenScene extends Phaser.Scene {
     const c = this.feetBody.center;
     h.x = tx;
     h.y = ty;
+    // T-096: khung cửa nhà → viền cửa; click (gần hay xa) = đi tới ô sân dưới bậc rồi vào nhà.
+    if (isHouseDoorTile(L, tx, ty)) {
+      const spot = houseExitSpot(L.houseDoor, T);
+      h.object = null;
+      h.job = null;
+      h.tillable = false;
+      h.inReach = Math.hypot(spot.x - c.x, spot.y - c.y) <= gameConfig.interactRange * T;
+      this.drawHighlightBox(OBJECT_HIGHLIGHT_KEY + 5, houseDoorClickRect(L), h.inReach, dt, 0, 0, (L.house.y + L.house.h) * T + 2);
+      if (pressed) {
+        this.dragKind = null;
+        this.dragBlocked = true;
+        this.planAndGo({ kind: 'point', x: spot.x, y: spot.y }, { kind: 'door', to: 'house' }, pt);
+      }
+      return;
+    }
     // T-006: con trỏ trên thùng bán / sạp hạt → viền cả vật (sáng trong tầm / xám ngoài tầm); click trong tầm thì mở cửa
     // sổ, KHÔNG phải click ô ruộng (lần giữ chuột này cũng không làm việc gì trên ruộng).
     const obj = targetAt(L, tx, ty);
@@ -1753,9 +1972,13 @@ export class GardenScene extends Phaser.Scene {
       if (pressed) {
         this.dragKind = null;
         this.dragBlocked = true;
+        // T-096: ngoài tầm → đi tới chỗ đứng gần nhất với tới vật rồi mở luôn.
         if (h.inReach) {
-          if (obj === 'bed') this.requestSleep();
-          else this.openShop(obj);
+          this.cancelWalk();
+          this.interactGarden(obj);
+        } else {
+          const range = gameConfig.interactRange - gameConfig.clickMoveReachMargin;
+          this.planAndGo({ kind: 'reach', canWorkFrom: (x, y) => targetInReach(L, obj, x, y, T, range) }, { kind: 'gardenObject', target: obj }, pt);
         }
       }
       return;
@@ -1764,16 +1987,38 @@ export class GardenScene extends Phaser.Scene {
     h.job = jobFor(this.farm, tx, ty, growDaysOf);
     h.tillable = h.job === 'till';
 
-    this.drawTileHighlight(tx, ty, h.inReach, dt);
+    // T-096b: ô ruộng có việc luôn viền SÁNG (click là tự bước tới sát ô rồi làm); ô không có việc giữ sáng / xám theo tầm cũ.
+    this.drawTileHighlight(tx, ty, h.job !== null || h.inReach, dt);
 
     // Một lần giữ chuột = một loại việc, chốt theo ô bấm đầu tiên (GDD §3.3). Bấm vào cỏ / cây đã tưới → lần rê
     // này không làm gì. Bấm ô chưa cuốc → chỉ cuốc; bấm ô đã cuốc → chỉ gieo; bấm cây chưa tưới → chỉ tưới…
     if (pressed) {
       this.dragKind = h.job;
       this.dragBlocked = false;
+      if (this.clickMove.active) this.cancelWalk(); // click mới = lệnh mới
+      // T-096 (D-038): ô không có việc → chỉ đi tới đó (gần hay xa).
+      if (h.job === null) {
+        this.planAndGo({ kind: 'point', x: pt.x, y: pt.y }, null, pt);
+        return;
+      }
+      // Ngoài tầm cũ (`interactRange`) mà việc không hợp lệ với món đang cầm (không cầm cuốc, hết hạt, gùi đầy) → chỉ đi tới,
+      // không nhắc. Trong tầm cũ thì nhắc bằng bong bóng như trước (bên dưới).
+      if (!h.inReach) {
+        const job = h.job;
+        const valid = (job !== 'till' || canTillWithSelected(this.inventory)) && this.canDoJob(h, job, false);
+        if (!valid) {
+          this.planAndGo({ kind: 'point', x: pt.x, y: pt.y }, null, pt);
+          return;
+        }
+      }
+      // T-096b: việc hợp lệ (gần hay xa) → vào hàng chờ như click thường; hàng chờ tự bước tới SÁT từng ô (driveTileQueue).
     }
-    // Ngoài tầm: click không làm gì (GDD §3.3).
-    if (!(pressed || held) || this.dragKind === null || this.dragBlocked || !h.inReach || h.job !== this.dragKind) return;
+    // T-096b: rê chỉ tính khi CON TRỎ thật sự di chuyển trên màn — người đi làm camera chạy, ô dưới con trỏ đứng yên cũng đổi,
+    // không được tự xếp thêm ô.
+    const pointerMoved = sp.x !== this.dragScreenX || sp.y !== this.dragScreenY;
+    this.dragScreenX = sp.x;
+    this.dragScreenY = sp.y;
+    if (!(pressed || (held && pointerMoved)) || this.dragKind === null || this.dragBlocked || h.job !== this.dragKind) return;
     if (this.dragKind === 'till') {
       // T-009 (D-026): phải CẦM CUỐC (ô hotbar đang chọn là cuốc) mới cuốc. Cầm hạt / ô trống mà bấm ô cỏ → không cuốc,
       // bong bóng nhắc (chỉ lúc bấm, giữ chuột rê không nhắc lại mỗi frame). Ô đã vào hàng chờ thì vẫn cuốc tiếp dù
@@ -1905,9 +2150,40 @@ export class GardenScene extends Phaser.Scene {
     }
     if (this.bagOpen) return;
     const c = this.feetBody.center;
+    if (this.area === 'house') {
+      const t = nearestHouseTarget(HOUSE, c.x, c.y, gameConfig.interactKeyRange * T);
+      if (t) this.interactHouse(t);
+      return;
+    }
     const target = nearestKeyTarget(L, c.x, c.y, T, gameConfig.interactKeyRange);
-    if (target === 'bed') this.requestSleep();
-    else if (target) this.openShop(target);
+    if (target) this.interactGarden(target);
+  }
+
+  /** Vật ngoài Vườn: chõng hiên (T-093: không ngủ ở đây nữa — nhắc vào nhà), thùng bán / sạp hạt mở cửa sổ. */
+  private interactGarden(target: InteractTarget): void {
+    if (target === 'bed') this.showBubble(bubbles.porchBed);
+    else this.openShop(target);
+  }
+
+  /** Vật trong nhà (T-093): giường = hỏi ngủ như cũ; rương = cửa sổ 2 lưới; bếp / hũ gạo / nón = một câu của {ten}. */
+  private interactHouse(target: HouseTarget): void {
+    switch (target) {
+      case 'bed':
+        this.requestSleep();
+        break;
+      case 'chest':
+        this.openShop('chest');
+        break;
+      case 'stove':
+        this.showBubble(bubbles.stoveCold); // nấu ăn: T-048
+        break;
+      case 'riceJar':
+        this.showBubble(bubbles.riceJar); // nấu cơm từ hũ gạo: T-048
+        break;
+      case 'grandpaHat':
+        this.showBubble(bubbles.grandpaHat);
+        break;
+    }
   }
 
   /** Mở cửa sổ thùng bán / sạp hạt: đồng hồ dừng (lý do sellBox / seedStall), nhân vật đứng, lần giữ chuột dở bị chặn. */
@@ -1947,9 +2223,10 @@ export class GardenScene extends Phaser.Scene {
     this.hideHighlight();
     this.hover.valid = false;
     const shift = this.controls.primaryPressWithShift();
-    if (this.shopWindow === 'sellBox') {
+    if (this.shopWindow === 'sellBox' || this.shopWindow === 'chest') {
+      // T-093: rương dùng chung bố cục 2 lưới với thùng bán (bên phải là rương thay vì thùng).
       const nBag = this.inventory.slots.length;
-      const nBox = this.sellBox.slots.length;
+      const nBox = this.shopBoxInventory().slots.length;
       this.shopHover = inside ? sellSlotAt(px, py, nBag, nBox) : null;
       if (pressed) {
         if (!rectContains(sellPanelRect(nBag, nBox), px, py)) this.closeShop();
@@ -1974,11 +2251,14 @@ export class GardenScene extends Phaser.Scene {
    * systems/economy.ts). Bên nhận đầy → báo, không mất đồ.
    */
   private transferSlot(side: SellSide, index: number, all: boolean): void {
-    const from = side === 'bag' ? this.inventory : this.sellBox;
-    const to = side === 'bag' ? this.sellBox : this.inventory;
+    const chest = this.shopWindow === 'chest';
+    const box = this.shopBoxInventory();
+    const from = side === 'bag' ? this.inventory : box;
+    const to = side === 'bag' ? box : this.inventory;
     const stack = from.slots[index];
     if (!stack) return;
-    if (side === 'bag' && !canSellItem(stack.id)) {
+    // Rương cất được MỌI món (hạt, nông cụ…) — chỉ thùng bán mới chặn món không bán được.
+    if (!chest && side === 'bag' && !canSellItem(stack.id)) {
       const why = isSeedItem(stack.id) ? 'Hạt giống không bán được' : isToolItem(stack.id) ? 'Nông cụ không bán được' : 'Món này không bán được';
       this.setShopNotice(why, true);
       return;
@@ -1989,12 +2269,18 @@ export class GardenScene extends Phaser.Scene {
         this.setShopNotice(bubbles.bagFull, true);
         this.showBubble(bubbles.bagFull);
       } else {
-        this.setShopNotice('Thùng đầy rồi!', true);
+        this.setShopNotice(chest ? 'Rương đầy rồi!' : 'Thùng đầy rồi!', true);
       }
       return;
     }
-    this.transfers++;
+    if (chest) this.chestTransfers++;
+    else this.transfers++;
     this.inventoryRevision++;
+  }
+
+  /** Lưới bên phải của cửa sổ 2 lưới đang mở: rương (T-093) hoặc thùng bán. */
+  private shopBoxInventory(): Inventory {
+    return this.shopWindow === 'chest' ? this.chest : this.sellBox;
   }
 
   /** Mua hạt ở nút thứ i (1 hạt, Shift = tối đa seedBulkBuyCount): thiếu tiền / gùi đầy thì báo, không trừ tiền. */
@@ -2051,6 +2337,12 @@ export class GardenScene extends Phaser.Scene {
       const name = itemInfo(st.id)?.name ?? st.id;
       const price = sellPriceOf(st.id);
       return { text: price === null ? `${name} · không bán được` : `${name} · ${price} quan/món`, warn: false };
+    }
+    if (this.shopWindow === 'chest' && this.shopHover) {
+      const inv = this.shopHover.side === 'bag' ? this.inventory : this.chest;
+      const st = inv.slots[this.shopHover.index];
+      if (!st) return { text: '', warn: false };
+      return { text: `${itemInfo(st.id)?.name ?? st.id} · ${st.count}`, warn: false };
     }
     if (this.shopWindow === 'seedStall' && this.stallHover >= 0) {
       const item = this.seedStallItems[this.stallHover];
@@ -2362,6 +2654,8 @@ export class GardenScene extends Phaser.Scene {
    */
   private enterNight(phase: NightPhase): void {
     this.nightPhase = phase;
+    cancelClickMove(this.clickMove);
+    this.hideClickMarker();
     this.nightT = 0;
     this.pauseReasons.set('sleep', phase !== 'none');
     this.pauseReasons.set('daySummary', phase === 'summary');
@@ -2409,23 +2703,37 @@ export class GardenScene extends Phaser.Scene {
     this.summaryTicks++;
   }
 
-  /** Thức dậy: đứng ở ô cạnh giường (wakeSpot), mặt hướng xuống, hết nằm; camera nhảy về nhà; màn sáng dần. */
+  /**
+   * Thức dậy: TRONG NHÀ, đứng cạnh giường (houseLayout wakeSpot), mặt hướng xuống, hết nằm — kể cả đêm qua ngủ gục ngoài
+   * đồng (T-093: "sáng dậy trong nhà"). Màn đang tối hẳn nên đổi khu thẳng, không cần màn mờ chuyển khu; màn sáng dần.
+   */
   private startWaking(): void {
-    const x = L.wakeSpot.x * T + T / 2;
-    const y = L.wakeSpot.y * T + T / 2;
+    this.area = 'house';
+    this.placeHero(HOUSE.wakeSpot.x, HOUSE.wakeSpot.y, 'down');
+    this.applyAreaView();
+    this.enterNight('waking');
+  }
+
+  /**
+   * Đặt nhân vật đứng (không nằm, không anim) ở (x, y) = giữa hộp chân, quay mặt `facing`, trong khu `this.area`.
+   * Giới hạn vật lý phải đổi sang khu mới TRƯỚC khi reset: Body.reset kiểm giới hạn thế giới ngay lúc đó — giới hạn khu cũ sẽ
+   * kéo chân về mép khu cũ (lỗi đã gặp: vào nhà xong đứng dính tường sau, ra vườn xong trôi xuống mép bản đồ).
+   */
+  private placeHero(x: number, y: number, facing: Facing): void {
+    this.applyWorldBounds();
     this.feetBody.reset(x, y);
     this.prevFootX = x;
     this.prevFootY = y;
     this.speedRatio = 0;
-    this.facing = 'down';
+    this.facing = facing;
     this.turn.frame = null;
+    if (this.hero.anims.isPlaying) this.hero.anims.stop();
+    clearWalkBob(this.walk);
     this.hero.setAngle(0);
-    this.showStill(heroTextureKey(1, 'down'));
+    this.showStill(heroTextureKey(1, facing));
     const footBottom = y + this.feetBody.height / 2;
-    this.hero.setPosition(x, footBottom).setDepth(footBottom);
+    this.hero.setPosition(x, footBottom).setDepth(footBottom).setScale(1);
     this.heroShadow.setPosition(x, footBottom - 2);
-    this.cameras.main.centerOn(x, y);
-    this.enterNight('waking');
   }
 
   /** Sáng hẳn: chơi tiếp (đồng hồ chạy từ 6:00). Đêm qua ngủ gục → LUÔN chửi một câu (GDD §3.12, bỏ qua xác suất). */
@@ -2565,7 +2873,8 @@ export class GardenScene extends Phaser.Scene {
     // T-004: tới lượt mà thiếu Sức → không làm, "đuối rồi…", XÓA cả hàng chờ (D-022) — vòng lặp trong stepTileAction
     // thấy hàng chờ rỗng thì dừng.
     const stillValid = (t: TileXY) => {
-      if (kind === null || !inReach(c.x, c.y, t.x, t.y, T, gameConfig.interactRange)) return false;
+      // T-096b: không còn bỏ ô vì "ngoài tầm" — chưa đứng sát thì canStart giữ ô lại, driveTileQueue bước tới.
+      if (kind === null) return false;
       if (jobFor(this.farm, t.x, t.y, growDaysOf) !== kind || !this.canDoJob(t, kind, true)) return false;
       if (this.hasStaminaFor(kind, true)) return true;
       this.action.queue.length = 0;
@@ -2573,7 +2882,14 @@ export class GardenScene extends Phaser.Scene {
     };
     // Ô cuốc dở thì chỉ làm số nhát còn lại (vd 4/6 → 2 nhát). Việc nhanh: 1 "nhát".
     const strikesFor = (t: TileXY) => (kind === 'till' ? strikesRemaining(this.farm, t.x, t.y, n) : 1);
-    const ev = stepTileAction(this.action, dt, this.paramsFor(kind), stillValid, this.actionEvents, strikesFor);
+    // Đang đi tới chỗ đứng đã chọn cho ô này → chờ tới nơi (không bắt đầu giữa đường dù đã lọt tầm).
+    const walkingTo = (t: TileXY) => {
+      const a = this.clickMove.action;
+      return this.clickMove.active && a?.kind === 'tile' && a.x === t.x && a.y === t.y;
+    };
+    const canStart = (t: TileXY) => !walkingTo(t) && inFarmWorkRange(c.x, c.y, t.x, t.y, T, gameConfig.farmWorkRange);
+    const ev = stepTileAction(this.action, dt, this.paramsFor(kind), stillValid, this.actionEvents, strikesFor, canStart);
+    if (ev.started) this.farmStuck = 0;
     // Frame dài: nhát cuối ô trước CHẠM, xong ô và bắt đầu ô kế trong CÙNG một bước — lúc hỏi stillValid thì Sức của
     // ô trước chưa bị trừ (trừ ở impactTill bên dưới). Ghi nhớ để kiểm lại sau khi trừ.
     const startedInSameStep = ev.started !== null && ev.impact !== null && ev.impact !== ev.started;
@@ -3356,7 +3672,9 @@ export class GardenScene extends Phaser.Scene {
   /** Tô lớp màu trời theo giờ hiện tại (GDD §3.1) — chỉ đổi màu/độ đục của hình có sẵn, không tạo object mới. */
   private updateSky(): void {
     const tint = skyTint(this.clockHour, gameConfig.skyTintKeyframes, gameConfig.skyTintMaxAlpha);
-    this.skyOverlay.setFillStyle(tint.color, tint.alpha).setVisible(tint.alpha > 0.001);
+    // T-093: trong nhà trời tối dần nhẹ hơn (có mái che, có bếp) — cùng màu, độ đục × houseSkyAlphaMultiplier.
+    const alpha = this.area === 'house' ? tint.alpha * gameConfig.houseSkyAlphaMultiplier : tint.alpha;
+    this.skyOverlay.setFillStyle(tint.color, alpha).setVisible(alpha > 0.001);
   }
 
   /** Đồng hồ vừa chạm dayEndHour (24h) mà chưa ngủ → ngủ gục (T-007). */
@@ -3491,11 +3809,13 @@ export class GardenScene extends Phaser.Scene {
   /** Gom các object trạng thái của scene thành "thế giới" cho systems/save.ts (cùng object — nạp save là sửa thẳng chúng). */
   private saveWorld(): SaveWorld {
     const c = this.feetBody?.center;
+    // T-093: toạ độ trong save tính từ góc KHU (Vườn: góc bản đồ = gốc thế giới; trong nhà: góc ảnh phòng).
+    const o = this.areaOrigin(this.area);
     return {
       playerName: this.playerName,
-      area: SAVE_AREA,
-      x: c?.x ?? 0,
-      y: c?.y ?? 0,
+      area: this.area,
+      x: (c?.x ?? o.x) - o.x,
+      y: (c?.y ?? o.y) - o.y,
       facing: this.facing,
       clock: this.dayClock,
       stamina: this.stamina,
@@ -3503,6 +3823,7 @@ export class GardenScene extends Phaser.Scene {
       farm: this.farm,
       inventory: this.inventory,
       sellBox: this.sellBox,
+      chest: this.chest,
     };
   }
 
@@ -3516,6 +3837,7 @@ export class GardenScene extends Phaser.Scene {
     this.loadAddedItems = applied.addedItems;
     this.playerName = applied.playerName;
     this.loadedFoot = applied.position;
+    this.loadedArea = isAreaId(applied.area) ? applied.area : 'garden';
     this.facing = applied.facing;
     this.loadedElapsed = this.dayClock.elapsedSeconds;
     this.lastSave = { day: this.dayClock.day, hour: this.clockHour, savedAt: r.save.savedAt, reason: 'loaded' };
@@ -3545,8 +3867,10 @@ export class GardenScene extends Phaser.Scene {
     }
     const w = this.saveWorld();
     if (afterOvernight) {
-      w.x = L.wakeSpot.x * T + T / 2;
-      w.y = L.wakeSpot.y * T + T / 2;
+      // T-093: sáng ra luôn đứng trong nhà cạnh giường (kể cả ngủ gục ngoài đồng).
+      w.area = 'house';
+      w.x = HOUSE.wakeSpot.x - HOUSE.origin.x;
+      w.y = HOUSE.wakeSpot.y - HOUSE.origin.y;
       w.facing = 'down';
     }
     const save = captureSave(w, new Date());
@@ -3616,6 +3940,504 @@ export class GardenScene extends Phaser.Scene {
       mgr.add('GardenHud', HudCls, false);
       mgr.start('Garden');
     }, 0);
+  }
+
+  // ---------------------------------------------------------------- cảnh trong nhà + chuyển khu (T-093)
+
+  /**
+   * Dựng phòng trong nhà (một lần, lúc vào Vườn): ảnh nền phòng đặt dưới bản đồ Vườn, đồ đạc theo data/houseLayout.json
+   * (ảnh + hộp va chạm chân đế, depth = đáy ảnh như đồ vật Vườn), bảng tên, than + khói bếp rơm. Trả về hộp va chạm đồ đạc.
+   * Tường không cần hộp: lúc ở trong nhà, giới hạn vật lý = sàn phòng (applyAreaView).
+   */
+  private buildHouse(): Phaser.GameObjects.Zone[] {
+    const solids: Phaser.GameObjects.Zone[] = [];
+    if (this.textures.exists(HOUSE_INTERIOR_KEY)) {
+      this.add.image(HOUSE.origin.x, HOUSE.origin.y, HOUSE_INTERIOR_KEY).setOrigin(0).setDepth(DEPTH_GROUND);
+    } else {
+      // Ảnh nền tải lỗi → vách nâu + sàn gỗ vẽ bằng code, game vẫn chạy (như T-021 / T-024).
+      console.warn(`[Garden] Thiếu ảnh ${HOUSE_INTERIOR_KEY} — vẽ tạm bằng code`);
+      this.propFallbacks.push(HOUSE_INTERIOR_KEY);
+      const b = HOUSE.bounds;
+      const f = HOUSE.floor;
+      this.add.rectangle(b.x, b.y, b.w, b.h, palette.earth).setOrigin(0).setDepth(DEPTH_GROUND);
+      this.add.rectangle(f.x, f.y, f.w, f.h, palette.wood).setOrigin(0).setDepth(DEPTH_GROUND + 1);
+    }
+    for (const o of HOUSE.objects) {
+      this.ensurePropTexture(o.prop);
+      const img = this.add.image(o.x, o.y, o.prop).setOrigin(o.originX, o.originY).setDepth(o.depth);
+      if (o.foot) {
+        const z = this.add.zone(o.foot.x + o.foot.w / 2, o.foot.y + o.foot.h / 2, o.foot.w, o.foot.h);
+        this.physics.add.existing(z, true);
+        solids.push(z);
+      }
+      if (o.label) {
+        this.add
+          .text(img.x, o.image.y - 4, o.label, { ...textStyles.nameTag, fontSize: '17px', strokeThickness: 5 })
+          .setOrigin(0.5, 1)
+          .setResolution(2)
+          .setDepth(o.depth + 1);
+      }
+    }
+    // Bếp rơm (chưa nấu được — T-048) vẫn có than hồng + khói lững lờ cho phòng ấm cúng. Điểm lửa đo trên ảnh (props.json `fire`).
+    const stove = houseObject(HOUSE, 'stove');
+    const fire = propMarker(stove.prop, 'fire') ?? [stove.image.w / 2, stove.image.h * 0.75];
+    this.stoveFire = { x: stove.image.x + fire[0], y: stove.image.y + fire[1] };
+    for (let i = 0; i < gameConfig.stoveEmberCount; i++) {
+      const dx = (i - (gameConfig.stoveEmberCount - 1) / 2) * 8;
+      this.stoveEmbers.push(
+        this.add
+          .circle(this.stoveFire.x + dx, this.stoveFire.y - (i % 2) * 4, 4, i % 2 ? palette.gold : palette.vermilion, 1)
+          .setDepth(stove.depth + 0.5),
+      );
+    }
+    for (let i = 0; i < gameConfig.stoveSmokeCount; i++) {
+      this.stoveSmoke.push(this.add.circle(this.stoveFire.x, this.stoveFire.y, 9, palette.paper, 1).setAlpha(0).setDepth(stove.depth + 1));
+      this.stoveSmokeAge.push((i / gameConfig.stoveSmokeCount) * gameConfig.stoveSmokeLifeSeconds);
+    }
+    return solids;
+  }
+
+  /** Than nhấp nháy + khói bốc lên mờ dần (pool có sẵn, chỉ đổi vị trí / độ đục — không tạo object mỗi frame). */
+  private updateStove(dt: number): void {
+    this.stoveT += dt;
+    const rate = gameConfig.stoveFlickerRate;
+    for (let i = 0; i < this.stoveEmbers.length; i++) {
+      const a = 0.6 + 0.4 * Math.sin(this.stoveT * rate + i * 2.1) * Math.sin(this.stoveT * rate * 0.37 + i);
+      this.stoveEmbers[i].setAlpha(a).setScale(0.8 + 0.35 * a);
+    }
+    const life = gameConfig.stoveSmokeLifeSeconds;
+    for (let i = 0; i < this.stoveSmoke.length; i++) {
+      this.stoveSmokeAge[i] = (this.stoveSmokeAge[i] + dt) % life;
+      const p = this.stoveSmokeAge[i] / life; // 0 → 1
+      this.stoveSmoke[i]
+        .setPosition(this.stoveFire.x + Math.sin(p * Math.PI * 2 + i * 1.7) * 6, this.stoveFire.y - 12 - p * gameConfig.stoveSmokeRisePx)
+        .setAlpha(0.32 * Math.min(1, p * 5) * (1 - p))
+        .setScale(0.6 + p * 1.3);
+    }
+  }
+
+  /** Màn mờ chuyển khu: hình cỡ màn, không cuộn theo camera (như lớp trời — zoom quanh tâm vẫn phủ kín). */
+  private buildAreaFade(): void {
+    this.areaFadeRect = this.add
+      .rectangle(0, 0, gameConfig.gameWidth, gameConfig.gameHeight, palette.ink, 1)
+      .setOrigin(0)
+      .setScrollFactor(0)
+      .setDepth(DEPTH_AREA_FADE)
+      .setAlpha(0)
+      .setVisible(false);
+  }
+
+  /** Góc trên-trái của khu trong thế giới (toạ độ save tính từ đây). */
+  private areaOrigin(area: AreaId): { x: number; y: number } {
+    return area === 'house' ? HOUSE.origin : { x: 0, y: 0 };
+  }
+
+  /**
+   * Camera + vật lý theo khu đang đứng: Vườn = cả bản đồ (camera bám theo); trong nhà = camera khoá đúng ảnh phòng (1280×720 ở
+   * zoom 1,5 vừa khít màn → đứng yên), chân chỉ đi trong sàn (giới hạn vật lý = tường), nền tối ngoài tường.
+   */
+  private applyAreaView(): void {
+    const cam = this.cameras.main;
+    this.applyWorldBounds();
+    if (this.area === 'house') {
+      const b = HOUSE.bounds;
+      cam.setBounds(b.x, b.y, b.w, b.h);
+      cam.setBackgroundColor(gameConfig.houseBackdropColor);
+    } else {
+      cam.setBounds(0, 0, L.cols * T, L.rows * T);
+      cam.setBackgroundColor(palette.jade);
+    }
+    const c = this.feetBody.center;
+    cam.centerOn(c.x, c.y);
+    this.hideHighlight();
+    this.houseHover = null;
+    this.updateSky();
+  }
+
+  /** Giới hạn vật lý (chân không ra ngoài) theo khu: Vườn = cả bản đồ; trong nhà = sàn phòng (tường). */
+  private applyWorldBounds(): void {
+    const f = HOUSE.floor;
+    if (this.area === 'house') this.physics.world.setBounds(f.x, f.y, f.w, f.h);
+    else this.physics.world.setBounds(0, 0, L.cols * T, L.rows * T);
+  }
+
+  /** Bấm đi vào cửa (đang ở Vườn) / ra khe cửa (đang trong nhà) → bắt đầu chuyển khu. */
+  private checkDoors(dirY: number): void {
+    const b = this.feetBody;
+    if (this.area === 'garden') {
+      if (shouldEnterHouse(L.houseDoor, T, b, dirY, gameConfig.doorTouchPx)) this.beginAreaChange('house', HOUSE.spawn, 'up');
+    } else if (shouldExitHouse(HOUSE, b, dirY, gameConfig.doorTouchPx)) {
+      this.beginAreaChange('garden', houseExitSpot(L.houseDoor, T), 'down');
+    }
+  }
+
+  /**
+   * Chuyển khu DÙNG CHUNG (T-054 cổng Núi / làng Sung gọi lại): việc dở trên ô dừng (như lúc ngủ), đóng cửa sổ, nhân vật đứng
+   * yên, đồng hồ dừng (lý do 'areaFade'), màn tối dần → swapArea (dời người, đổi camera, tên khu, tự lưu) → sáng dần.
+   * `spawn` = chỗ đứng (px thế giới, giữa hộp chân) ở khu mới.
+   */
+  private beginAreaChange(to: AreaId, spawn: { x: number; y: number }, facing: Facing): void {
+    if (!startAreaTransition(this.areaTransition, to, spawn, facing)) return;
+    this.stopWorkForNight();
+    cancelClickMove(this.clickMove);
+    this.hideClickMarker();
+    if (this.bagOpen) this.setBagOpen(false);
+    this.closeShop();
+    this.pauseReasons.set('areaFade', true);
+    this.feetBody.setVelocity(0, 0);
+    if (this.hero.anims.isPlaying) this.hero.anims.stop();
+    clearWalkBob(this.walk);
+    this.showStill(heroTextureKey(1, this.facing));
+    this.hero.setScale(1);
+    this.hideHighlight();
+    this.hover.valid = false;
+    this.houseHover = null;
+    this.controls.clearPending();
+  }
+
+  /** Mỗi frame lúc chuyển khu: tiến màn mờ; tối hẳn → đổi khu; sáng hẳn → chơi tiếp. */
+  private updateAreaTransition(dt: number): void {
+    this.feetBody.setVelocity(0, 0);
+    const ev = stepAreaTransition(this.areaTransition, dt, gameConfig.areaFadeSeconds);
+    if (ev === 'swap') this.swapArea();
+    else if (ev === 'done') this.pauseReasons.set('areaFade', false);
+    const a = transitionAlpha(this.areaTransition, gameConfig.areaFadeSeconds);
+    this.areaFadeRect.setAlpha(a).setVisible(a > 0.001);
+    this.updateDust(dt);
+    this.updateBubble(dt);
+    this.updateFloats(dt);
+  }
+
+  /** Lúc màn tối hẳn: dời nhân vật sang khu mới, camera / vật lý theo khu, hiện tên khu, tự lưu (F5 lúc này vào lại khu mới). */
+  private swapArea(): void {
+    const s = this.areaTransition;
+    const to = s.to ?? 'garden';
+    const spawn = s.spawn ?? (to === 'house' ? HOUSE.spawn : houseExitSpot(L.houseDoor, T));
+    if (to === 'house') this.areaEnters++;
+    else if (this.area === 'house') this.areaExits++;
+    this.area = to;
+    this.placeHero(spawn.x, spawn.y, s.facing ?? 'down');
+    this.applyAreaView();
+    this.areaBannerT = 0;
+    this.areaBannerText = areaName(to, this.playerName);
+    this.saveNow('area');
+  }
+
+  /** Độ đậm tên khu lúc này (HUD đọc): hiện đậm areaBannerHoldSeconds rồi mờ dần; 0 = không hiện. */
+  get areaBannerOpacity(): number {
+    if (this.areaBannerT < 0) return 0;
+    return areaBannerAlpha(this.areaBannerT, gameConfig.areaBannerHoldSeconds, gameConfig.areaBannerFadeSeconds);
+  }
+
+  /**
+   * Con trỏ trong nhà: trên giường / rương / bếp / hũ gạo / nón → viền cả hình (sáng trong tầm, xám ngoài tầm); click trong tầm
+   * = tương tác như phím F. Sàn nhà không có việc gì (không cuốc, không gieo).
+   */
+  private updateHousePointer(pressed: boolean, inside: boolean, px: number, py: number, dt: number): void {
+    if (pressed) {
+      this.dragKind = null;
+      this.dragBlocked = true;
+    }
+    const t = inside ? houseTargetAt(HOUSE, px, py) : null;
+    const c = this.feetBody.center;
+    if (!t) {
+      this.houseHover = null;
+      // T-096: khung cửa → viền cửa; click = đi ra giữa khe cửa rồi ra Vườn.
+      if (inside && isHouseDoorAt(HOUSE, px, py)) {
+        const spot = houseExitStandSpot(HOUSE, gameConfig.playerFootHitbox[1], gameConfig.pathClearancePx);
+        const near = Math.hypot(spot.x - c.x, spot.y - c.y) <= gameConfig.interactRange * T;
+        const d = HOUSE.doorRect;
+        this.drawHighlightBox(OBJECT_HIGHLIGHT_KEY + 9, { x: d.x / T, y: d.y / T, w: d.w / T, h: d.h / T }, near, dt, 0, 0, d.y + d.h + 2);
+        if (pressed) this.planAndGo({ kind: 'point', x: spot.x, y: spot.y }, { kind: 'door', to: 'garden' }, { x: px, y: py });
+        return;
+      }
+      this.hideHighlight();
+      // T-096: sàn / tường trống → đi tới đó (tường thì tới chỗ sàn gần nhất).
+      if (pressed && inside) this.planAndGo({ kind: 'point', x: px, y: py }, null, { x: px, y: py });
+      return;
+    }
+    const inReachNow = houseTargetInReach(HOUSE, t, c.x, c.y, HOUSE_CLICK_RANGE_PX);
+    this.houseHover = { target: t, inReach: inReachNow };
+    const o = houseObject(HOUSE, t);
+    const box: TileRect = { x: o.image.x / T, y: o.image.y / T, w: o.image.w / T, h: o.image.h / T };
+    this.drawHighlightBox(OBJECT_HIGHLIGHT_KEY + 10 + HOUSE.objects.indexOf(o), box, inReachNow, dt, 0, 0, o.depth + 2);
+    if (!pressed) return;
+    if (inReachNow) {
+      this.cancelWalk();
+      this.interactHouse(t);
+    } else {
+      // T-096: ngoài tầm → đi tới chỗ đứng gần nhất với tới vật rồi dùng luôn.
+      const range = HOUSE_CLICK_RANGE_PX - gameConfig.clickMoveReachMargin * T;
+      this.planAndGo({ kind: 'reach', canWorkFrom: (x, y) => houseTargetInReach(HOUSE, t, x, y, range) }, { kind: 'houseObject', target: t }, { x: px, y: py });
+    }
+  }
+
+  // ---------------------------------------------------------------- click đâu đi đó (T-096, D-038)
+
+  /** Lưới tìm đường: Vườn = lưới vật cản (cây tính cả ô — đường đi né cả tán gốc); trong nhà = ô nhỏ theo sàn + đồ đạc. */
+  private buildNavGrids(): void {
+    const [fw, fh] = gameConfig.playerFootHitbox;
+    const m = gameConfig.pathClearancePx;
+    this.gardenNav = navFromBoolGrid(blockedGrid(L), T);
+    this.houseNav = houseNavGrid(HOUSE, gameConfig.houseNavCellPx, fw + 2 * m, fh + 2 * m);
+  }
+
+  /** Dấu đích: vòng tròn mực + vòng giấy + chấm giữa, vẽ một lần; mỗi click chỉ dời chỗ + cho mờ dần. */
+  private buildClickMarker(): void {
+    const r = gameConfig.clickMoveMarkerRadius;
+    this.clickMarker = this.add
+      .graphics()
+      .lineStyle(7, palette.ink, 0.7)
+      .strokeCircle(0, 0, r)
+      .lineStyle(3, palette.paper, 1)
+      .strokeCircle(0, 0, r)
+      .fillStyle(palette.paper, 1)
+      .fillCircle(0, 0, r * 0.25)
+      .setDepth(DEPTH_TILE_HIGHLIGHT + 3)
+      .setVisible(false);
+  }
+
+  private showClickMarker(x: number, y: number): void {
+    this.clickMarkerT = gameConfig.clickMoveMarkerSeconds;
+    this.clickMarker.setPosition(x, y).setAlpha(1).setScale(1).setVisible(true);
+  }
+
+  private hideClickMarker(): void {
+    this.clickMarkerT = 0;
+    this.clickMarker?.setVisible(false);
+  }
+
+  private updateClickMarker(dt: number): void {
+    if (this.clickMarkerT <= 0) return;
+    this.clickMarkerT -= dt;
+    if (this.clickMarkerT <= 0) {
+      this.hideClickMarker();
+      return;
+    }
+    const p = 1 - this.clickMarkerT / gameConfig.clickMoveMarkerSeconds; // 0 → 1
+    this.clickMarker.setAlpha(1 - p * p).setScale(1 - 0.4 * p);
+  }
+
+  /** Hộp chân (nới `pathClearancePx`) đặt giữa (x, y) có chạm vật cản không — theo khu đang đứng. */
+  private readonly spotFree = (x: number, y: number): boolean => {
+    const [fw, fh] = gameConfig.playerFootHitbox;
+    const m = gameConfig.pathClearancePx;
+    if (this.area === 'house') return isFreeHouseSpot(HOUSE, x, y, fw + 2 * m, fh + 2 * m);
+    return boxFitsGrid(this.gardenNav, x, y, fw / 2 + m, fh / 2 + m);
+  };
+
+  /**
+   * Lập đường tới `goal` rồi bắt đầu đi (việc `action` làm khi tới nơi / tới tầm với). Đã ở đúng chỗ → làm luôn.
+   * Không có đường → bong bóng "Đường đâu mà đi?", không đi. Trả về true nếu đi / làm được.
+   */
+  private planAndGo(goal: WalkGoal, action: ClickAction | null, markerAt: { x: number; y: number } | null): boolean {
+    const nav = this.area === 'house' ? this.houseNav : this.gardenNav;
+    const c = this.feetBody.center;
+    const t0 = performance.now();
+    const res = planWalk(this.pathFinder, nav, { x: c.x, y: c.y }, goal, {
+      maxNodes: gameConfig.pathMaxNodes,
+      spotFree: this.spotFree,
+      stepPx: gameConfig.pathSmoothStepPx,
+      // Bán kính tính theo ô 64 px; lưới trong nhà ô nhỏ hơn → nhiều ô hơn.
+      blockedSearchRadius: Math.ceil((gameConfig.clickMoveBlockedSearchRadius * T) / nav.cell),
+    });
+    this.clickStats.lastPlanMs = performance.now() - t0;
+    this.clickStats.lastExpanded = res.expanded;
+    cancelClickMove(this.clickMove);
+    if (!res.ok) {
+      this.clickStats.noPath++;
+      this.showBubble(bubbles.noPath);
+      return false;
+    }
+    if (markerAt) this.showClickMarker(markerAt.x, markerAt.y);
+    if (res.already) {
+      if (action) this.runClickAction(action);
+      return true;
+    }
+    // Đi = bỏ dở cuốc (như bấm WASD — D-022).
+    if (this.isTilling()) this.abandonTill();
+    this.clickGoal = goal;
+    this.clickReplans = 0;
+    startClickMove(this.clickMove, res.waypoints, action);
+    this.clickStats.starts++;
+    return true;
+  }
+
+  /** Thôi đi theo click (WASD, click mới, cửa sổ mở). */
+  private cancelWalk(): void {
+    if (cancelClickMove(this.clickMove)) this.clickStats.cancels++;
+    this.clickGoal = null;
+  }
+
+  /** Việc chờ đã với tới từ (x, y) chưa — dùng ĐÚNG luật click thường (interactRange), không trừ lề. Cửa: phải tới nơi. */
+  private clickActionInReach(a: ClickAction, x: number, y: number): boolean {
+    switch (a.kind) {
+      case 'tile':
+        // T-096b: việc ruộng phải tới đúng chỗ đứng sát đã chọn (không dừng giữa đường ở tầm 2,5).
+        return false;
+      case 'gardenObject':
+        return targetInReach(L, a.target, x, y, T, gameConfig.interactRange);
+      case 'houseObject':
+        return houseTargetInReach(HOUSE, a.target, x, y, HOUSE_CLICK_RANGE_PX);
+      case 'door':
+        return false;
+    }
+  }
+
+  /** Mỗi frame đi theo đường: trả về vận tốc (dùng lại một object). Với tới việc chờ / tới nơi → dừng, làm luôn. */
+  private followClickPath(dt: number, speed: number): { x: number; y: number } {
+    const c = this.feetBody.center;
+    const v = this.pathVel;
+    const a = this.clickMove.action;
+    if (a && this.clickActionInReach(a, c.x, c.y)) {
+      this.arriveClick();
+      v.x = 0;
+      v.y = 0;
+      return v;
+    }
+    const params: ClickMoveParams = { speed, arrivePx: gameConfig.clickMoveArrivePx, stuckSeconds: gameConfig.clickMoveStuckSeconds };
+    const st = stepClickMove(this.clickMove, c, dt, params, v);
+    if (st === 'arrived') {
+      this.arriveClick();
+    } else if (st === 'stuck') {
+      // Bị vật lý chặn (gốc cây, góc nhà…) → lập lại đường từ chỗ đang đứng; quá số lần thì thôi.
+      const goal = this.clickGoal;
+      const action = this.clickMove.action;
+      v.x = 0;
+      v.y = 0;
+      if (action?.kind === 'tile') {
+        // Đi tới ô đầu hàng chờ mà kẹt → thôi; driveTileQueue lập lại đường (quá số lần thì bỏ ô đó).
+        this.farmStuck++;
+        this.clickStats.replans++;
+        this.cancelWalk();
+      } else if (goal && this.clickReplans < gameConfig.clickMoveMaxReplans) {
+        const replans = this.clickReplans + 1;
+        this.clickStats.replans++;
+        if (this.planAndGo(goal, action, null)) this.clickReplans = replans;
+      } else {
+        this.cancelWalk();
+      }
+    }
+    return v;
+  }
+
+  /**
+   * T-096b: ô đầu hàng chờ việc ruộng mà chưa đứng sát (`farmWorkRange`) → chọn chỗ đứng cạnh ô (planFarmStand: ô kề gần nhất,
+   * ưu tiên phía nam, không giẫm luống) rồi đi tới; tới nơi thì updateTileAction tự bắt đầu. Rê cả luống = bước dọc luống.
+   */
+  private driveTileQueue(): void {
+    if (this.area !== 'garden' || isBusy(this.action) || this.action.queue.length === 0) return;
+    const head = this.action.queue[0];
+    const c = this.feetBody.center;
+    if (inFarmWorkRange(c.x, c.y, head.x, head.y, T, gameConfig.farmWorkRange)) return;
+    const a = this.clickMove.action;
+    if (this.clickMove.active && a?.kind === 'tile' && a.x === head.x && a.y === head.y) return;
+    const job = this.action.kind as TileJob | null;
+    if (job === null || jobFor(this.farm, head.x, head.y, growDaysOf) !== job) return; // updateTileAction tự bỏ ô này
+    const dropHead = () => {
+      this.action.queue.shift();
+      if (this.action.queue.length === 0) this.action.kind = null;
+      this.farmStuck = 0;
+    };
+    if (this.farmStuck > gameConfig.clickMoveMaxReplans) {
+      dropHead();
+      return;
+    }
+    const t0 = performance.now();
+    const res = planFarmStand(
+      this.pathFinder,
+      this.gardenNav,
+      { x: c.x, y: c.y },
+      head,
+      {
+        maxNodes: gameConfig.pathMaxNodes,
+        spotFree: this.spotFree,
+        stepPx: gameConfig.pathSmoothStepPx,
+        blockedSearchRadius: gameConfig.clickMoveBlockedSearchRadius,
+      },
+      {
+        isPlot: (x, y) => plotAt(this.farm, x, y) !== null,
+        diagonalPenalty: gameConfig.farmStandDiagonalPenalty,
+        onPlotPenalty: gameConfig.farmStandOnPlotPenalty,
+        notSouthPenalty: gameConfig.farmStandNotSouthPenalty,
+        diagonalInset: gameConfig.farmStandDiagonalInset,
+      },
+    );
+    this.clickStats.lastPlanMs = performance.now() - t0;
+    this.clickStats.lastExpanded = res.expanded;
+    cancelClickMove(this.clickMove);
+    if (!res.ok) {
+      this.clickStats.noPath++;
+      this.showBubble(bubbles.noPath);
+      dropHead();
+      return;
+    }
+    // Đứng đúng ô kề rồi nhưng lệch tâm (vd canStart sai vì đứng trên chính ô) — đi nốt vào tâm ô kề.
+    const waypoints = res.already ? (res.spot ? [res.spot] : []) : res.waypoints;
+    if (waypoints.length === 0) return;
+    this.clickGoal = null;
+    startClickMove(this.clickMove, waypoints, { kind: 'tile', x: head.x, y: head.y, job });
+    this.clickStats.starts++;
+  }
+
+  /** Tới nơi: dừng, làm việc chờ (nếu có). */
+  private arriveClick(): void {
+    const a = this.clickMove.action;
+    cancelClickMove(this.clickMove);
+    this.clickGoal = null;
+    this.clickStats.arrivals++;
+    this.feetBody.setVelocity(0, 0);
+    if (a) this.runClickAction(a);
+  }
+
+  /** Quay mặt về điểm (px) — dùng chung khung xoay chéo như khi đi. */
+  private faceTowardPoint(px: number, py: number): void {
+    const c = this.feetBody.center;
+    const to = facingFromVector(px - c.x, py - c.y, this.facing, 1);
+    if (to === this.facing) return;
+    startTurn(this.turn, this.facing, to, this.lastDirX, TURN_FRAME_SEC);
+    this.facing = to;
+  }
+
+  /** Làm việc chờ khi tới nơi — kiểm lại như click thường (ô có thể đã đổi việc, hết hạt… → bong bóng như thường). */
+  private runClickAction(a: ClickAction): void {
+    this.clickStats.actionsDone++;
+    this.clickStats.lastAction = a.kind;
+    switch (a.kind) {
+      case 'tile': {
+        // T-096b: ô đã nằm trong hàng chờ (đi tới là do driveTileQueue) → updateTileAction tự bắt đầu khi đứng sát.
+        if (isPending(this.action, a)) return;
+        if (jobFor(this.farm, a.x, a.y, growDaysOf) !== a.job) return;
+        if (a.job === 'till') {
+          if (!canTillWithSelected(this.inventory)) {
+            this.noHoePrompts++;
+            this.showBubble(bubbles.noHoe);
+            return;
+          }
+          if (!isBusy(this.action) && !this.hasStaminaFor('till', true)) return;
+          requestTile(this.action, a, this.tillParams, 'till');
+          return;
+        }
+        this.requestFastJob(a, a.job);
+        return;
+      }
+      case 'gardenObject': {
+        const r = L[a.target];
+        this.faceTowardPoint((r.x + r.w / 2) * T, (r.y + r.h / 2) * T);
+        this.interactGarden(a.target);
+        return;
+      }
+      case 'houseObject': {
+        const r = houseObject(HOUSE, a.target).reach;
+        this.faceTowardPoint(r.x + r.w / 2, r.y + r.h / 2);
+        this.interactHouse(a.target);
+        return;
+      }
+      case 'door':
+        if (a.to === 'house') this.beginAreaChange('house', HOUSE.spawn, 'up');
+        else this.beginAreaChange('garden', houseExitSpot(L.houseDoor, T), 'down');
+        return;
+    }
   }
 
   // ---------------------------------------------------------------- QA
@@ -3820,7 +4642,34 @@ export class GardenScene extends Phaser.Scene {
         statusWarn: this.shopStatus.warn,
         opens: { ...this.shopOpens },
         keyPresses: this.interactKeyPresses,
-        nearby: body ? nearestKeyTarget(L, body.center.x, body.center.y, T, gameConfig.interactKeyRange) : null,
+        nearby: !body
+          ? null
+          : this.area === 'house'
+            ? nearestHouseTarget(HOUSE, body.center.x, body.center.y, gameConfig.interactKeyRange * T)
+            : nearestKeyTarget(L, body.center.x, body.center.y, T, gameConfig.interactKeyRange),
+      },
+      area: {
+        current: this.area,
+        transition: this.areaTransition.phase,
+        fade: transitionAlpha(this.areaTransition, gameConfig.areaFadeSeconds),
+        banner: { text: this.areaBannerText, alpha: this.areaBannerOpacity },
+        enters: this.areaEnters,
+        exits: this.areaExits,
+        houseHover: this.houseHover ? { ...this.houseHover } : null,
+        local: { x: fx - this.areaOrigin(this.area).x, y: fy - this.areaOrigin(this.area).y },
+        house: { origin: { ...HOUSE.origin }, floor: { ...HOUSE.floor }, spawn: { ...HOUSE.spawn }, wakeSpot: { ...HOUSE.wakeSpot } },
+      },
+      chest: {
+        slots: this.chest.slots.map((st) => (st ? { id: st.id, count: st.count, name: itemInfo(st.id)?.name ?? st.id } : null)),
+        transfers: this.chestTransfers,
+      },
+      clickMove: {
+        active: this.clickMove.active,
+        action: this.clickMove.action ? { ...this.clickMove.action } : null,
+        waypoints: this.clickMove.waypoints.map((w) => ({ x: Math.round(w.x), y: Math.round(w.y) })),
+        index: this.clickMove.index,
+        markerVisible: this.clickMarker?.visible ?? false,
+        ...this.clickStats,
       },
       sellBox: {
         slots: this.sellBox.slots.map((st) => (st ? { id: st.id, count: st.count, name: itemInfo(st.id)?.name ?? st.id } : null)),
@@ -3987,7 +4836,8 @@ export class GardenScene extends Phaser.Scene {
 
   /** Toạ độ màn (1920×1080) tâm ô `i` bên gùi / thùng trong cửa sổ thùng bán — cho e2e. */
   debugSellSlotCenter(side: SellSide, i: number): { x: number; y: number } {
-    const r = sellSlotRect(side, i, this.inventory.slots.length, this.sellBox.slots.length);
+    // T-093: rương mở thì tính theo lưới rương (cùng bố cục).
+    const r = sellSlotRect(side, i, this.inventory.slots.length, this.shopBoxInventory().slots.length);
     return { x: r.x + r.w / 2, y: r.y + r.h / 2 };
   }
 
@@ -4109,6 +4959,41 @@ export class GardenScene extends Phaser.Scene {
           ? pauseRestartButtonRect()
           : restartConfirmButtonRect(which === 'confirmYes' ? 'yes' : 'no');
     return { x: r.x + r.w / 2, y: r.y + r.h / 2 };
+  }
+
+  /**
+   * T-093 (QA/test): sang khu `area` NGAY (không màn mờ, không lưu) — đứng ở chỗ vào của khu (trong nhà: cạnh cửa; Vườn: trước
+   * cửa nhà) hoặc ở `local` (px tính từ góc khu) nếu có.
+   */
+  debugEnterArea(area: AreaId, local?: { x: number; y: number }): AreaId {
+    const o = this.areaOrigin(area);
+    const spot = local ? { x: o.x + local.x, y: o.y + local.y } : area === 'house' ? HOUSE.spawn : houseExitSpot(L.houseDoor, T);
+    this.area = area;
+    this.placeHero(spot.x, spot.y, area === 'house' ? 'up' : 'down');
+    this.applyAreaView();
+    return this.area;
+  }
+
+  /** T-093 (QA/test): toạ độ màn (1920×1080) tâm ảnh một vật trong nhà — để rê / click chuột. */
+  debugHouseObjectScreen(id: HouseTarget): { x: number; y: number } {
+    const cam = this.cameras.main;
+    const r = houseObject(HOUSE, id).image;
+    return {
+      x: cam.x + (r.x + r.w / 2 - cam.worldView.x) * cam.zoom,
+      y: cam.y + (r.y + r.h / 2 - cam.worldView.y) * cam.zoom,
+    };
+  }
+
+  /** T-096 (QA/test): toạ độ màn (1920×1080) của một điểm thế giới (px) — để click / chạm đúng chỗ. */
+  debugWorldToScreen(x: number, y: number): { x: number; y: number } {
+    const cam = this.cameras.main;
+    return { x: cam.x + (x - cam.worldView.x) * cam.zoom, y: cam.y + (y - cam.worldView.y) * cam.zoom };
+  }
+
+  /** T-093 (QA/test): ghi đè một ô rương. */
+  debugSetChestSlot(i: number, id: string | null, count: number): void {
+    setSlot(this.chest, i, id, count);
+    this.inventoryRevision++;
   }
 
   /** Dịch nhân vật tới giữa ô (tx, ty) — chỉ dùng cho QA/test. */

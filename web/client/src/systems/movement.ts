@@ -25,3 +25,17 @@ export function facingFromDirection(dir: Vec2, previous: Facing): Facing {
   if (dir.y > 0) return 'down';
   return previous;
 }
+
+/**
+ * T-096: hướng mặt theo một VECTƠ bất kỳ (đi theo đường click — hướng không chỉ -1/0/1). Trục lớn hơn thắng; gần 45° thì
+ * giữ trục đang quay (phải lớn hơn `hysteresis` lần mới đổi trục) — đi chéo theo đường không bị lật mặt qua lại mỗi frame.
+ */
+export function facingFromVector(vx: number, vy: number, previous: Facing, hysteresis = 1.2): Facing {
+  const ax = Math.abs(vx);
+  const ay = Math.abs(vy);
+  if (ax < 1e-6 && ay < 1e-6) return previous;
+  const wasSide = previous === 'left' || previous === 'right';
+  const side = wasSide ? ay <= ax * hysteresis : ax > ay * hysteresis;
+  if (side) return vx < 0 ? 'left' : 'right';
+  return vy < 0 ? 'up' : 'down';
+}

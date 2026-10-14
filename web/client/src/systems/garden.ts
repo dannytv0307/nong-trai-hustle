@@ -58,9 +58,9 @@ export interface GardenLayout {
   houseDoor: TileRect;
   /** Điểm cửa (px thế giới, props.json `door.px`). */
   houseDoorPoint: { x: number; y: number };
-  /** Giường (T-007). T-024: chõng tre trên hiên — giường tạm tới T-093 (Giả định). */
+  /** Chõng tre trên hiên (T-007 / T-024 là giường tạm). T-093: giường thật ở trong nhà — chõng chỉ nhắc "vào nhà mà ngủ". */
   bed: TileRect;
-  /** Ô nhân vật đứng khi thức dậy (T-007): ngay cạnh giường, mặt hướng xuống. */
+  /** Ô cạnh chõng (T-007). T-093: không dùng nữa — thức dậy trong nhà (houseLayout.json `wakeSpot`). */
   wakeSpot: { x: number; y: number };
   /** Ruộng ban đầu (startPlots ô). */
   plots: TileRect;
@@ -290,4 +290,19 @@ export function cornerNudge(
     }
   }
   return NUDGE_NONE;
+}
+
+/**
+ * T-096: ô (tx, ty) thuộc khung cửa nhà để click "vào nhà": các ô bậc thềm + một hàng ô ngay trên (khung cửa trong ảnh nhà).
+ * Click ở đây (gần hay xa) = đi tới ô sân dưới bậc rồi vào nhà.
+ */
+export function isHouseDoorTile(layout: GardenLayout, tx: number, ty: number): boolean {
+  const d = layout.houseDoor;
+  return tx >= d.x && tx < d.x + d.w && ty >= d.y - 1 && ty < d.y + d.h;
+}
+
+/** T-096: vùng ô của khung cửa nhà (để vẽ viền khi trỏ chuột). */
+export function houseDoorClickRect(layout: GardenLayout): TileRect {
+  const d = layout.houseDoor;
+  return { x: d.x, y: d.y - 1, w: d.w, h: d.h + 1 };
 }

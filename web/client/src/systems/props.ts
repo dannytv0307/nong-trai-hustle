@@ -98,3 +98,30 @@ export function propPoint(name: string, footX: number, footY: number, tileSize: 
   const p = propPlacement(name, footX, footY, tileSize);
   return { x: p.left + px[0], y: p.top + px[1] };
 }
+
+/** T-093: nền phòng trong nhà (props.json `_interior`) — cỡ ảnh, sàn đi được, khe cửa, chỗ xuất hiện, chỗ treo nón, vị trí gợi ý. */
+export interface InteriorSpec {
+  file: string;
+  size: [number, number];
+  /** Sàn đi được [x0, y0, x1, y1] (px trong ảnh) — chân nhân vật trong vùng này. */
+  floor: { px: [number, number, number, number] };
+  /** Khe cửa [x0, y0, x1, y1] + chỗ đứng khi vừa vào. */
+  door: { px: [number, number, number, number]; spawn: [number, number] };
+  wallDecor?: { px: [number, number, number, number] };
+  suggested?: Record<string, [number, number] | string>;
+}
+
+/** Thông số nền phòng trong nhà. Thiếu / sai hình dạng → lỗi ngay lúc nạp (art đổi file thì sửa props.json). */
+export function interiorSpec(): InteriorSpec {
+  const spec = (propsJson as Record<string, unknown>)._interior as InteriorSpec | undefined;
+  if (!spec || !Array.isArray(spec.size) || !Array.isArray(spec.floor?.px) || !Array.isArray(spec.door?.px)) {
+    throw new Error('props.json thiếu mục "_interior" (nền phòng trong nhà)');
+  }
+  return spec;
+}
+
+/** Điểm `fire` / `smoke` (px trong ảnh) của bếp — null nếu props.json không ghi. */
+export function propMarker(name: string, marker: 'fire' | 'smoke'): [number, number] | null {
+  const spec = propSpec(name) as PropSpec & Partial<Record<'fire' | 'smoke', { px: [number, number] }>>;
+  return spec[marker]?.px ?? null;
+}
