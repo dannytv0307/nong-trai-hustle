@@ -10,6 +10,14 @@
  */
 export type BubbleKind = 'grumble' | 'warn' | 'bark';
 
+/** T-092: kiểu ảnh bong bóng (ui.json): thường, khoe (vàng lấp lánh), chửi thề (răng cưa), nghĩ (mây "…"). */
+export type BubbleStyle = 'normal' | 'boast' | 'curse' | 'think';
+
+/** Kiểu ảnh mặc định theo loại câu: chửi thề → răng cưa; lầm bầm khoe khoang khi xong ô → bong bóng khoe; báo → thường. */
+export function bubbleStyleOf(kind: BubbleKind): BubbleStyle {
+  return kind === 'grumble' ? 'curse' : kind === 'bark' ? 'boast' : 'normal';
+}
+
 /** Thứ tự ưu tiên: chửi thề > "đuối rồi…" (và các câu báo khác) > lầm bầm. */
 export const BUBBLE_PRIORITY: Readonly<Record<BubbleKind, number>> = { grumble: 3, warn: 2, bark: 1 };
 

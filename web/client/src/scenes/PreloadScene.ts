@@ -6,6 +6,7 @@ import { gameConfig } from '../config/gameConfig';
 import { palette } from '../config/palette';
 import { textStyles } from '../config/theme';
 import { startSceneFromSearch } from '../utils/sceneSelect';
+import { uiAssetFiles } from '../ui/uiSpec';
 
 export class PreloadScene extends Phaser.Scene {
   constructor() {
@@ -31,6 +32,8 @@ export class PreloadScene extends Phaser.Scene {
     });
 
     for (const [key, url] of Object.entries(images)) this.load.image(key, url);
+    // T-092: bộ giao diện Lô 1 (khung 9-slice, nút, ô, icon, bong bóng) — danh sách lấy từ ui/ui.json.
+    for (const [key, url] of Object.entries(uiAssetFiles())) this.load.image(key, url);
     // Spritesheet: Phaser tự cắt dải ảnh thành các khung đánh số 0, 1, 2, 3.
     const frame = { frameWidth: HERO_FRAME.width, frameHeight: HERO_FRAME.height };
     for (const [key, url] of Object.entries(spritesheets)) this.load.spritesheet(key, url, frame);

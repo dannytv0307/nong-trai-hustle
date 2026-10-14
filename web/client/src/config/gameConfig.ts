@@ -222,14 +222,19 @@ export const gameConfig = {
 
   // ---- Viền ô dưới con trỏ (góp ý T-002: viền cũ khó thấy) ----
   /** Độ dày nét viền sáng/xám (px thế giới): trong tầm / ngoài tầm. */
-  tileHighlightWidth: [6, 3] as readonly [number, number],
+  tileHighlightWidth: [6, 2] as readonly [number, number],
   /**
    * Viền mực lót ngoài + trong nét sáng (px mỗi bên) — tạo tương phản trên mọi nền (cỏ sáng, đất khô, đất cuốc sẫm).
    * Trong tầm / ngoài tầm.
    */
-  tileHighlightOutline: [3, 2] as readonly [number, number],
-  /** Độ đục viền mực lót: trong tầm / ngoài tầm. */
-  tileHighlightOutlineAlpha: [0.95, 0.4] as readonly [number, number],
+  tileHighlightOutline: [3, 1] as readonly [number, number],
+  /** Độ đục viền mực lót: trong tầm / ngoài tầm (T-092, ART-UI-001 A: ngoài tầm lót mực đặc). */
+  tileHighlightOutlineAlpha: [0.95, 1] as readonly [number, number],
+  /**
+   * T-092 (ART-UI-001 phương án A): viền ngoài tầm là NÉT ĐỨT xám tro `palette.ash` — đoạn / hở (px màn 1080p, đổi ra px
+   * thế giới theo cameraZoom). Khác viền trong tầm ở 3 thứ: màu tối hơn, mỏng hơn, nét đứt (đọc được ở thang xám).
+   */
+  tileHighlightOutDashPx: [8, 6] as readonly [number, number],
   /** Nền mờ phủ trong ô (độ đục, 0 = không phủ): trong tầm / ngoài tầm. */
   tileHighlightFillAlpha: [0.3, 0] as readonly [number, number],
   /** Ô trong tầm "thở": số nhịp mỗi giây (0 = đứng yên). Ô ngoài tầm không nhấp nháy. */
@@ -426,6 +431,14 @@ export const gameConfig = {
   /** Bong bóng chửi thề lắc ngang: biên độ (px thế giới) và số lần lắc mỗi giây. */
   grumbleShakePx: 3,
   grumbleShakeRate: 9,
+  /**
+   * T-092: chữ bong bóng (px màn 1080p — bong bóng vẽ 1:1 với màn dù camera phóng to) và bề rộng tối đa trước khi xuống
+   * dòng. Chửi thề: ảnh răng cưa cố định phóng trong [min, max] lần cho vừa câu (≤ 60 ký tự → 2–3 dòng).
+   */
+  bubbleFontPx: 26,
+  bubbleWrapPx: 520,
+  curseBubbleFontPx: 24,
+  curseBubbleScale: [1.6, 2] as readonly [number, number],
   /** Tưới: số giọt nước bắn ra, sống bao lâu (giây). */
   waterDropCount: 10,
   waterDropLifeSeconds: 0.5,

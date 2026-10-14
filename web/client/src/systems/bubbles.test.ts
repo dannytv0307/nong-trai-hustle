@@ -54,3 +54,12 @@ describe('lầm bầm khi xong ô cuốc (xác suất + thời gian nghỉ)', ()
     expect(bubbles.tooTired).toBe('Đuối rồi…');
   });
 });
+
+describe('bubbleStyleOf (T-092)', () => {
+  it('chửi thề → răng cưa, lầm bầm → khoe, báo → thường', async () => {
+    const { bubbleStyleOf } = await import('./bubbles');
+    expect(bubbleStyleOf('grumble')).toBe('curse');
+    expect(bubbleStyleOf('bark')).toBe('boast');
+    expect(bubbleStyleOf('warn')).toBe('normal');
+  });
+});

@@ -8,7 +8,7 @@
 | Dùng ở | Viền ô dưới con trỏ khi ngoài `interactRange` (GDD §3.3, §8 dòng đầu); có thể dùng lại cho chữ/nút bị khóa |
 | Kích thước | nét viền ô 64 px |
 | File trong game | hằng số trong `web/client/src/config/palette.ts` (game-dev thêm khóa mới, vd. `ash`) — **không phải ảnh** |
-| Trạng thái | **Planned (NHÁP)** — đề xuất, chờ người dùng/game-dev |
+| Trạng thái | **Approved — phương án A** (người dùng chốt 2026-10-14) |
 
 ## Vấn đề (thang xám, L = 0.299R + 0.587G + 0.114B)
 
@@ -49,3 +49,4 @@ Game-dev đổi hằng số → chụp màn hình con trỏ ngoài tầm trên c
 | Ngày | Lần | Thay đổi | Kết quả | Chọn |
 |---|---|---|---|---|
 | 2026-10-10 | nháp | Đề xuất A/B/C | Chưa thử trong game | — |
+| 2026-10-14 | chốt | Người dùng chọn phương án A | game-dev áp ở T-092 | A |

@@ -12,6 +12,9 @@ export const palette = {
   indigo: 0x2f4b73, // Chàm — nước sâu, đêm
   water: 0x6e9fa6, // Xanh nước
   paper: 0xefe4c8, // Trắng điệp — giấy UI, điểm sáng
+  // ---- Màu phụ cho giao diện (T-091/T-092, ART-UI-001 phương án A — người dùng duyệt 2026-10-14) ----
+  ash: 0xb5aa94, // Xám tro ấm — viền ô ngoài tầm (nét đứt), ô khóa
+  inkMuted: 0x6e6658, // Chữ trên nút xám (khóa / thiếu tiền)
 } as const;
 
 export type PaletteKey = keyof typeof palette;

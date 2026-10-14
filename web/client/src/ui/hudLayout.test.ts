@@ -138,7 +138,9 @@ describe('hudLayout — tiền, thùng bán, sạp hạt (T-006)', () => {
   it('ô tiền ngay dưới thanh Sức, thẳng mép trái, không đè thanh Sức / đồng hồ / hotbar', () => {
     const m = moneyPanelRect();
     const s = staminaPanelRect();
-    expect(m.x).toBe(s.x);
+    // T-092: bảng gỗ tiền thụt vào nhẹ so với icon bắp tay (như ảnh mẫu T-091).
+    expect(m.x).toBeGreaterThanOrEqual(s.x);
+    expect(m.x - s.x).toBeLessThanOrEqual(16);
     expect(m.y).toBeGreaterThan(s.y + s.h);
     expect(overlap(m, s)).toBe(false);
     expect(overlap(m, clockPanelRect())).toBe(false);
@@ -209,5 +211,65 @@ describe('hudLayout — hỏi đi ngủ, tổng kết ngày (T-007)', () => {
     for (let i = 1; i < 6; i++) expect(summaryLineY(i)).toBeGreaterThan(summaryLineY(i - 1));
     expect(summaryLineY(5) + 24).toBeLessThan(b.y);
     expect(b.y + b.h).toBeLessThanOrEqual(p.y + p.h);
+  });
+});
+
+describe('hudLayout — T-092 giao diện Lô 1', () => {
+  const overlap = (a: { x: number; y: number; w: number; h: number }, b: typeof a) =>
+    a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+
+  it('nút đóng (X) của mọi cửa sổ nằm trọn trong màn, đè góc trên-phải khung, đủ to để chạm (≥ 76 px)', async () => {
+    const m = await import('./hudLayout');
+    const panels = [
+      m.bagPanelRect(18),
+      m.sellPanelRect(18, 18),
+      m.sellPanelRect(18, gameConfig.chestSlots),
+      m.stallPanelRect(2),
+      m.pausePanelRect(),
+      m.sleepPromptRect(),
+      m.restartConfirmRect(),
+    ];
+    for (const p of panels) {
+      const c = m.windowCloseRect(p);
+      expect(c.w).toBeGreaterThanOrEqual(76);
+      expect(c.x).toBeGreaterThanOrEqual(0);
+      expect(c.y).toBeGreaterThanOrEqual(0);
+      expect(c.x + c.w).toBeLessThanOrEqual(W);
+      expect(overlap(c, p)).toBe(true);
+      // Tâm nút ở gần góc trên-phải khung.
+      expect(Math.abs(c.x + c.w / 2 - (p.x + p.w))).toBeLessThan(c.w);
+      expect(Math.abs(c.y + c.h / 2 - p.y)).toBeLessThan(c.h);
+    }
+  });
+
+  it('mọi nút cửa sổ cao ≥ 84 px (chạm được trên điện thoại)', async () => {
+    const m = await import('./hudLayout');
+    const buttons = [
+      m.pauseResumeButtonRect(),
+      m.pauseRestartButtonRect(),
+      m.restartConfirmButtonRect('yes'),
+      m.sleepButtonRect('no'),
+      m.summaryButtonRect(),
+      m.stallButtonRect(0, 2),
+      m.bagButtonRect(),
+    ];
+    for (const b of buttons) expect(b.h).toBeGreaterThanOrEqual(84);
+  });
+
+  it('thanh Sức: ống tre bên phải icon bắp tay, ruột nằm trong ống; đồng hồ: bảng gỗ nằm trong khung bao', async () => {
+    const m = await import('./hudLayout');
+    const p = m.staminaPanelRect();
+    const bar = m.staminaBarRect();
+    const f = m.staminaFillRect();
+    expect(bar.x).toBeGreaterThan(p.x);
+    expect(bar.x + bar.w).toBe(p.x + p.w);
+    expect(f.x).toBeGreaterThan(bar.x);
+    expect(f.x + f.w).toBeLessThan(bar.x + bar.w);
+    expect(f.y).toBeGreaterThan(bar.y);
+    expect(f.y + f.h).toBeLessThan(bar.y + bar.h);
+    const c = m.clockPanelRect();
+    const plank = m.clockPlankRect();
+    expect(plank.x + plank.w).toBe(c.x + c.w);
+    expect(plank.x).toBeGreaterThan(c.x);
   });
 });

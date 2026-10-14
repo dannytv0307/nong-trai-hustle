@@ -167,7 +167,9 @@ import {
   type StaminaBand,
   type StaminaChange,
 } from '../systems/stamina';
-import { bubbleCanShow, createBarkState, pickBarkLine, recordBark, shouldBark, type BubbleKind } from '../systems/bubbles';
+import { bubbleCanShow, bubbleStyleOf, createBarkState, pickBarkLine, recordBark, shouldBark, type BubbleKind, type BubbleStyle } from '../systems/bubbles';
+import { BUBBLE_TEXT_PAD, bubbleBodyLayout, bubbleFrames, dashedRectSegments, fixedBubbleLayout, fixedBubbleWrapWidth, uiKey } from '../ui/uiSpec';
+import { canNineSlice, hasUiTexture, UiFrame, warnUiFallback } from '../ui/uiKit';
 import {
   bagPanelRect,
   bagSlotAt,
@@ -176,6 +178,7 @@ import {
   hotbarSlotAt,
   hotbarSlotRect,
   isOverHud,
+  pausePanelRect,
   pauseRestartButtonRect,
   pauseResumeButtonRect,
   restartConfirmButtonAt,
@@ -185,7 +188,11 @@ import {
   sellSlotRect,
   sleepButtonAt,
   sleepButtonRect,
+  sleepPromptRect,
+  restartConfirmRect,
   summaryButtonRect,
+  summaryPanelRect,
+  windowCloseRect,
   stallButtonAt,
   stallButtonRect,
   stallPanelRect,
@@ -314,18 +321,6 @@ const FLOAT_POOL = 6;
 /** Giữ bao nhiêu chữ bay gần nhất trong debugState. */
 const FLOAT_LOG = 8;
 
-/**
- * Viền xám (ngoài tầm): palette chưa có xám → trộn nửa-nửa trắng điệp + mực = xám ấm, vẫn hợp tông.
- * (Không dùng mực mờ vì trùng màu với viền ô ruộng, khó thấy.)
- */
-const HIGHLIGHT_OUT_COLOR = Phaser.Display.Color.Interpolate.ColorWithColor(
-  Phaser.Display.Color.ValueToColor(palette.paper),
-  Phaser.Display.Color.ValueToColor(palette.ink),
-  100,
-  50,
-);
-const HIGHLIGHT_OUT_HEX = Phaser.Display.Color.GetColor(HIGHLIGHT_OUT_COLOR.r, HIGHLIGHT_OUT_COLOR.g, HIGHLIGHT_OUT_COLOR.b);
-const HIGHLIGHT_OUT_ALPHA = 0.9;
 /** Lùi viền ô vào trong (px) = nửa bề dày viền lót lớn nhất, để viền không lấn sang ô bên. */
 const HIGHLIGHT_INSET = Math.ceil(
   Math.max(...gameConfig.tileHighlightWidth.map((w, i) => w + gameConfig.tileHighlightOutline[i] * 2)) / 2,
@@ -585,7 +580,8 @@ export interface GardenDebugState {
    * Bong bóng chữ trên đầu nhân vật: đang hiện, chữ, số lần hiện (mỗi lần câu mới / hiện lại), loại (chửi thề /
    * báo / lầm bầm — null khi tắt), lệch ngang hiện tại (chửi thề lắc).
    */
-  bubble: { visible: boolean; text: string; shows: number; kind: BubbleKind | null; shakeX: number };
+  /** T-092: `style` = kiểu ảnh bong bóng đang hiện, `art` = có dùng ảnh thật (false = vẽ bằng code dự phòng). */
+  bubble: { visible: boolean; text: string; shows: number; kind: BubbleKind | null; shakeX: number; style: BubbleStyle | null; art: boolean };
   /** Thanh Sức (T-004). */
   stamina: {
     current: number;
@@ -921,6 +917,12 @@ export class GardenScene extends Phaser.Scene {
   private highlight!: Phaser.GameObjects.Rectangle;
   /** Viền mực lót dưới nét sáng — tương phản trên mọi nền. */
   private highlightBacking!: Phaser.GameObjects.Rectangle;
+  /**
+   * T-092 (ART-UI-001 phương án A): viền ô NGOÀI tầm — nét đứt xám tro lót mực. Vẽ lại chỉ khi ô / cỡ đổi
+   * (`highlightDashSig`), không vẽ mỗi frame.
+   */
+  private highlightDash!: Phaser.GameObjects.Graphics;
+  private highlightDashSig = '';
   /** Đồng hồ nhịp thở của viền (giây) — về 0 khi con trỏ sang ô khác để ô mới hiện sáng ngay. */
   private highlightPulseT = 0;
   /** Ô viền đang chỉ (để biết khi nào đổi ô); -1 = chưa có. */
@@ -953,6 +955,16 @@ export class GardenScene extends Phaser.Scene {
   bagOpen = false;
   /** Ô gùi dưới con trỏ khi cửa sổ gùi mở (-1 = không) — HUD hiện tên món. */
   bagHoverSlot = -1;
+  /** T-092: ô hotbar dưới con trỏ (-1 = không) — HUD đổi khung "rê chuột" + hiện tooltip món. */
+  hotbarHoverSlot = -1;
+  /** T-092: con trỏ trên nút Gùi; trên nút đóng (X) của cửa sổ đang mở. */
+  bagButtonHover = false;
+  windowCloseHover = false;
+
+  /** T-092: chuột / ngón đang giữ — HUD vẽ nút "lún" (btn-pressed) khi giữ trên nút. */
+  get primaryDown(): boolean {
+    return this.controls?.isPrimaryDown() ?? false;
+  }
   /** Tham số hàng đợi cho việc nhanh: 1 nhát × actionDuration, hàng chờ actionQueueMax. */
   private readonly fastParams: TileActionParams = {
     duration: gameConfig.actionDuration,
@@ -976,8 +988,12 @@ export class GardenScene extends Phaser.Scene {
   private readonly popBaseY: number[] = [];
   // Bong bóng chữ trên đầu.
   private bubble!: Phaser.GameObjects.Container;
+  /** Hình vẽ bằng code — chỉ dùng khi thiếu ảnh bong bóng (dự phòng). */
   private bubbleBg!: Phaser.GameObjects.Graphics;
   private bubbleText!: Phaser.GameObjects.Text;
+  /** T-092: ảnh bong bóng (null = thiếu ảnh → vẽ bằng code). */
+  private bubbleArt: BubbleArt | null = null;
+  private bubbleStyle: BubbleStyle | null = null;
   private bubbleT = 0;
   private bubblePopT = 0;
   private bubbleShows = 0;
@@ -1833,6 +1849,8 @@ export class GardenScene extends Phaser.Scene {
       .setOrigin(0)
       .setDepth(DEPTH_TILE_HIGHLIGHT + 1)
       .setVisible(false);
+    this.highlightDash = this.add.graphics().setDepth(DEPTH_TILE_HIGHLIGHT + 1).setVisible(false);
+    this.highlightDashSig = '';
     for (let i = 0; i < TILL_DUST_POOL; i++) {
       // Nâu gỗ (sáng hơn đất cuốc) + viền mực: nổi trên cả đất nâu lẫn cỏ xanh.
       this.tillDust.push(
@@ -1890,6 +1908,10 @@ export class GardenScene extends Phaser.Scene {
     const h = this.hover;
     const inside = this.controls.isPointerInside();
     const sp = this.controls.pointerScreen(this.pointerScreenPt);
+    // T-092: trạng thái rê chuột cho HUD (khung ô / nút sáng lên) — đặt lại mỗi frame, nhánh nào trúng thì bật.
+    this.hotbarHoverSlot = -1;
+    this.bagButtonHover = false;
+    this.windowCloseHover = false;
 
     if (this.shopWindow) {
       this.updateShopPointer(pressed, inside, sp.x, sp.y);
@@ -1901,8 +1923,10 @@ export class GardenScene extends Phaser.Scene {
       h.valid = false;
       const n = this.inventory.slots.length;
       this.bagHoverSlot = inside ? bagSlotAt(sp.x, sp.y, n) : -1;
+      // T-092: nút đóng (X) góc trên-phải — cần cho bản cảm ứng (không có phím E / Esc).
+      this.windowCloseHover = inside && rectContains(windowCloseRect(bagPanelRect(n)), sp.x, sp.y);
       if (pressed) {
-        if (!rectContains(bagPanelRect(n), sp.x, sp.y)) this.setBagOpen(false);
+        if (this.windowCloseHover || !rectContains(bagPanelRect(n), sp.x, sp.y)) this.setBagOpen(false);
         this.dragKind = null;
         this.dragBlocked = true;
       }
@@ -1913,6 +1937,8 @@ export class GardenScene extends Phaser.Scene {
       // Trên hotbar: click chọn ô; trên nút gùi: mở gùi. Giữ chuột kéo ra ruộng cũng không làm gì (dragBlocked).
       this.hideHighlight();
       h.valid = false;
+      this.hotbarHoverSlot = hotbarSlotAt(sp.x, sp.y);
+      this.bagButtonHover = rectContains(bagButtonRect(), sp.x, sp.y);
       if (pressed) {
         const slot = hotbarSlotAt(sp.x, sp.y);
         if (slot >= 0) this.selectHotbar(slot);
@@ -2045,6 +2071,7 @@ export class GardenScene extends Phaser.Scene {
   private hideHighlight(): void {
     this.highlight.setVisible(false);
     this.highlightBacking.setVisible(false);
+    this.highlightDash.setVisible(false);
     this.highlightTileKey = -1;
   }
 
@@ -2228,15 +2255,17 @@ export class GardenScene extends Phaser.Scene {
       const nBag = this.inventory.slots.length;
       const nBox = this.shopBoxInventory().slots.length;
       this.shopHover = inside ? sellSlotAt(px, py, nBag, nBox) : null;
+      this.windowCloseHover = inside && rectContains(windowCloseRect(sellPanelRect(nBag, nBox)), px, py);
       if (pressed) {
-        if (!rectContains(sellPanelRect(nBag, nBox), px, py)) this.closeShop();
+        if (this.windowCloseHover || !rectContains(sellPanelRect(nBag, nBox), px, py)) this.closeShop();
         else if (this.shopHover) this.transferSlot(this.shopHover.side, this.shopHover.index, shift);
       }
     } else if (this.shopWindow === 'seedStall') {
       const n = this.seedStallItems.length;
       this.stallHover = inside ? stallButtonAt(px, py, n) : -1;
+      this.windowCloseHover = inside && rectContains(windowCloseRect(stallPanelRect(n)), px, py);
       if (pressed) {
-        if (!rectContains(stallPanelRect(n), px, py)) this.closeShop();
+        if (this.windowCloseHover || !rectContains(stallPanelRect(n), px, py)) this.closeShop();
         else if (this.stallHover >= 0) this.buyFromStall(this.stallHover, shift);
       }
     }
@@ -2761,8 +2790,9 @@ export class GardenScene extends Phaser.Scene {
     switch (this.nightPhase) {
       case 'sleepPrompt':
         this.sleepPromptHover = inside ? sleepButtonAt(sp.x, sp.y) : null;
+        this.windowCloseHover = inside && rectContains(windowCloseRect(sleepPromptRect()), sp.x, sp.y);
         if (enter || (clicked && this.sleepPromptHover === 'yes')) this.startFallingAsleep();
-        else if (esc === 'declineSleep' || (clicked && this.sleepPromptHover === 'no')) this.declineSleep();
+        else if (esc === 'declineSleep' || (clicked && (this.sleepPromptHover === 'no' || this.windowCloseHover))) this.declineSleep();
         break;
       case 'fallingAsleep':
         this.nightFade = Math.min(1, this.nightT / gameConfig.sleepFadeSeconds);
@@ -2781,8 +2811,10 @@ export class GardenScene extends Phaser.Scene {
       case 'summary':
         tickReveal(this.summaryReveal, dt);
         this.summaryHoverButton = inside && rectContains(summaryButtonRect(), sp.x, sp.y);
+        // T-092: nút đóng (X) của màn tổng kết = "Ngày mới".
+        this.windowCloseHover = inside && rectContains(windowCloseRect(summaryPanelRect()), sp.x, sp.y);
         this.tickSummarySound();
-        if (enter || (clicked && this.summaryHoverButton)) this.pressSummaryAccept();
+        if (enter || (clicked && (this.summaryHoverButton || this.windowCloseHover))) this.pressSummaryAccept();
         else if (clicked && !allRevealed(this.summaryReveal, REVEAL_TIMING)) this.pressSummaryAccept(); // click chỗ khác: chỉ hiện hết
         break;
       case 'waking':
@@ -2836,6 +2868,14 @@ export class GardenScene extends Phaser.Scene {
     const y = r.y * T - liftPx + HIGHLIGHT_INSET;
     const bw = r.w * T - HIGHLIGHT_INSET * 2;
     const bh = r.h * T + liftPx - HIGHLIGHT_INSET * 2;
+    if (!inReachNow) {
+      // Ngoài tầm: nét đứt (đứng yên, không nền) thay cho 2 hình chữ nhật nét liền.
+      this.highlight.setVisible(false);
+      this.highlightBacking.setVisible(false);
+      this.drawOutOfReachDash(x, y, bw, bh, depth + 1, w, outline, gameConfig.tileHighlightOutlineAlpha[k]);
+      return;
+    }
+    this.highlightDash.setVisible(false);
     if (this.highlight.width !== bw || this.highlight.height !== bh) {
       this.highlight.setSize(bw, bh);
       this.highlightBacking.setSize(bw, bh);
@@ -2850,14 +2890,35 @@ export class GardenScene extends Phaser.Scene {
       .setVisible(true);
     this.highlight
       .setPosition(x, y)
-      .setStrokeStyle(w, inReachNow ? palette.paper : HIGHLIGHT_OUT_HEX, inReachNow ? 1 : HIGHLIGHT_OUT_ALPHA)
+      .setStrokeStyle(w, palette.paper, 1)
       .setFillStyle(palette.paper, fillAlpha)
       .setVisible(true);
     this.highlight.isFilled = fillAlpha > 0;
 
-    const alpha = inReachNow ? pulseAlpha(this.highlightPulseT, gameConfig.tileHighlightPulseRate, gameConfig.tileHighlightPulseMinAlpha) : 1;
+    const alpha = pulseAlpha(this.highlightPulseT, gameConfig.tileHighlightPulseRate, gameConfig.tileHighlightPulseMinAlpha);
     this.highlight.setAlpha(alpha);
     this.highlightBacking.setAlpha(alpha);
+  }
+
+  /**
+   * Viền ngoài tầm (ART-UI-001 A): từng đoạn nét đứt vẽ 2 lớp — lót mực dày (nét + outline mỗi bên) rồi xám tro
+   * `palette.ash` đè lên. Độ dài đoạn / hở tính theo px màn rồi đổi ra px thế giới (camera phóng to).
+   */
+  private drawOutOfReachDash(x: number, y: number, w: number, h: number, depth: number, width: number, outline: number, outlineAlpha: number): void {
+    const g = this.highlightDash;
+    const sig = `${x}|${y}|${w}|${h}|${depth}`;
+    if (sig !== this.highlightDashSig) {
+      this.highlightDashSig = sig;
+      const z = this.cameras.main.zoom || 1;
+      const [dash, gap] = gameConfig.tileHighlightOutDashPx;
+      const segs = dashedRectSegments({ x, y, w, h }, dash / z, gap / z);
+      g.clear().setDepth(depth);
+      g.lineStyle(width + outline * 2, palette.ink, outlineAlpha);
+      for (const [x1, y1, x2, y2] of segs) g.lineBetween(x1, y1, x2, y2);
+      g.lineStyle(width, palette.ash, 1);
+      for (const [x1, y1, x2, y2] of segs) g.lineBetween(x1, y1, x2, y2);
+    }
+    g.setAlpha(1).setVisible(true);
   }
 
   /**
@@ -3126,13 +3187,47 @@ export class GardenScene extends Phaser.Scene {
       this.popLife.push(0);
       this.popBaseY.push(0);
     }
+    // T-092: bong bóng vẽ 1:1 với màn (ảnh giao diện làm cho 1080p): container co 1/cameraZoom để bù camera phóng to →
+    // toạ độ trong container = px màn. Chữ cỡ px màn (gameConfig.bubbleFontPx).
     this.bubbleBg = this.add.graphics();
     this.bubbleText = this.add
-      // Câu chửi thề dài tới 60 ký tự → tự xuống dòng cho bong bóng khỏi quá rộng.
-      .text(0, 0, '', { fontFamily: uiFontFamily, fontSize: '17px', fontStyle: 'bold', color: cssColor('ink'), align: 'center', wordWrap: { width: 300, useAdvancedWrap: true } })
-      .setOrigin(0.5)
-      .setResolution(2);
-    this.bubble = this.add.container(0, 0, [this.bubbleBg, this.bubbleText]).setDepth(DEPTH_BUBBLE).setVisible(false);
+      .text(0, 0, '', {
+        fontFamily: uiFontFamily,
+        fontSize: `${gameConfig.bubbleFontPx}px`,
+        fontStyle: 'bold',
+        color: cssColor('ink'),
+        align: 'center',
+        wordWrap: { width: gameConfig.bubbleWrapPx, useAdvancedWrap: true },
+      })
+      .setOrigin(0.5);
+    this.bubbleArt = this.buildBubbleArt();
+    const art = this.bubbleArt;
+    const parts: Phaser.GameObjects.GameObject[] = [this.bubbleBg];
+    if (art) parts.push(art.normal.obj, art.normalTail, art.boast.obj, art.boastTail, art.curse, art.think);
+    parts.push(this.bubbleText);
+    this.bubble = this.add.container(0, 0, parts).setDepth(DEPTH_BUBBLE).setVisible(false);
+  }
+
+  /** Ảnh bong bóng (T-091): thiếu ảnh nào → cả bong bóng vẽ bằng code như cũ (dự phòng, console.warn). */
+  private buildBubbleArt(): BubbleArt | null {
+    const frames = canNineSlice(this, 'bubble') && canNineSlice(this, 'bubble-boast');
+    const missing = ['bubble-tail', 'bubble-boast-tail', 'bubble-curse', 'bubble-think'].filter((n) => !hasUiTexture(this, n));
+    for (const n of missing) warnUiFallback(n);
+    if (!frames || missing.length > 0) return null;
+    const start = { x: 0, y: 0, w: 120, h: 90 };
+    const img = (name: string, ox: number, oy: number) => this.add.image(0, 0, uiKey(name)).setOrigin(ox, oy).setVisible(false);
+    const normal = new UiFrame(this, bubbleFrames('normal').body, start);
+    const boast = new UiFrame(this, bubbleFrames('boast').body, start);
+    normal.obj.setVisible(false);
+    boast.obj.setVisible(false);
+    return {
+      normal,
+      normalTail: img(bubbleFrames('normal').tail, 0.5, 0),
+      boast,
+      boastTail: img(bubbleFrames('boast').tail, 0.5, 0),
+      curse: img('bubble-curse', 0.5, 1),
+      think: img('bubble-think', 0.5, 1),
+    };
   }
 
   /** Một giọt (pool): vị trí, vận tốc (px/giây), màu, bán kính, thời gian sống. Hết pool thì bỏ qua. */
@@ -3260,45 +3355,83 @@ export class GardenScene extends Phaser.Scene {
    * Bong bóng chữ trên đầu {ten} ("hết hạt rồi", "gùi đầy"). Cùng câu đang hiện thì chỉ kéo dài thời gian
    * (giữ chuột rê không làm bong bóng nháy liên tục).
    */
-  showBubble(text: string, kind: BubbleKind = 'warn'): boolean {
+  showBubble(text: string, kind: BubbleKind = 'warn', style: BubbleStyle = bubbleStyleOf(kind)): boolean {
     // T-004: chỉ một bong bóng một lúc; bong bóng kém quan trọng không đè bong bóng quan trọng hơn
     // (chửi thề > "đuối rồi…"/báo > lầm bầm — systems/bubbles.ts).
     const active = this.activeBubbleKind();
     if (!bubbleCanShow(active, kind)) return false;
     const seconds = kind === 'grumble' ? this.grumbleSeconds : gameConfig.bubbleSeconds;
-    if (active === kind && this.bubbleText.text === text) {
+    if (active === kind && this.bubbleText.text === text && this.bubbleStyle === style) {
       this.bubbleT = seconds;
       return false;
     }
-    const grumble = kind === 'grumble';
-    this.bubbleText.setText(text).setColor(cssColor(grumble ? 'paper' : 'ink'));
-    const tail = grumble ? 12 : 9;
-    const w = Math.ceil(this.bubbleText.width) + (grumble ? 40 : 26);
-    const h = Math.ceil(this.bubbleText.height) + (grumble ? 26 : 14);
-    const g = this.bubbleBg;
-    g.clear();
-    if (grumble) {
-      // Bong bóng chửi thề (GDD §8): khung RĂNG CƯA đỏ son viền mực, chữ trắng điệp. Gốc container = mũi đuôi.
-      const outer = jaggedBubblePoints(w + 8, h + 8, -tail - h / 2, 7);
-      const inner = jaggedBubblePoints(w, h, -tail - h / 2, 5);
-      g.fillStyle(palette.ink, 1).fillPoints(outer, true);
-      g.fillTriangle(-12, -tail - 6, 10, -tail - 6, 2, 4);
-      g.fillStyle(palette.vermilion, 1).fillPoints(inner, true);
-      g.fillTriangle(-8, -tail - 4, 7, -tail - 4, 2, 0);
-    } else {
-      // Khung giấy trắng điệp viền mực + đuôi nhọn chỉ xuống đầu nhân vật. Gốc container = mũi đuôi.
-      g.fillStyle(palette.ink, 1).fillRoundedRect(-w / 2 - 3, -h - tail - 3, w + 6, h + 6, 12);
-      g.fillTriangle(-10, -tail - 3, 10, -tail - 3, 0, 3);
-      g.fillStyle(palette.paper, 1).fillRoundedRect(-w / 2, -h - tail, w, h, 10);
-      g.fillTriangle(-7, -tail - 1, 7, -tail - 1, 0, -1);
-    }
-    this.bubbleText.setPosition(0, -tail - h / 2);
+    if (this.bubbleArt) this.layoutBubbleArt(this.bubbleArt, text, style);
+    else this.drawBubbleFallback(text, kind === 'grumble');
     this.bubbleKind = kind;
+    this.bubbleStyle = style;
     this.bubbleT = seconds;
     this.bubblePopT = BUBBLE_POP_SECONDS;
     this.bubbleShows++;
     this.bubble.setVisible(true);
     return true;
+  }
+
+  /**
+   * T-092: bong bóng ảnh. Thường / khoe: thân 9-slice co theo câu + đuôi rời chỉ xuống đầu. Chửi thề / nghĩ: ảnh cố định
+   * phóng cho vừa câu. Gốc container = đỉnh đầu nhân vật; mọi số là px màn (uiSpec.ts tính bố cục).
+   */
+  private layoutBubbleArt(art: BubbleArt, text: string, style: BubbleStyle): void {
+    for (const o of [art.normal.obj, art.normalTail, art.boast.obj, art.boastTail, art.curse, art.think]) o.setVisible(false);
+    this.bubbleBg.clear();
+    const t = this.bubbleText.setColor(cssColor('ink'));
+    if (style === 'normal' || style === 'boast') {
+      t.setFontSize(gameConfig.bubbleFontPx).setWordWrapWidth(gameConfig.bubbleWrapPx, true).setText(text);
+      const l = bubbleBodyLayout(style, t.width, t.height);
+      const frame = style === 'normal' ? art.normal : art.boast;
+      const tail = style === 'normal' ? art.normalTail : art.boastTail;
+      frame.setRect(l.body).obj.setVisible(true);
+      tail.setPosition(l.tail.x, l.tail.y).setVisible(true);
+      t.setPosition(l.text.x, l.text.y);
+      return;
+    }
+    const [minS, maxS] = style === 'curse' ? gameConfig.curseBubbleScale : THINK_BUBBLE_SCALE;
+    t.setFontSize(style === 'curse' ? gameConfig.curseBubbleFontPx : gameConfig.bubbleFontPx)
+      .setWordWrapWidth(fixedBubbleWrapWidth(style, maxS), true)
+      .setText(text);
+    const l = fixedBubbleLayout(style, t.width, t.height, minS, maxS);
+    const img = style === 'curse' ? art.curse : art.think;
+    img.setOrigin(l.origin[0], l.origin[1]).setPosition(0, -BUBBLE_TEXT_PAD.headGap).setDisplaySize(l.w, l.h).setVisible(true);
+    t.setPosition(l.text.x, l.text.y);
+  }
+
+  /** Dự phòng khi thiếu ảnh bong bóng: khung giấy viền mực / răng cưa đỏ son vẽ bằng code (như trước T-092). */
+  private drawBubbleFallback(text: string, grumble: boolean): void {
+    this.bubbleText
+      .setFontSize(gameConfig.bubbleFontPx)
+      .setWordWrapWidth(gameConfig.bubbleWrapPx, true)
+      .setText(text)
+      .setColor(cssColor(grumble ? 'paper' : 'ink'));
+    const tail = grumble ? 18 : 14;
+    const w = Math.ceil(this.bubbleText.width) + (grumble ? 60 : 40);
+    const h = Math.ceil(this.bubbleText.height) + (grumble ? 40 : 22);
+    const g = this.bubbleBg;
+    g.clear();
+    if (grumble) {
+      // Bong bóng chửi thề (GDD §8): khung RĂNG CƯA đỏ son viền mực, chữ trắng điệp. Gốc container = mũi đuôi.
+      const outer = jaggedBubblePoints(w + 12, h + 12, -tail - h / 2, 10);
+      const inner = jaggedBubblePoints(w, h, -tail - h / 2, 7);
+      g.fillStyle(palette.ink, 1).fillPoints(outer, true);
+      g.fillTriangle(-18, -tail - 9, 15, -tail - 9, 3, 6);
+      g.fillStyle(palette.vermilion, 1).fillPoints(inner, true);
+      g.fillTriangle(-12, -tail - 6, 10, -tail - 6, 3, 0);
+    } else {
+      // Khung giấy trắng điệp viền mực + đuôi nhọn chỉ xuống đầu nhân vật. Gốc container = mũi đuôi.
+      g.fillStyle(palette.ink, 1).fillRoundedRect(-w / 2 - 4, -h - tail - 4, w + 8, h + 8, 16);
+      g.fillTriangle(-15, -tail - 4, 15, -tail - 4, 0, 4);
+      g.fillStyle(palette.paper, 1).fillRoundedRect(-w / 2, -h - tail, w, h, 14);
+      g.fillTriangle(-10, -tail - 1, 10, -tail - 1, 0, -2);
+    }
+    this.bubbleText.setPosition(0, -tail - h / 2);
   }
 
   private updateBubble(dt: number): void {
@@ -3315,7 +3448,8 @@ export class GardenScene extends Phaser.Scene {
     this.bubbleShakeX =
       this.bubbleKind === 'grumble' ? Math.sin(this.clock * Math.PI * 2 * gameConfig.grumbleShakeRate) * gameConfig.grumbleShakePx : 0;
     // Hiện ra thì nảy nhẹ (to lên rồi về), sắp tắt thì mờ dần.
-    const pop = 1 + 0.25 * (this.bubblePopT / BUBBLE_POP_SECONDS);
+    // Container co 1/zoom → bong bóng hiện đúng cỡ px màn (ảnh giao diện 1:1 ở 1080p).
+    const pop = (1 + 0.25 * (this.bubblePopT / BUBBLE_POP_SECONDS)) / this.cameras.main.zoom;
     this.bubble
       .setPosition(this.hero.x + this.bubbleShakeX, this.hero.y - HERO_FRAME.height - 6)
       .setScale(pop)
@@ -3776,16 +3910,20 @@ export class GardenScene extends Phaser.Scene {
     c.clearPending();
     if (this.restartConfirmOpen) {
       this.restartConfirmHover = inside ? restartConfirmButtonAt(sp.x, sp.y) : null;
+      // T-092: nút đóng (X) của hộp xác nhận = "Không".
+      this.windowCloseHover = inside && rectContains(windowCloseRect(restartConfirmRect()), sp.x, sp.y);
       const esc = escPressed && resolveEsc(this) === 'closeRestartConfirm';
       if (clicked && this.restartConfirmHover === 'yes') this.restartFresh();
-      else if (esc || (clicked && this.restartConfirmHover === 'no')) this.closeRestartConfirm();
+      else if (esc || (clicked && (this.restartConfirmHover === 'no' || this.windowCloseHover))) this.closeRestartConfirm();
       return;
     }
     this.pauseHoverResume = inside && rectContains(pauseResumeButtonRect(), sp.x, sp.y);
     this.pauseHoverRestart = inside && rectContains(pauseRestartButtonRect(), sp.x, sp.y);
+    // T-092: nút đóng (X) của Tạm dừng = "Tiếp tục".
+    this.windowCloseHover = inside && rectContains(windowCloseRect(pausePanelRect()), sp.x, sp.y);
     const esc = escPressed && resolveEsc(this) === 'closePause';
     if (clicked && this.pauseHoverRestart) this.openRestartConfirm();
-    else if (esc || (clicked && this.pauseHoverResume)) this.closePauseMenu();
+    else if (esc || (clicked && (this.pauseHoverResume || this.windowCloseHover))) this.closePauseMenu();
   }
 
   /** Âm lượng nhạc nền nên có lúc này: nhỏ lại khi Tạm dừng (pauseMusicVolumeMultiplier). */
@@ -4493,7 +4631,7 @@ export class GardenScene extends Phaser.Scene {
             tillable: this.hover.tillable,
             job: this.hover.job,
             highlight: this.hover.inReach ? 'bright' : 'gray',
-            alpha: this.highlight.alpha,
+            alpha: this.hover.inReach ? this.highlight.alpha : this.highlightDash.alpha,
             object: this.hover.object,
           }
         : null,
@@ -4556,6 +4694,8 @@ export class GardenScene extends Phaser.Scene {
         shows: this.bubbleShows,
         kind: this.activeBubbleKind(),
         shakeX: this.bubbleShakeX,
+        style: this.bubbleT > 0 ? this.bubbleStyle : null,
+        art: this.bubbleArt !== null,
       },
       stamina: {
         current: this.stamina.current,
@@ -4996,6 +5136,13 @@ export class GardenScene extends Phaser.Scene {
     this.inventoryRevision++;
   }
 
+  /** T-092 (QA/chụp ảnh): hiện bong bóng kiểu bất kỳ (bỏ qua ưu tiên — tắt bong bóng đang hiện trước). */
+  debugShowBubble(text: string, kind: BubbleKind = 'warn', style?: BubbleStyle): boolean {
+    this.bubbleT = 0;
+    this.bubbleKind = null;
+    return this.showBubble(text, kind, style ?? bubbleStyleOf(kind));
+  }
+
   /** Dịch nhân vật tới giữa ô (tx, ty) — chỉ dùng cho QA/test. */
   debugTeleport(tx: number, ty: number): void {
     const x = tx * T + T / 2;
@@ -5014,6 +5161,18 @@ const NO_DIR = Object.freeze({ x: 0, y: 0 });
 const CROP_STAGE_CODE: Record<CropStage, number> = { seed: 0, growing: 1, ripe: 2, withered: 3 };
 /** Bong bóng nảy lúc hiện bao lâu (giây). */
 const BUBBLE_POP_SECONDS = 0.15;
+/** Bong bóng nghĩ: phóng ảnh mây trong khoảng này (câu ngắn "…"). */
+const THINK_BUBBLE_SCALE = [1, 1.4] as const;
+
+/** T-092: các mảnh ảnh bong bóng (tạo một lần, chỉ bật/tắt + đổi cỡ). */
+interface BubbleArt {
+  normal: UiFrame;
+  normalTail: Phaser.GameObjects.Image;
+  boast: UiFrame;
+  boastTail: Phaser.GameObjects.Image;
+  curse: Phaser.GameObjects.Image;
+  think: Phaser.GameObjects.Image;
+}
 
 /**
  * Khung răng cưa cho bong bóng chửi thề: một "siêu elip" gần chữ nhật (w × h, tâm (0, cy)), mép xen kẽ nhọn ra / lõm

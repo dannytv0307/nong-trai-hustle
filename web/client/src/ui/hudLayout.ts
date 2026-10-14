@@ -2,21 +2,28 @@
 // Thuần TS — HUD dùng để vẽ, GardenScene dùng để biết con trỏ đang nằm trên ô nào (không click xuyên xuống ruộng),
 // e2e dùng để rê chuột đúng ô. Đây là số bố cục giao diện, không phải thông số gameplay.
 import { gameConfig } from '../config/gameConfig';
+import { BAMBOO_BAR_HEIGHT, staminaBarGeometry, type Rect } from './uiSpec';
 
-export interface Rect {
-  /** Góc trên-trái. */
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}
+export type { Rect };
 
 /** Hotbar: cạnh ô, khoảng hở giữa ô, cách mép dưới màn (px). */
 export const HOTBAR = { slot: 92, gap: 10, bottom: 28 } as const;
 /** Nút "Gùi" bên phải hotbar: rộng, cách hotbar. */
 export const BAG_BUTTON = { w: 92, gap: 22 } as const;
 /** Cửa sổ gùi: ô, khoảng hở, lề trong, chiều cao phần tiêu đề, khoảng cách thêm giữa hàng hotbar và hàng dưới. */
-export const BAG_WINDOW = { slot: 96, gap: 10, pad: 36, header: 92, footer: 64, rowSplit: 18 } as const;
+export const BAG_WINDOW = { slot: 96, gap: 10, pad: 40, header: 100, footer: 92, rowSplit: 18 } as const;
+
+/**
+ * T-092: tiêu đề cửa sổ giấy điệp (tâm dọc, cách mép trái/trên khung) và nút đóng (X) ở góc trên-phải — nằm đè mép khung
+ * như ảnh mẫu (lệch ra ngoài `raise` px), cạnh `size` ≥ 76 px để chạm được trên màn cảm ứng.
+ */
+export const WINDOW_CHROME = { titleX: 60, titleY: 58, closeSize: 76, closeInset: 46, closeRaise: 26 } as const;
+
+/** Nút đóng (X) của cửa sổ khung `p`. */
+export function windowCloseRect(p: Rect): Rect {
+  const s = WINDOW_CHROME.closeSize;
+  return { x: p.x + p.w - WINDOW_CHROME.closeInset, y: p.y - WINDOW_CHROME.closeRaise, w: s, h: s };
+}
 
 const W = gameConfig.gameWidth;
 const H = gameConfig.gameHeight;
@@ -87,26 +94,44 @@ export function bagSlotAt(px: number, py: number, slotCount: number, perRow = ga
   return -1;
 }
 
-/** Thanh Sức góc trên trái (GDD §11): lề, rộng/cao khung, nhãn "Sức" bên trái thanh. */
-export const STAMINA_BAR = { margin: 32, w: 420, h: 56, label: 78, pad: 8 } as const;
+/**
+ * Thanh Sức góc trên trái (GDD §11, T-092): icon bắp tay (`icon`, vuông) ở góc + ống tre `hud-bamboo-bar` (3-slice cao
+ * cố định 72) bên phải icon. Số theo ảnh mẫu T-091 (ui_mockup.py hud()).
+ */
+export const STAMINA_BAR = { margin: 24, icon: 84, barX: 92, barY: 34, barW: 400 } as const;
 
-/** Khung thanh Sức (gồm nhãn). */
+/** Khung bao cả cụm thanh Sức (icon + ống tre). */
 export function staminaPanelRect(): Rect {
-  return { x: STAMINA_BAR.margin, y: STAMINA_BAR.margin, w: STAMINA_BAR.w, h: STAMINA_BAR.h };
+  const b = staminaBarRect();
+  return { x: STAMINA_BAR.margin, y: STAMINA_BAR.margin, w: b.x + b.w - STAMINA_BAR.margin, h: STAMINA_BAR.icon };
 }
 
-/** Phần ruột thanh (chỗ tô màu theo tỷ lệ Sức), nằm bên phải nhãn "Sức". */
+/** Ống tre (hiển thị 1:1). */
+export function staminaBarRect(): Rect {
+  return { x: STAMINA_BAR.barX, y: STAMINA_BAR.barY, w: STAMINA_BAR.barW, h: BAMBOO_BAR_HEIGHT };
+}
+
+/** Phần ruột thanh = cửa sổ trong suốt của ống tre (ui.json `window`). */
 export function staminaFillRect(): Rect {
-  const p = staminaPanelRect();
-  return { x: p.x + STAMINA_BAR.label, y: p.y + STAMINA_BAR.pad, w: p.w - STAMINA_BAR.label - STAMINA_BAR.pad, h: p.h - STAMINA_BAR.pad * 2 };
+  return staminaBarGeometry(staminaBarRect(), 1).window;
 }
 
-/** Đồng hồ góc trên phải (GDD §11, T-005): lề, rộng/cao khung, cỡ icon mặt trời/trăng. */
-export const CLOCK_PANEL = { margin: 32, w: 330, h: 124, icon: 48 } as const;
+/**
+ * Đồng hồ góc trên phải (GDD §11, T-092): bảng gỗ `hud-plank` (plankW × h) + đĩa gỗ `hud-clock-disc` (disc) đè mép trái
+ * (tâm đĩa ở mép trái bảng), icon mặt trời / trăng (icon) giữa đĩa, icon mùa (season) cạnh giờ.
+ */
+export const CLOCK_PANEL = { margin: 30, plankW: 336, h: 128, disc: 128, icon: 80, season: 52 } as const;
 
-/** Khung đồng hồ + dòng "Ngày 1 · Mùa nắng" (bám góc trên phải). */
+/** Khung bao đồng hồ (gồm nửa đĩa thò ra trái bảng gỗ), bám góc trên phải. */
 export function clockPanelRect(): Rect {
-  return { x: W - CLOCK_PANEL.margin - CLOCK_PANEL.w, y: CLOCK_PANEL.margin, w: CLOCK_PANEL.w, h: CLOCK_PANEL.h };
+  const w = CLOCK_PANEL.plankW + CLOCK_PANEL.disc / 2;
+  return { x: W - CLOCK_PANEL.margin - w, y: CLOCK_PANEL.margin, w, h: CLOCK_PANEL.h };
+}
+
+/** Bảng gỗ của đồng hồ (không gồm phần đĩa thò ra). */
+export function clockPlankRect(): Rect {
+  const c = clockPanelRect();
+  return { x: c.x + CLOCK_PANEL.disc / 2, y: c.y, w: CLOCK_PANEL.plankW, h: CLOCK_PANEL.h };
 }
 
 /**
@@ -116,16 +141,17 @@ export function clockPanelRect(): Rect {
  */
 export const PAUSE_WINDOW = {
   w: 640,
-  h: 500,
+  h: 540,
   buttonW: 300,
-  buttonH: 84,
-  titleY: 78,
-  subY: 136,
-  savedLineY: 188,
-  resumeY: 255,
-  restartY: 362,
+  buttonH: 88,
+  titleY: 92,
+  subY: 150,
+  savedLineY: 198,
+  resumeY: 250,
+  restartY: 358,
   restartW: 340,
-  restartH: 68,
+  restartH: 84,
+  escY: 486,
 } as const;
 
 /** Khung cửa sổ Tạm dừng (giữa màn). */
@@ -205,12 +231,12 @@ export function keyHintSideMaxWidth(): number {
 // ---------------------------------------------------------------- T-006: tiền, thùng bán, sạp hạt
 
 /** Ô tiền góc trên trái, ngay dưới thanh Sức (GDD §11): khoảng cách với thanh Sức, rộng, cao, cỡ icon xu. */
-export const MONEY_PANEL = { gap: 14, w: 250, h: 56, icon: 36 } as const;
+export const MONEY_PANEL = { gap: 10, indent: 10, w: 240, h: 66, icon: 62 } as const;
 
-/** Khung ô tiền (icon xu + "60 quan"), thẳng mép trái với thanh Sức. */
+/** Khung ô tiền (bảng gỗ + icon xu + "60 quan"), dưới thanh Sức, thụt vào `indent` so với icon bắp tay (như ảnh mẫu). */
 export function moneyPanelRect(): Rect {
   const s = staminaPanelRect();
-  return { x: s.x, y: s.y + s.h + MONEY_PANEL.gap, w: MONEY_PANEL.w, h: MONEY_PANEL.h };
+  return { x: s.x + MONEY_PANEL.indent, y: s.y + s.h + MONEY_PANEL.gap, w: MONEY_PANEL.w, h: MONEY_PANEL.h };
 }
 
 /**
@@ -275,7 +301,7 @@ export function sellGridsBottom(bagSlots: number, boxSlots: number): number {
 }
 
 /** Cửa sổ sạp hạt: rộng, tiêu đề (tên + tiền), mỗi nút cao, khoảng hở, chân (dòng báo + hướng dẫn), lề trong. */
-export const STALL_WINDOW = { w: 780, header: 150, buttonH: 104, buttonGap: 18, footer: 118, pad: 48 } as const;
+export const STALL_WINDOW = { w: 820, header: 160, buttonH: 104, buttonGap: 18, footer: 130, pad: 56 } as const;
 
 export function stallPanelRect(buttons: number): Rect {
   const n = Math.max(1, buttons);
@@ -334,7 +360,7 @@ export function sleepButtonAt(px: number, py: number): 'yes' | 'no' | null {
  * `firstLine`, cách nhau `lineGap`; dòng tiền có thêm dòng chi tiết nhỏ (`detailGap`); nút "Ngày mới" ở chân.
  * Tối đa 6 dòng + chi tiết vẫn nằm trên nút (kiểm ở hudLayout.test.ts).
  */
-export const SUMMARY_WINDOW = { w: 980, h: 760, pad: 64, firstLine: 182, lineGap: 70, detailGap: 48, buttonW: 380, buttonH: 92, buttonBottom: 40 } as const;
+export const SUMMARY_WINDOW = { w: 980, h: 780, pad: 72, firstLine: 196, lineGap: 70, detailGap: 48, buttonW: 380, buttonH: 92, buttonBottom: 52 } as const;
 
 export function summaryPanelRect(): Rect {
   return { x: Math.round((W - SUMMARY_WINDOW.w) / 2), y: Math.round((H - SUMMARY_WINDOW.h) / 2), w: SUMMARY_WINDOW.w, h: SUMMARY_WINDOW.h };

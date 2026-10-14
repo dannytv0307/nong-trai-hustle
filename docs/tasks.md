@@ -77,14 +77,14 @@ Mục tiêu: từ prototype "một ngày ở Vườn" thành game trọn vòng *
 | T-018 | A Nền móng | 4.4 | ~~Làm test e2e ổn định (BUG-006) + bộ test "smoke" chạy nhanh~~ — **bỏ (D-036)** | game-dev + qa-tester | M | — | ⏭ Bỏ |
 | T-019 | B Vườn thật | 4.2 | Gen hình **Lô 1** phần 1: đất ruộng, cỏ, đường đất, cây trồng 5 loại, icon món | art-director | L | asset list Lô 1 | ✅ |
 | T-020 | B Vườn thật | 4.2 | Gen hình **Lô 1** phần 2: động tác tưới / cúi, nhà {ten} + **trong nhà**, bếp, thúng bán, cọc rào, quầy hạt, cây nhãn, rào | art-director | L | asset list Lô 1 ✅ |
-| T-091 | B Vườn thật | 4.2 | Gen hình **Lô 1** phần 3: giao diện vườn (khung cửa sổ, ô hotbar, nút, khung HUD, icon HUD, bong bóng) | art-director | M | asset list Lô 1 | ⬜ |
+| T-091 | B Vườn thật | 4.2 | Gen hình **Lô 1** phần 3: giao diện vườn (khung cửa sổ, ô hotbar, nút, khung HUD, icon HUD, bong bóng) | art-director | M | asset list Lô 1 | ✅ |
 | T-021 | B Vườn thật | 4.2 | Gắn Lô 1: đất ruộng 3 trạng thái, viền tự nối, nấc cuốc dở | game-dev | M | T-019 | ✅ |
 | T-022 | B Vườn thật | 4.2 | Gắn Lô 1: cây trồng theo giai đoạn + icon món | game-dev | M | T-019 | ✅ |
 | T-023 | B Vườn thật | 4.2 | Gắn Lô 1: động tác tưới và cúi (gieo / hái / dọn) | game-dev | M | T-020 | ✅ |
 | T-024 | B Vườn thật | 4.2 | Gắn Lô 1: nhà {ten} (bên ngoài), thúng bán, cọc rào, quầy hạt thay sạp hạt hộp, cây nhãn, rào, đường đất | game-dev | M | T-020 | ✅ |
 | T-093 | B Vườn thật | 4.4 | **Cảnh trong nhà {ten}**: bước qua cửa vào phòng riêng (giường, bếp, rương), chuyển cảnh dùng chung, save nhớ trong / ngoài nhà | game-dev | L | T-024 | ✅ |
 | T-096 | B Vườn thật | 4.4 | **Click đâu đi đó + tự tìm đường** (chuột và chạm như nhau — chuẩn bị bản điện thoại, D-038) | game-dev | L | T-093 | ✅ |
-| T-092 | B Vườn thật | 4.2 | Gắn giao diện Lô 1 vào HUD và các cửa sổ đang có | game-dev | M | T-091 | ⬜ |
+| T-092 | B Vườn thật | 4.2 | Gắn giao diện Lô 1 vào HUD và các cửa sổ đang có | game-dev | M | T-091 | 👀 |
 | T-025 | B Vườn thật | 4.3 | Làm âm thanh **Lô 1** (tiếng vườn còn thiếu, nhạc đêm, cửa nhà) | audio-director | L | audio list Lô 1 | ⬜ |
 | T-026 | B Vườn thật | 4.3 | Gắn âm thanh Lô 1 + tách kênh Nhạc / Hiệu ứng | game-dev | M | T-025 | ⬜ |
 | T-027 | B Vườn thật | 4.5 | "Khoảnh khắc sướng" khi hái, bán, tổng kết ngày (giả thuyết 2) | game-dev | M | T-022, T-026 | ⬜ |
@@ -672,6 +672,10 @@ Mục tiêu: từ prototype "một ngày ở Vườn" thành game trọn vòng *
 
 **Bạn thử thế nào:** xem bản ghép mẫu HUD + cửa sổ gùi, duyệt.
 
+**Ghi chú khi làm (art-director, 2026-10-14):** gen 4 sheet (6 hq + 3 nhanh = 1,01 USD), hậu kỳ thành 31 file trong `web/client/public/assets/art/ui/` + `ui/ui.json` (lề cắt 9-slice, cỡ nhỏ nhất, vùng chữ, cửa sổ ống tre, cách đặt đuôi bong bóng). Trạng thái nút / ô tô lại bằng script. Ảnh ghép để duyệt: `art-source/raw/lot1/ui-mockup-1-hud.png` (HUD + bong bóng + tooltip + banner), `ui-mockup-2-thung-ban.png`, `ui-mockup-3-hoi-ngu.png`, bảng bộ `ui-kit-sheet.png`. Màu viền ngoài tầm ART-UI-001: đề xuất phương án A, chờ bạn chốt. Card: `docs/art/prompts/ART-UI-002.md`.
+
+**Người dùng duyệt 2026-10-14 (✅):** đúng như ảnh ghép — cửa sổ giấy điệp trắng chữ mực, icon mùa quạt nan / áo tơi, ART-UI-001 phương án A.
+
 ---
 
 ### T-021 — Gắn hình Lô 1: đất ruộng 3 trạng thái, viền tự nối, nấc cuốc dở
@@ -820,8 +824,19 @@ Mục tiêu: từ prototype "một ngày ở Vườn" thành game trọn vòng *
 **Mục tiêu:** HUD, hotbar, gùi, thùng bán, rương, tổng kết, Tạm dừng, bong bóng dùng giao diện thật.
 
 **Điều kiện xong:**
-- [ ] Khung 9-slice (`nineslice` của Phaser), ô hotbar, nút, khung HUD, icon HUD, 4 kiểu bong bóng thay hình vẽ bằng code; chữ vẫn ≥ 24px, bố cục 1920×1080 và 1366×768 không đè (e2e `time.spec` bố cục).
-- [ ] Các cửa sổ làm sau (thoại, cửa hàng, sổ Q…) dùng chung các khung này.
+- [x] Khung 9-slice (`nineslice` của Phaser), ô hotbar, nút, khung HUD, icon HUD, 4 kiểu bong bóng thay hình vẽ bằng code; chữ vẫn ≥ 24px, bố cục 1920×1080 và 1366×768 không đè (D-036: kiểm bằng unit test bố cục + ảnh chụp, không e2e).
+- [x] Các cửa sổ làm sau (thoại, cửa hàng, sổ Q…) dùng chung các khung này (`src/ui/uiKit.ts`: `buildPaperWindow`, `UiButton`, `UiFrame`, `addUiIcon`).
+
+**Ghi chú khi làm (game-dev, 2026-10-14):** trạng thái 👀 chờ bạn thử.
+- Số lề / cỡ / vùng chữ đọc thẳng từ `public/assets/art/ui/ui.json` (`src/ui/uiSpec.ts`, thuần TS + test) — art đổi ảnh chỉ sửa ui.json. Preload nạp cả 31 ảnh theo ui.json (khóa `ui-<tên>`).
+- HUD theo ảnh mẫu `ui-mockup-1-hud.png`: icon bắp tay + ống tre Sức (ruột vẽ dưới ống: nền mực, xanh mạ / vàng < 50% / đỏ son < 20%), bảng gỗ tiền + icon xu, đồng hồ = bảng gỗ + đĩa gỗ (mặt trời / trăng 80 px) + icon mùa quạt nan / áo tơi cạnh giờ; ô hotbar `slot` / `slot-selected` (thay viền vàng vẽ code) / `slot-hover` (rê chuột); nút Gùi = `btn` 92×92 + icon gùi + "E". Tooltip món (rê lên ô hotbar hoặc ô gùi) = khung giấy nhỏ, tên + dòng phụ "Bán 10 quan · Ăn +8 Sức" (`src/ui/itemText.ts`). Tên khu ("Nhà Tý") = khung giấy nhỏ giữa trên màn.
+- Mọi cửa sổ (gùi, thùng bán, rương, sạp hạt, hộp hỏi ngủ, tổng kết, Tạm dừng, hộp xác nhận chơi lại) = giấy điệp chữ mực `#2E2118`, dòng phụ nâu đất `#7A4B2A`, nền mực mờ phía sau, **nút X góc trên-phải** (click/chạm: gùi / thùng / sạp / rương = đóng; Tạm dừng = Tiếp tục; hộp hỏi ngủ + xác nhận = Không; tổng kết = Ngày mới). Nút gỗ 4 trạng thái: thường / rê chuột (vàng) / giữ chuột (lún, chữ +12 px) / xám (thiếu tiền, chữ `#6E6658`); nút cao ≥ 84 px. Ô gùi chưa mở (nếu gùi < đủ hàng) hiện `slot-locked` + ổ khóa.
+- Bong bóng (vẽ 1:1 với màn dù camera phóng 1,5: container co 1/zoom; chữ 26 px): câu báo → `bubble`, lầm bầm khi xong ô → `bubble-boast` (vàng lấp lánh), chửi thề → ảnh răng cưa phóng 1,6–2 lần (chữ 24 px, 2–3 dòng, vẫn lắc ngang), `bubble-think` có sẵn cho thoại sau (`showBubble(text, kind, style)`).
+- Viền ô ngoài tầm (ART-UI-001 A): nét đứt xám tro `#B5AA94` lót mực, đoạn 8 / hở 6 px màn (`tileHighlightOutDashPx`); thêm màu phụ `palette.ash`, `palette.inkMuted`. Ô ruộng có việc mà ngoài tầm vẫn viền sáng (click = đi tới rồi làm, D-038).
+- Gợi ý phím đổi theo D-038: "Click/chạm: đi tới & làm · WASD đi · 1–9 chọn" / "E Gùi · Esc Menu · F dùng đồ gần · Shift+click: cả chồng"; phím thử G/F8/F9 chỉ ở bản dev.
+- Màn tổng kết: dòng "Bán được: N quan" là chữ đỏ son `#A93226` 44 px, không viền (bỏ kiểu vàng viền đậm của UI cũ).
+- Thiếu ảnh / máy không WebGL (NineSlice của Phaser chỉ vẽ trên WebGL) → vẽ hình khối bằng code cùng bố cục + `console.warn('[UI] …')` một lần mỗi ảnh.
+- Kiểm: `npm run build`, `lint`, `test` (439 test xanh, thêm `uiSpec.test.ts`, test bố cục nút X / nút ≥ 84 px / ống tre). Ảnh chụp: `web/e2e/diag-t092.mjs` → `web/e2e/screenshots/t092-*.png` (HUD, bong bóng 4 kiểu, viền ngoài tầm, gùi, thùng bán, sạp hạt, tên khu, rương, Tạm dừng, xác nhận, hỏi ngủ, tổng kết, 1366×768). Không có lỗi console.
 
 **Bạn thử thế nào:** mở gùi (E), thùng bán (F), Tạm dừng (Esc): khung giấy điệp, nút có hover.
 

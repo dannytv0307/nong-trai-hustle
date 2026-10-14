@@ -1,0 +1,532 @@
+{
+  "_note": "T-091 (art-director). Mọi file ở web/client/public/assets/art/ui/. 9-slice: Phaser this.add.nineslice(x, y, key, undefined, w, h, left, right, top, bottom) — lề cắt (px nguồn) ở \"slice\". \"minSize\" = cỡ hiển thị nhỏ nhất không méo góc. \"content\" = vùng đặt chữ/icon (lề trong, px, tính từ mép khung hiển thị). Ảnh vẽ cho màn 1920x1080, hiển thị 1:1 (không phóng to góc). Không có chữ trong ảnh.",
+  "nineSlice": {
+    "panel-paper": {
+      "file": "panel-paper.png",
+      "size": [
+        460,
+        309
+      ],
+      "slice": {
+        "left": 86,
+        "right": 86,
+        "top": 82,
+        "bottom": 86
+      },
+      "minSize": [
+        172,
+        168
+      ],
+      "content": [
+        40,
+        40,
+        36,
+        40
+      ],
+      "note": "Khung giấy điệp cho MỌI cửa sổ (gùi, thùng bán, rương, sạp hạt, tổng kết, tạm dừng, hộp hỏi, cửa hàng). Góc có mây đỏ son; nền giữa trắng điệp phẳng -> chữ màu mực #2E2118."
+    },
+    "panel-tooltip": {
+      "file": "panel-tooltip.png",
+      "size": [
+        284,
+        96
+      ],
+      "slice": {
+        "left": 24,
+        "right": 24,
+        "top": 22,
+        "bottom": 24
+      },
+      "minSize": [
+        48,
+        46
+      ],
+      "content": [
+        18,
+        18,
+        12,
+        14
+      ],
+      "note": "Khung nhỏ: tooltip món, banner tên khu, dòng báo. Chữ mực #2E2118."
+    },
+    "hud-plank": {
+      "file": "hud-plank.png",
+      "size": [
+        268,
+        130
+      ],
+      "slice": {
+        "left": 40,
+        "right": 40,
+        "top": 22,
+        "bottom": 24
+      },
+      "minSize": [
+        80,
+        46
+      ],
+      "content": [
+        22,
+        22,
+        12,
+        14
+      ],
+      "note": "Bảng gỗ nâu cho HUD: ô tiền, đồng hồ, bảng level/danh hiệu, nhiệm vụ đang theo. Chữ trắng điệp #EFE4C8 viền mực."
+    },
+    "btn": {
+      "file": "btn.png",
+      "size": [
+        268,
+        133
+      ],
+      "slice": {
+        "left": 26,
+        "right": 26,
+        "top": 22,
+        "bottom": 36
+      },
+      "minSize": [
+        52,
+        58
+      ],
+      "content": [
+        24,
+        24,
+        14,
+        30
+      ],
+      "note": "Nút gỗ. Trạng thái: thường / rê chuột (mặt vàng hoa hòe) / nhấn (mặt lún xuống 12 px, gờ mỏng — dịch chữ xuống +12 px) / xám (khóa, thiếu tiền). Chữ mực #2E2118 cỡ ≥ 28px; nút ≥ 84 px cao để chạm được trên điện thoại."
+    },
+    "btn-hover": {
+      "file": "btn-hover.png",
+      "size": [
+        268,
+        133
+      ],
+      "slice": {
+        "left": 26,
+        "right": 26,
+        "top": 22,
+        "bottom": 36
+      },
+      "minSize": [
+        52,
+        58
+      ],
+      "content": [
+        24,
+        24,
+        14,
+        30
+      ],
+      "note": "Rê chuột / đang chọn bằng phím."
+    },
+    "btn-pressed": {
+      "file": "btn-pressed.png",
+      "size": [
+        268,
+        133
+      ],
+      "slice": {
+        "left": 26,
+        "right": 26,
+        "top": 34,
+        "bottom": 26
+      },
+      "minSize": [
+        52,
+        60
+      ],
+      "content": [
+        24,
+        24,
+        26,
+        18
+      ],
+      "note": "Đang nhấn: chữ dịch xuống 12 px so với nút thường."
+    },
+    "btn-disabled": {
+      "file": "btn-disabled.png",
+      "size": [
+        268,
+        133
+      ],
+      "slice": {
+        "left": 26,
+        "right": 26,
+        "top": 22,
+        "bottom": 36
+      },
+      "minSize": [
+        52,
+        58
+      ],
+      "content": [
+        24,
+        24,
+        14,
+        30
+      ],
+      "note": "Xám tro (không bấm được). Chữ #6E6658 hoặc mực alpha 0,55."
+    },
+    "slot": {
+      "file": "slot.png",
+      "size": [
+        176,
+        176
+      ],
+      "slice": {
+        "left": 30,
+        "right": 30,
+        "top": 30,
+        "bottom": 30
+      },
+      "minSize": [
+        60,
+        60
+      ],
+      "content": [
+        16,
+        16,
+        16,
+        16
+      ],
+      "note": "Ô hotbar / gùi / thùng / rương. Hiển thị 80–96 px. Số phím góc trên-trái, số lượng góc dưới-phải (chữ mực, viền trắng điệp)."
+    },
+    "slot-selected": {
+      "file": "slot-selected.png",
+      "size": [
+        176,
+        176
+      ],
+      "slice": {
+        "left": 30,
+        "right": 30,
+        "top": 30,
+        "bottom": 30
+      },
+      "minSize": [
+        60,
+        60
+      ],
+      "content": [
+        16,
+        16,
+        16,
+        16
+      ],
+      "note": "Ô đang chọn: vành vàng hoa hòe + gờ trong nâu đất (đọc được ở thang xám nhờ vành tối hơn ô thường)."
+    },
+    "slot-hover": {
+      "file": "slot-hover.png",
+      "size": [
+        176,
+        176
+      ],
+      "slice": {
+        "left": 30,
+        "right": 30,
+        "top": 30,
+        "bottom": 30
+      },
+      "minSize": [
+        60,
+        60
+      ],
+      "content": [
+        16,
+        16,
+        16,
+        16
+      ],
+      "note": "Rê chuột lên ô (sáng hơn)."
+    },
+    "slot-locked": {
+      "file": "slot-locked.png",
+      "size": [
+        176,
+        176
+      ],
+      "slice": {
+        "left": 30,
+        "right": 30,
+        "top": 30,
+        "bottom": 30
+      },
+      "minSize": [
+        60,
+        60
+      ],
+      "content": [
+        16,
+        16,
+        16,
+        16
+      ],
+      "note": "Ô khóa (gùi chưa nâng): xám tro + đặt icon-lock giữa ô (~48 px)."
+    },
+    "hud-bamboo-bar": {
+      "file": "hud-bamboo-bar.png",
+      "size": [
+        372,
+        72
+      ],
+      "slice": {
+        "left": 81,
+        "right": 76,
+        "top": 0,
+        "bottom": 0
+      },
+      "minSize": [
+        157,
+        72
+      ],
+      "window": {
+        "left": 57,
+        "right": 52,
+        "top": 23,
+        "bottom": 23
+      },
+      "note": "Ống tre khung thanh Sức, kéo dài theo chiều ngang (3-slice: top/bottom = 0, giữ cao 72 px). Cửa sổ giữa TRONG SUỐT: vẽ ruột bằng code NẰM DƯỚI ảnh — trước tiên một hình chữ nhật mực #2E2118 phủ \"window\" (nới mỗi phía 4 px cho khỏi hở), rồi ruột màu (xanh mạ #93B04F -> vàng #DDA933 < 50% -> đỏ son #A93226 < 20%) từ mép trái window, rộng = tỉ lệ Sức × bề rộng window. Hai đầu cửa sổ bo tròn tự che góc ruột. Số \"64/100\" vẽ đè lên giữa, chữ trắng điệp viền mực."
+    },
+    "bubble": {
+      "file": "bubble.png",
+      "size": [
+        204,
+        151
+      ],
+      "slice": {
+        "left": 40,
+        "right": 40,
+        "top": 34,
+        "bottom": 40
+      },
+      "minSize": [
+        80,
+        74
+      ],
+      "content": [
+        20,
+        20,
+        14,
+        16
+      ],
+      "note": "Thân bong bóng (9-slice). Đuôi là ảnh riêng \"bubble-tail\", đặt sao cho đỉnh ảnh đuôi nằm ở (giữa đáy thân, y = đáy thân − 30 px) — đè lên viền đáy để mở miệng đuôi. Chữ mực #2E2118 ≥ 24 px."
+    },
+    "bubble-boast": {
+      "file": "bubble-boast.png",
+      "size": [
+        204,
+        150
+      ],
+      "slice": {
+        "left": 48,
+        "right": 48,
+        "top": 48,
+        "bottom": 40
+      },
+      "minSize": [
+        96,
+        88
+      ],
+      "content": [
+        20,
+        20,
+        14,
+        16
+      ],
+      "note": "Thân bong bóng (9-slice). Đuôi là ảnh riêng \"bubble-boast-tail\", đặt sao cho đỉnh ảnh đuôi nằm ở (giữa đáy thân, y = đáy thân − 30 px) — đè lên viền đáy để mở miệng đuôi. Chữ mực #2E2118 ≥ 24 px."
+    }
+  },
+  "images": {
+    "hud-clock-disc": {
+      "file": "hud-clock-disc.png",
+      "size": [
+        128,
+        128
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "iconCenter": [
+        64,
+        64
+      ],
+      "iconSize": 60,
+      "note": "Đĩa gỗ đồng hồ, đặt icon-sun / icon-moon (60 px) ở giữa; nằm đè mép trái bảng gỗ giờ."
+    },
+    "bubble-tail": {
+      "file": "bubble-tail.png",
+      "size": [
+        44,
+        65
+      ],
+      "anchor": [
+        0.5,
+        0
+      ],
+      "overlapTop": 30,
+      "note": "Đuôi bong bóng: origin (0.5, 0); y = đáy thân − overlapTop; x = tâm đầu nhân vật."
+    },
+    "bubble-boast-tail": {
+      "file": "bubble-boast-tail.png",
+      "size": [
+        45,
+        66
+      ],
+      "anchor": [
+        0.5,
+        0
+      ],
+      "overlapTop": 30,
+      "note": "Đuôi bong bóng: origin (0.5, 0); y = đáy thân − overlapTop; x = tâm đầu nhân vật."
+    },
+    "bubble-curse": {
+      "file": "bubble-curse.png",
+      "size": [
+        227,
+        219
+      ],
+      "anchor": [
+        0.313,
+        1.0
+      ],
+      "content": [
+        54,
+        47,
+        118,
+        62
+      ],
+      "note": "Bong bóng CHỬI THỀ (răng cưa, viền trong đỏ son) — ảnh cố định, co giãn cả khối (setDisplaySize) cho vừa chữ, khung chữ an toàn ở \"content\"; rung ngang bằng code. Câu ≤ 60 ký tự -> 2–3 dòng."
+    },
+    "bubble-think": {
+      "file": "bubble-think.png",
+      "size": [
+        208,
+        204
+      ],
+      "anchor": [
+        0.19,
+        1.0
+      ],
+      "content": [
+        50,
+        44,
+        108,
+        58
+      ],
+      "note": "Bong bóng NGHĨ \"…\" (mây + 2 chấm tròn) — ảnh cố định; chữ \"…\" vẽ bằng font ở tâm \"content\". Đỉnh 2 chấm tròn ở đáy-giữa hơi lệch trái: đặt origin theo \"anchor\"."
+    }
+  },
+  "icons": {
+    "icon-sun": {
+      "file": "icon-sun.png",
+      "size": [
+        128,
+        128
+      ],
+      "use": "Đồng hồ ban ngày; thời tiết nắng"
+    },
+    "icon-moon": {
+      "file": "icon-moon.png",
+      "size": [
+        128,
+        128
+      ],
+      "use": "Đồng hồ ban đêm (từ 18:00)"
+    },
+    "icon-rain": {
+      "file": "icon-rain.png",
+      "size": [
+        128,
+        128
+      ],
+      "use": "Thời tiết mưa"
+    },
+    "icon-star": {
+      "file": "icon-star.png",
+      "size": [
+        128,
+        128
+      ],
+      "use": "Level (đặt số level đè giữa sao) / XP"
+    },
+    "icon-season-dry": {
+      "file": "icon-season-dry.png",
+      "size": [
+        128,
+        128
+      ],
+      "use": "Mùa nắng (quạt nan)"
+    },
+    "icon-season-rain": {
+      "file": "icon-season-rain.png",
+      "size": [
+        128,
+        128
+      ],
+      "use": "Mùa mưa (áo tơi)"
+    },
+    "icon-stamina": {
+      "file": "icon-stamina.png",
+      "size": [
+        128,
+        128
+      ],
+      "use": "Sức (bắp tay) — đầu thanh ống tre"
+    },
+    "icon-quest": {
+      "file": "icon-quest.png",
+      "size": [
+        128,
+        128
+      ],
+      "use": "Sổ nhiệm vụ (Q) — cuộn giấy"
+    },
+    "icon-bag": {
+      "file": "icon-bag.png",
+      "size": [
+        128,
+        128
+      ],
+      "use": "Nút Gùi (E) trên hotbar"
+    },
+    "icon-coin": {
+      "file": "icon-coin.png",
+      "size": [
+        128,
+        128
+      ],
+      "use": "Tiền (đồng xu lỗ vuông) — ô tiền, giá trong cửa hàng"
+    },
+    "icon-lock": {
+      "file": "icon-lock.png",
+      "size": [
+        128,
+        128
+      ],
+      "use": "Ô khóa, món chưa mở"
+    },
+    "icon-close": {
+      "file": "icon-close.png",
+      "size": [
+        128,
+        128
+      ],
+      "use": "Nút đóng cửa sổ (X) — bắt buộc cho bản cảm ứng"
+    }
+  },
+  "palette": {
+    "textOnPaper": "#2E2118",
+    "textOnWood": "#EFE4C8 (viền mực #2E2118 4–6 px)",
+    "gold": "#DDA933",
+    "staminaFill": [
+      "#93B04F",
+      "#DDA933 (<50%)",
+      "#A93226 (<20%)"
+    ],
+    "ash": "#B5AA94",
+    "dim": "mực #2E2118 alpha 0.45 phủ màn sau cửa sổ"
+  }
+}
