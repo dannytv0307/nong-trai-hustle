@@ -2,7 +2,7 @@
 
 > Phụ đề tiếng Việt: *Làng Lầy Cưới Vợ*
 >
-> Chủ sở hữu: `game-planner` · Phiên bản: v0.16 (concept B, bản web trình duyệt PC — xem D-004 … D-037) · Tiến độ: xem [journey.md](../journey.md)
+> Chủ sở hữu: `game-planner` · Phiên bản: v0.19 (concept B, bản web trình duyệt PC — xem D-004 … D-041) · Tiến độ: xem [journey.md](../journey.md)
 
 ## 1. Tổng quan
 
@@ -43,17 +43,17 @@ Pillar = trụ cột cảm giác của game. Tính năng nào không phục vụ
 
 | Level | Mở khóa (dự kiến) | Nhiệm vụ gợi ý |
 |---|---|---|
-| 1 | Vườn 3×3 ô, rau cải + khoai lang + rau muống; cả **Xóm làng Lầy** (D-021, D-027): 11 nhà hàng xóm (trong đó quầy hạt cô Tám Thóc, lò rèn ông Hai Bễ, xưởng mộc chú Đục), giếng, chợ cóc đầu xóm, hồ làng (chưa câu được), cây đa, đình, dân làng | Ruộng đầu tay |
+| 1 | Vườn 3×3 ô, rau cải + khoai lang + rau muống; cả **Xóm làng Lầy** (D-021, D-027): 11 nhà hàng xóm (trong đó quầy hạt cô Tám Thóc, lò rèn ông Hai Bễ, xưởng mộc chú Đục), giếng, chợ phiên Lầy (D-040, họp từ ngày 3), hồ làng (chưa câu được), cây đa, đình, dân làng | Ruộng đầu tay |
 | 2 | **Núi sau nhà**: hái nấm, măng, sim, chặt củi, tre | Rào vườn (mua thêm 3 ô) |
 | 3 | Dưa hấu; thợ rèn làm cuốc sắt; **sắm "Bộ đồ lành"** ở quán cô Tám Thóc (bậc 2 — §3.14) | Cuốc mới, sức mới |
 | 4 | **Câu cá ở hồ làng** (D-027): chú Đục sửa bến câu gãy, chế cần câu ở thợ mộc; rìu sắt | Cần câu tre |
-| 5 | Lúa nếp (mùa mưa), ủ rượu nếp; thùng tưới | Nếp mùa mưa |
+| 5 | Lúa nếp (mùa mưa), ủ rượu nếp; thùng tưới; **Đồng Lầy** (D-041, §3.4a): cổng đông mở, **thuê theo vụ tối đa 2 thửa** ruộng lớn ở ông Sào | Nếp mùa mưa |
 | 6 | **Chợ làng bên**: bán giá ×1.3, mua lễ vật, nhà bố vợ | Đơn hàng chợ |
-| 7 | Gùi to, cần câu trúc; **sắm "Bộ áo chàm"** ở sạp bà Cân (bậc 3 — §3.14) | — (tự nâng cấp) |
-| 8 | **Nỏ săn gà rừng** trên núi (chế ở thợ mộc) | Thợ săn bất đắc dĩ |
-| 9 | Cải tạo bếp gạch (ăn hồi ×1.5 Sức) | Có bếp mới có vợ |
+| 7 | Gùi to, cần câu trúc; **sắm "Bộ áo chàm"** ở sạp bà Cân (bậc 3 — §3.14); Đồng Lầy thuê tối đa **4 thửa** | — (tự nâng cấp) |
+| 8 | **Nỏ săn gà rừng** trên núi (chế ở thợ mộc); Đồng Lầy **mua đứt thửa** (D-041) | Thợ săn bất đắc dĩ |
+| 9 | Cải tạo bếp gạch (ăn hồi ×1.5 Sức); Đồng Lầy đủ **6 thửa** | Có bếp mới có vợ |
 | **10** | **Nhiệm vụ cưới vợ** (xem điều kiện bên dưới) | Bà mối gõ cửa |
-| 11+ | Endless: mục tiêu tài sản mới (thêm ruộng, gia súc). **Level 12 + đã cưới: sắm "Bộ áo the Phú ông"** (bậc 4 — §3.14) | Lặp nhiệm vụ nhỏ hằng ngày (Could) |
+| 11+ | Endless: mục tiêu tài sản mới (**mua đứt cả 6 thửa Đồng Lầy** — D-041, gia súc). **Level 12 + đã cưới: sắm "Bộ áo the Phú ông"** (bậc 4 — §3.14) | Lặp nhiệm vụ nhỏ hằng ngày (Could) |
 
 - **8 nhiệm vụ chính + 1 nhiệm vụ cưới** dẫn từ level 1 tới đám cưới (chi tiết §7).
 - Thợ rèn và thợ mộc ở **ngay trong Xóm** (hàng nhà giữa, đi từ cổng nhà ≈ 5–7 giây — §5, D-027) ngay từ đầu, không phải ở chợ, để nhiệm vụ level 3–4 làm được trước khi mở chợ. (Giả định)
@@ -307,6 +307,69 @@ Số nhát nằm trong dữ liệu `ToolData.tillStrikesPerPlot` khi có hệ n�
 | `unwateredDaysToWither` | 2 | ngày | 2–3 | Độ "áp lực" tưới cây |
 | `harvestResetsSoil` | true | bật/tắt | — | Hái xong phải cuốc lại (làm cuốc mòn, tạo nhịp việc) |
 
+### 3.4a Đồng Lầy: thửa ruộng lớn ngoài lũy tre (D-041)
+
+Người dùng muốn trồng nhiều hơn 24 ô và chọn hướng **"thêm cánh đồng ngoài lũy tre"**. Ruộng nhà **giữ tối đa 24 ô** (vườn rau, cây lời theo ô). Ngoài lũy tre phía đông có **Đồng Lầy** — cánh đồng chung của làng, ông Sào giữ, cho thuê / bán từng **thửa**. Phục vụ pillar **"Làm giàu từ hai bàn tay"**: từ thằng làm thuê mảnh vườn → **thuê ruộng** (Lv 5) → **có ruộng riêng** (Lv 8) → **điền chủ** cả cánh đồng (endless, đi cùng bậc Phú ông).
+
+**Nguyên tắc chống nhàm: một thửa = một ô lớn.** Thửa rộng 3×3 ô trên bản đồ nhưng **làm việc như một ô to**: một lần cày, một lần cấy, một lần gặt cho cả thửa. **Không tưới, không héo** (nước mương). Như vậy thêm diện tích mà không thêm hàng trăm cú click; đồng là việc "làm một lèo, mấy hôm sau quay lại gặt".
+
+**Vòng đời một thửa:** chưa thuê → (thuê một vụ hoặc mua đứt ở ông Sào) → đất cỏ → **cày** (cầm cuốc, đứng sát thửa, giữ một việc dài `fieldPlowSeconds`, thanh tiến độ, WASD bỏ dở giữ tiến độ như §3.3a) → đất cày → **cấy** (cầm bó mạ, 1 click, `fieldPlantSeconds`) → đang lớn `fieldGrowDays` ngày (tự lớn mỗi đêm, kể cả ngày không tới đồng) → **chín vàng** (để đó không hỏng) → **gặt** (việc dài `fieldHarvestSeconds`) → nhận `fieldYield` bó lúa vào gùi (gùi đầy thì phần dư nằm thành đống ở bờ thửa, nhặt sau — không mất) → thửa **thuê** thì trả lại cho ông Sào (về "chưa thuê"); thửa **mua** thì về đất cỏ.
+
+**Cây ở đồng:** chỉ **lúa**, theo hai vụ như ruộng Bắc Bộ (Giả định — đồng không trồng rau, rau để ruộng nhà):
+
+| Cây | Mùa cấy | Mạ (mua ở ông Sào) | Ngày lớn | Bó lúa / thửa | Giá bán / bó | Dùng |
+|---|---|---|---|---|---|---|
+| **Lúa tẻ** (mới) | Nắng | Bó mạ tẻ 25 quan | 4 | 12 | 18 | Bán; (Should) U nấu cơm thay mua gạo — `riceFromHarvest` |
+| **Lúa nếp** | Mưa | Bó mạ nếp 30 quan | 4 | 10 | 25 | Bán; nguyên liệu rượu nếp (nhiệm vụ 5, lễ vật) — cùng món "lúa nếp" với ruộng nhà |
+
+- Cấy trái mùa không được (bó mạ trái mùa xám ở cửa sổ). Lúa đã cấy mà sang mùa vẫn lớn tới gặt (như §3.4).
+- `fieldGrowDays` 4 = 1 mùa: nhịp tự nhiên **cấy đầu mùa, gặt cuối mùa**.
+
+**Sở hữu (ông Sào, chòi canh đầu đồng — cửa sổ "Ruộng đồng"):**
+
+| Cách | Mở | Giá | Được gì |
+|---|---|---|---|
+| **Thuê theo vụ** | Lv 5 | `fieldRentPerCrop` 50 quan / thửa / vụ | Một lần cày – cấy – gặt; gặt xong thửa trả lại. Không gặt thì thửa giữ mãi tới khi gặt (không mất tiền thuê) |
+| **Mua đứt** | Lv 8 | `fieldBuyPrice` 400 quan / thửa | Thửa của mình mãi; không trả thuê; cắm **cọc gỗ có tên {ten}** ở bờ thửa (hình khoe — bong bóng vàng §6.4) |
+
+- Số thửa **đang thuê + đã mua** tối đa theo level: `fieldMaxPlotsByLevel` Lv 5: 2 · Lv 7: 4 · Lv 9: 6 (`fieldPlotCount` = 6, cả cánh đồng). Mua đứt thửa đang thuê được (trừ tiền thuê đã trả? không — Giả định: không hoàn, cho đơn giản).
+- Giá thuê / mua **không** được kỳ kèo (ông Sào: "Ruộng làng, giá làng."). Giảm giá theo bậc ngoại hình (§3.14) **có** áp dụng (Giả định: đúng luật "mọi giá mua bằng tiền").
+- **Lãi ước** (để cân bằng): thửa thuê lúa tẻ 12 × 18 − 50 − 25 = **~141 quan / vụ 4 ngày ≈ 35 quan/ngày**; thửa mua ≈ 191/vụ ≈ 48/ngày. Lv 5 với 2 thửa ≈ +70/ngày; Lv 9 với 6 thửa thuê ≈ +210/ngày — vừa khớp mục tiêu thu nhập ngày 17–24 (§3.9) mà không thay ruộng nhà (24 ô dưa hấu vẫn lời hơn theo ô, nhưng tốn công tưới). Mua cả 6 thửa = 2.400 quan → mục tiêu endless cùng bộ áo the Phú ông (1.500).
+
+**Đi lại:** cổng **đông** của Xóm ở cuối đường xóm (x 70–71, y 14–15, sau chợ phiên — mép đông vốn là lũy tre kín). Từ cổng nhà {ten} ≈ 60 ô ≈ **15 giây thật ≈ 27 phút game**, qua cổng (chuyển khu như T-093 / T-054) rồi ~3 giây tới thửa gần nhất. Một chuyến đồng (đi + về) ≈ 40 giây ≈ 7% ngày — đáng đi khi có việc (cày + cấy 2 thửa ≈ 40 s, gặt ≈ 25 s), không đáng đi hằng ngày → đúng nhịp "vài ngày ghé một lần". Trước Lv 5: cổng có rào tre + biển gỗ **"Đồng đang cấy — Lv 5"**.
+
+**Bản đồ Đồng Lầy (40 × 28 ô, khu riêng — §5):** đê đất nện chạy ngang từ cổng tây; **mương nước** dọc giữa đồng có **cầu tre**; **6 thửa của người chơi** (2 hàng × 3, bờ ruộng 1 ô giữa các thửa, gần cổng); phần còn lại là **ruộng của làng** (trang trí, lúa đổi màu theo mùa, không click được); **chòi canh** ông Sào trên bờ; **bù nhìn "thằng Rơm"**; đầm sen nhỏ góc đông có **cò trắng** (Should: cò bay lên khi {ten} đi gần). Không có cổng khác (Giả định).
+
+**Ai ở đồng:**
+- **Ông Sào** (Must, story bible §3.13a): người giữ đồng làng, cầm cây sào tre đo ruộng — **luôn đo thiếu một gang**. Có mặt 6–19h ở chòi canh (đêm về Xóm, ẩn). Click → cửa sổ "Ruộng đồng" (thuê / mua thửa, bán bó mạ). Bong bóng, không chân dung (Giả định: đỡ ảnh; cửa sổ dùng cửa sổ cửa hàng chung T-036 + biểu tượng sào).
+- **Bù nhìn "thằng Rơm"** (Must, chỉ trang trí): mặc áo vá, **đội nón lá rách lệch, quai đỏ — y hệt {ten} bậc 1**. Click → {ten} chửi ("Đứa nào mặc đồ của ông?!"); trẻ trâu (nếu gặp) "Chú {ten} đứng đây cả ngày à?". Khi {ten} lên bậc 3+, bù nhìn "được" mặc lại đồ cũ của {ten} (câu đùa: "Đồ cũ của ông, cho mày đấy").
+
+**Sự kiện mùa vụ:**
+- **Gặt (Must, juice):** lúa ngả rạp theo đường gặt, bó lúa bay vào gùi, chữ "+12 bó lúa", cò bay lên (Should), jingle ngắn; gặt thửa đầu tiên → bong bóng khoe vàng của {ten}.
+- **(Should) Trâu cày:** sau cưới có trâu Ì (§3.11) thì cày thửa nhanh gấp đôi (`fieldBuffaloPlowMultiplier`), Ì nằm ườn sau mỗi `buffaloPlowPlots`.
+- **Để sau:** thuê người làm công gặt hộ, chim sẻ phá lúa, tát nước gàu sòng mùa hạn, hội mùa ở sân đình, đổi lúa lấy gạo ở cối xay.
+
+| Tham số | Giá trị | Đơn vị | Khoảng hợp lý | Ảnh hưởng |
+|---|---|---|---|---|
+| `fieldMapSize` | 40, 28 | ô | 34–48 × 24–32 | Khu Đồng Lầy; nhỏ gọn vì chỉ có 6 thửa |
+| `fieldUnlockLevel` | 5 | level | 4–6 | Mở cổng đông |
+| `fieldPlotCount` | 6 | thửa | 4–8 | Cả cánh đồng của người chơi |
+| `fieldPlotSize` | 3, 3 | ô | 3×3 – 4×4 | Thửa to cỡ nào trên bản đồ (chỉ hình — làm việc như một ô) |
+| `fieldMaxPlotsByLevel` | 5: 2, 7: 4, 9: 6 | thửa | — | Tốc độ mở rộng; gắn với tiến trình level |
+| `fieldRentPerCrop` | 50 | quan/thửa/vụ | 30–80 | Thuê đắt thì phải tính, rẻ thì ai cũng thuê hết |
+| `fieldBuyPrice` | 400 | quan/thửa | 250–600 | Mục tiêu "có ruộng riêng"; mua 6 thửa = endless |
+| `fieldBuyUnlockLevel` | 8 | level | 7–10 | Từ khi nào được làm chủ ruộng |
+| `fieldPlowSeconds` | 15 (cuốc sắt 12) | giây | 8–25 | Cày một thửa. Ngắn hơn cuốc 9 ô lẻ (~38 s) — đó là lý do có đồng |
+| `fieldPlowStamina` | 15 (cuốc sắt 10) | Sức/thửa | 8–20 | Việc nặng vừa phải |
+| `fieldPlantSeconds` | 3 | giây | 1–5 | Cấy cả thửa bằng 1 bó mạ |
+| `fieldGrowDays` | 4 | ngày | 3–6 | = 1 mùa. Không cần tưới |
+| `fieldHarvestSeconds` | 10 | giây | 6–15 | Gặt một thửa |
+| `fieldHarvestStamina` | 8 | Sức/thửa | 4–12 | |
+| `fieldYield` | tẻ 12, nếp 10 | bó/thửa | 8–16 | Sản lượng mỗi vụ |
+| `fieldHarvestXp` | 15 | tiếng tăm/thửa | 8–25 | Gặt = sự kiện đáng thưởng |
+| `fieldBuffaloPlowMultiplier` | 0.5 | hệ số thời gian | 0.4–0.7 | (Should) Có trâu Ì thì cày nhanh hơn |
+| `fieldWalkGameMinutes` | ~27 | phút game (đo được) | — | Không phải thông số: kiểm khi dựng (từ cổng nhà tới cổng đông) |
+
 ### 3.5 Núi sau nhà: hái lượm và chặt củi (mở level 2)
 
 - Mỗi sáng núi "mọc lại" các điểm tài nguyên ở vị trí ngẫu nhiên trong danh sách chỗ đặt sẵn.
@@ -437,7 +500,7 @@ Gà rừng: bán 80 quan, nướng hồi 70 Sức, lễ vật giá trị 120, XP
 - **Gùi**: `bagSlotsStart` ô, mỗi ô chồng tối đa `stackMax` món cùng loại. **Hàng đầu tiên (9 ô) của gùi chính là hotbar** (giống Stardew): kéo thả đồ trong cửa sổ túi đồ (phím E) để xếp lên hotbar. Gùi đầy → không nhặt thêm, bong bóng "gùi đầy". **Cái cuốc chiếm 1 ô gùi** (D-026; game mới ở ô 1), không bán được.
 - **Rương** trong nhà (**Must** từ D-034 — nằm trong cảnh trong nhà riêng): `chestSlots` ô, cất đồ chưa bán (ví dụ lễ vật dành cho đám cưới). Cửa sổ giống thùng bán.
 - **Cảnh trong nhà (D-034)**: bước qua cửa nhà {ten} → màn mờ → cảnh nhỏ bên trong có giường, bếp, rương; ra cửa → về đứng trước nhà. Save nhớ đang ở trong hay ngoài nhà; ngủ gục ngoài đồng thì sáng dậy trong nhà.
-- **Hai cái chợ, đừng nhầm (D-027)**: **chợ cóc đầu xóm** (góc đông-bắc Xóm) chỉ để **trang trí**: vài sạp bày hàng tĩnh, không có người bán, **không mua bán gì**; chỉ có quán chè bà Chém (Could: bát chè hồi Sức). **Chợ làng Sung** (bản đồ riêng, level 6) mới là chợ thật: bán giá × `marketPriceMultiplier`, lễ vật, gia súc, sạp bà Cân. Trong tài liệu và trong game luôn ghi đủ tên "chợ cóc" hoặc "chợ làng Sung", không viết trống "chợ".
+- **Hai cái chợ, đừng nhầm (D-027, sửa bởi D-040)**: **chợ phiên Lầy** (góc đông-bắc Xóm, thay "chợ cóc đầu xóm") họp **mỗi 3 ngày, buổi sáng**, có 4 gian bán thật (đồ ăn, nguyên liệu, trứng/gà, thu mua giá ×1,15) — chi tiết §3.9b; ngày thường chỉ quán chè bà Chém mở, sạp để trống. **Chợ làng Sung** (bản đồ riêng, level 6) vẫn là **chợ lớn**: bán giá × `marketPriceMultiplier` (cao hơn chợ phiên), lễ vật, gia súc lớn, sạp bà Cân. Trong tài liệu và trong game luôn ghi đủ tên "chợ phiên Lầy" hoặc "chợ làng Sung", không viết trống "chợ".
 
 **Hàng ở chợ làng Sung** (level 6):
 
@@ -457,6 +520,42 @@ Gà rừng: bán 80 quan, nướng hồi 70 Sức, lễ vật giá trị 120, XP
 | `chestSlots` | 20 | ô | 10–30 | Should |
 
 **Mục tiêu thu nhập ròng mỗi ngày** (để cân bằng, không phải luật): ngày 1–3 khoảng 50–80 quan; ngày 4–8: 100–150; ngày 9–16: 150–250; ngày 17–24: 250–350.
+
+### 3.9b Chợ phiên Lầy (D-040)
+
+Chợ phiên = chợ họp theo ngày định sẵn, như chợ quê Bắc Bộ xưa ("phiên mồng 3, mồng 6…"). Người dùng muốn chợ trong xóm có gian hàng, có người bán, đông vui. Phục vụ pillar **"Làm giàu từ hai bàn tay"** (từ level 1 đã có chỗ tiêu tiền và bán ngay) và **"Mặc cả lầy lội"** (mỗi chủ gian là một người lầy để nói chuyện). Tạo một lựa chọn nhỏ mỗi phiên: **sáng nay đi chợ hay ra ruộng?**
+
+**Luật:**
+1. Phiên họp **ngày `marketDayFirst` (3) rồi cứ `marketDayInterval` (3) ngày một lần**: ngày 3, 6, 9, 12… (8 phiên tới ngày 24). Ngày 1 (ngày hướng dẫn) không bao giờ có phiên.
+2. Chỉ họp **`marketOpenHour`–`marketCloseHour` (6–12h)**. 12h tan chợ: người bán biến mất bằng mờ (như NPC đổi khung giờ, §3.16), sạp còn trống. Đang mở cửa sổ gian hàng lúc 12h thì vẫn mua bán nốt, đóng cửa sổ mới tan.
+3. **Báo trước, không chỉ bằng âm thanh**: chiều hôm trước, ông Mõ đứng cổng đình rao "Mai phiên chợ!" (Should; không có ông thì bỏ qua); sáng ngày phiên hiện **băng chữ** "Hôm nay phiên chợ Lầy — họp tới trưa" + **icon gánh hàng** cạnh đồng hồ HUD (tắt lúc 12h). Tổng kết ngày hôm trước có dòng "Mai phiên chợ".
+4. **Ngày thường**: sạp trống, không người bán; chỉ **quán chè bà Chém** mở (bán chè xanh). Click sạp trống → bong bóng {ten} (câu cũ của chợ cóc, story bible §3.14).
+5. Mua ở các gian dùng **cửa sổ cửa hàng chung** (T-036). **Không có nút Kỳ kèo** ở chợ phiên (kỳ kèo vẫn chỉ 3 quầy, §3.9a). Giảm giá theo bậc ngoại hình (§3.14) vẫn áp dụng.
+6. **Sạp thu mua của cô Lanh**: bán **ngay** với giá gốc × `phienSellMultiplier` (1,15), tổng tiền nhận tối đa `phienSellCapPerDay` (200 quan) mỗi phiên; quá trần thì cô lắc đầu "Hết tiền rồi anh, phiên sau." Thấp hơn chợ làng Sung (×1,3) nên chợ Sung vẫn đáng đi; đủ để trước Lv 6 có một lần "bán được giá".
+7. Save chỉ lưu số tiền đã bán cho cô Lanh trong ngày (xóa khi sang ngày). Ngày phiên tính từ số ngày, không cần lưu.
+
+**Các gian (Must 4, Should 2):**
+
+| Gian | Chủ (story bible §3.13) | Bán / mua | Mức |
+|---|---|---|---|
+| Quán chè + gánh quà bánh | Bà Chém | Chè xanh 2 quan (+5 Sức, **mọi ngày**); ngày phiên thêm bánh đúc 4 quan (+12 Sức), kẹo lạc 3 quan (đồ ăn +6 Sức, Could: quà tặng) | Must (bát chè lên từ Could) |
+| Thu mua nông sản | Cô Lanh (cháu bà Cân) | **Mua** nông sản, củi, cá của người chơi ×1,15, trần 200 quan/phiên | Must |
+| Hàng xén | Bà Xén | Men rượu 15 quan (nhiệm vụ 5 ủ rượu nếp), muối 3 quan (nguyên liệu bếp, T-048), khăn vuông 10 quan (Could: quà tặng) | Must |
+| Gà vịt | Chị Cục Tác | Trứng luộc 5 quan (+10 Sức); **sau cưới**: gà con cùng giá chợ làng Sung (§3.11) | Must |
+| Nồi niêu | Ông Vung | Trang trí + câu đùa về chuyện cưới; Could: nồi to (nấu 2 suất một lần) | Should |
+| Hạt hạ giá | Ông Lái Giống | 1–2 loại hạt **đã mở theo level**, rẻ `phienSeedDiscount` (20%), đổi theo phiên (chọn từ `seed` của save) | Should |
+
+Giá trên là khởi điểm, cân lại ở playtest. Món mới thêm vào `items.json`; gian hàng là `NpcData.shop` như quầy cô Tám.
+
+| Tham số | Giá trị | Đơn vị | Khoảng hợp lý | Ảnh hưởng |
+|---|---|---|---|---|
+| `marketDayFirst` | 3 | ngày | 2–4 | Phiên đầu tiên. Không để rơi vào ngày 1 |
+| `marketDayInterval` | 3 | ngày | 2–5 | Dày thì mất cảm giác "dịp đặc biệt", thưa thì người chơi quên |
+| `marketOpenHour` / `marketCloseHour` | 6 / 12 | giờ game | 6–7 / 11–14 | Họp buổi sáng buộc chọn: đi chợ hay ra ruộng |
+| `phienSellMultiplier` | 1.15 | hệ số | 1.05–1.25 | Luôn nhỏ hơn `marketPriceMultiplier` (1.3) |
+| `phienSellCapPerDay` | 200 | quan/phiên | 100–300 | Không để chợ phiên thay hẳn thùng bán và chợ làng Sung |
+| `phienSeedDiscount` | 0.20 | tỷ lệ giá | 0.1–0.3 | (Should) Hạt hạ giá của ông Lái Giống |
+| `phienCrowdCount` | 6 | người | 3–10 | Số người đi chợ trang trí đứng/đi quanh sạp ngày phiên (khung tĩnh, Should: đi lại) |
 
 ### 3.9a "Kỳ kèo": mặc cả nhẹ khi mua ở Xóm (D-037)
 
@@ -794,14 +893,15 @@ Meme = ảnh/câu nói gây cười lan truyền trên mạng. Game **nhái lạ
 
 > **Prototype chặng 3 không đổi** (T-001 … T-009 vẫn là "một ngày ở Vườn" 48×32, không NPC). Phần này làm ở **chặng 4**: lên kế hoạch ở bước 4.1, gen art ở 4.2, code ở 4.4.
 
-Người chơi không sống một mình giữa mảnh vườn: nhà {ten} nằm **trong xóm**, sát vách hàng xóm, ra ngõ là gặp giếng, quầy hạt, lò rèn, chợ cóc, hồ làng, cây đa, đình. Bố cục theo phác thảo của người dùng (D-027): **11 nhà hàng xóm kiểu Bắc Bộ**, mỗi nhà có chủ (bảng "Ai ở nhà nào" ở §5); chỉ 3 nhà có cửa hàng (hạt, rèn, mộc). Phục vụ pillar **"Mặc cả lầy lội"** (đi đâu cũng gặp một người để nói một câu lầy) và **"Làm giàu từ hai bàn tay"** (làng đổi cách gọi và đổi lời bàn tán khi {ten} giàu lên). Bản đồ xóm: §5. Nhân vật: story bible §3.13.
+Người chơi không sống một mình giữa mảnh vườn: nhà {ten} nằm **trong xóm**, sát vách hàng xóm, ra ngõ là gặp giếng, quầy hạt, lò rèn, chợ phiên, hồ làng, cây đa, đình. Bố cục theo phác thảo của người dùng (D-027), mở rộng ở D-040: **11 nhà hàng xóm kiểu Bắc Bộ, mỗi nhà một khuôn viên có rào/tường và cổng riêng**, 5 nhà có vườn cạnh nhà (bảng "Ai ở nhà nào" ở §5); 3 nhà có cửa hàng (hạt, rèn, mộc) + các gian **chợ phiên** họp mỗi 3 ngày (§3.9b); sân đình có cụ Từ và hai cụ đánh cờ. Phục vụ pillar **"Mặc cả lầy lội"** (đi đâu cũng gặp một người để nói một câu lầy) và **"Làm giàu từ hai bàn tay"** (làng đổi cách gọi và đổi lời bàn tán khi {ten} giàu lên). Bản đồ xóm: §5. Nhân vật: story bible §3.13.
 
 **Ba lớp NPC:**
 
 | Lớp | Ai | Nói chuyện | Có luật gameplay |
 |---|---|---|---|
 | NPC chính ở xóm | U Hến, ông Gật (+ gà Mái Mơ), cô Tám Thóc, ông Hai Bễ, chú Đục, bà Ba Trầu (khi có việc) | Khung thoại có chân dung (như cũ) | Có: cửa hàng, chế đồ, nhiệm vụ |
-| Dân làng phụ (mới) | Bà Chém (quán chè), ông Khướt (say ngủ gốc đa), cô Ngóng (hàng xóm hóng chuyện), anh Tráng (trai làng tập võ), đám trẻ trâu Sún–Hĩm–Cò; ông Mõ (Could) | **Bong bóng trên đầu**, 2–4 câu xoay vòng, không chân dung | Không (chỉ cho vui) |
+| Dân làng phụ (mới) | Bà Chém (quán chè), ông Khướt (say ngủ gốc đa), cô Ngóng (hàng xóm hóng chuyện), anh Tráng (trai làng tập võ), đám trẻ trâu Sún–Hĩm–Cò; **ở đình (D-040)**: cụ Từ Nhang, cụ Hoàn + cụ Chiếu (đánh cờ); ông Mõ (**Should**, D-040) | **Bong bóng trên đầu**, 2–4 câu xoay vòng, không chân dung | Không (chỉ cho vui); riêng cụ Từ có câu "xem ngày" báo mai mưa/nắng (Should) |
+| Người bán chợ phiên (D-040) | Cô Lanh (thu mua), bà Xén (hàng xén), chị Cục Tác (gà vịt) — Must; ông Vung (nồi niêu), ông Lái Giống (hạt) — Should; bà Chém kiêm gánh quà | Bong bóng khi click/đi ngang; click lúc phiên họp → cửa sổ gian hàng (không chân dung, tên + biểu tượng gian) | Có: mua / bán ở gian (§3.9b), chỉ ngày phiên 6–12h |
 | NPC ở làng Sung | Bà Cân, cô Bưởi, cụ Bá Kẹo | Như cũ | Như cũ, không có lịch trình |
 
 **Lịch trình theo giờ** (đơn giản: mỗi người một chỗ đứng cho mỗi khung giờ, dữ liệu `NpcData.schedule`). 4 khung: **Sáng 6–12 · Chiều 12–19 · Tối 19–22 · Đêm 22–6** (đêm = về nhà, ẩn khỏi bản đồ). Chỗ đứng là các điểm có tên đặt sẵn trên bản đồ Tiled (lớp `npcSpots`, ví dụ `spot_gieng`, `spot_gocDa`, `spot_quanChe`, `spot_benNuoc`). Đêm, mỗi người về **đúng nhà của mình** (§5); Could: cửa sổ nhà đó sáng đèn dầu.
@@ -810,7 +910,7 @@ Người chơi không sống một mình giữa mảnh vườn: nhà {ten} nằm
 |---|---|---|---|---|
 | U Hến | Hiên nhà (chõng tre) | Giếng làng (gánh nước, nói chuyện với cô Ngóng) | Hiên nhà | Trong nhà |
 | Ông Gật + gà Mái Mơ | Vườn nhà ông (ôm gà) | Gốc đa bên hồ (ngồi gật cạnh ông Khướt) | Hiên nhà ông | Trong nhà |
-| Cô Tám Thóc | Quầy hạt ở hiên nhà cô (**mở**) | Quầy hạt (**mở**) | Quán chè bà Chém ở chợ cóc (đồn chuyện; quầy hạt đóng) | Trong nhà |
+| Cô Tám Thóc | Quầy hạt ở hiên nhà cô (**mở**) | Quầy hạt (**mở**) | Quán chè bà Chém ở chợ phiên (đồn chuyện; quầy hạt đóng) | Trong nhà |
 | Ông Hai Bễ | Lò rèn (**mở**) | Lò rèn (**mở**) | Quán chè (hét) | Lò rèn (ngủ trong lều) |
 | Chú Đục | Xưởng mộc (**mở**) | Xưởng mộc (**mở**) | Giếng làng (rửa mặt, than mệt) | Xưởng mộc |
 | Bà Ba Trầu (chỉ khi có việc: sau nhiệm vụ 5, nhiệm vụ 9) | Quán chè | Sang làng Sung (ẩn ở xóm) | Nhà bà | Nhà bà |
@@ -818,7 +918,16 @@ Người chơi không sống một mình giữa mảnh vườn: nhà {ten} nằm
 | Ông Khướt | Gốc đa (ngủ) | Gốc đa (ngủ) | Quán chè (xin rượu) | **Gốc đa (ngủ luôn — bà Khướt cài then cửa, §5)** |
 | Cô Ngóng | Sau rào tre nhà cô (giáp ruộng {ten}, nhìn sang) | Giếng làng | Sau rào | Trong nhà |
 | Anh Tráng | Sân đình (tập võ) | Sân đình | Sân đình | Nhà anh |
-| Trẻ trâu Sún–Hĩm–Cò | Quanh giếng | Bến nước hồ làng (tắm hồ) | Sân đình | Nhà Cu Sún |
+| Trẻ trâu Sún–Hĩm–Cò | Quanh giếng (**ngày phiên: chạy quanh chợ phiên**) | Bến nước hồ làng (tắm hồ) | Sân đình | Nhà Cu Sún |
+| Cụ Từ Nhang (D-040) | Sân đình (quét sân) | Hiên đình (ngủ gật trên chiếu) | Trước bàn thờ ngoài hiên (thắp hương) | Ẩn (về nhà sau đình — Giả định: nhà không vẽ, coi như khuất sau đình) |
+| Cụ Hoàn + cụ Chiếu (D-040, một cụm) | Chiếu cờ ở hiên đình | Chiếu cờ ở hiên đình | Ẩn (về) | Ẩn |
+| Ông Mõ (Should, D-040) | **Ngày phiên**: đầu chợ phiên (rao) · ngày đầu mùa: đường cái (rao mùa) · ngày khác: ẩn | **Hôm trước phiên**: cổng đình (rao "Mai phiên chợ!") · ngày khác: ẩn | Ẩn | Ẩn |
+| Người bán chợ phiên (D-040): cô Lanh, bà Xén, chị Cục Tác (+ ông Vung, ông Lái Giống — Should) | **Ngày phiên**: đứng sau gian của mình (**mở**) · ngày khác: ẩn | Ẩn (tan chợ lúc 12h) | Ẩn | Ẩn |
+| Người đi chợ (trang trí, `phienCrowdCount`) | **Ngày phiên**: đứng/đi quanh sạp | Ẩn | Ẩn | Ẩn |
+
+- **Ngày phiên (D-040)**: lịch đọc thêm cờ "hôm nay có phiên" (tính từ số ngày: `marketDayFirst`, `marketDayInterval`); khung Sáng chia đôi tại `marketCloseHour` (12h là ranh giới Sáng/Chiều sẵn có nên không thêm khung). `NpcData.schedule` cho phép mỗi khung có chỗ đứng riêng cho ngày phiên (`marketDay`), ngày trước phiên (`eveOfMarketDay`) và ngày đầu mùa (`seasonFirstDay`); không có thì dùng chỗ thường.
+- **Vườn nhà NPC (D-040)**: 5 nhà có vườn (§5). Chỉ trang trí: đặt hình cây trồng Lô 1 ở giai đoạn chín, đổi theo mùa (nắng: cải / dưa; mưa: rau muống / lúa nếp mạ). Click vườn → bong bóng chủ nhà (nếu chủ đang ở nhà) hoặc {ten}. Không hái, không tưới.
+- **Sân nhà hàng xóm (D-040)**: người chơi đi vào sân mọi nhà qua cổng, không vào trong nhà (click cửa → câu của chủ nhà, như cửa nhà ông Khướt).
 
 - **Cửa hàng mở** từ `shopOpenHour` tới `shopCloseHour` (6h–19h). Ngoài giờ click quầy → bong bóng của chủ quán ("Đóng cửa rồi. Mai sớm." / ông Hai Bễ: "TAO ĐI UỐNG CHÈ! MAI!"), không mở cửa sổ. Người chơi biết chủ quán đang ngồi quán chè và vẫn nói chuyện được ở đó, nhưng không mua bán (Giả định: tránh phải code cửa hàng "di động").
 - **Đổi chỗ khi sang khung giờ (Must)**: NPC ngoài màn hình thì chuyển ngay. NPC đang trong màn thì mờ đi `npcSwapFadeSeconds` rồi hiện ở chỗ mới (không đi bộ). **Should**: đi bộ theo đường đặt sẵn (lớp `npcPaths` trong Tiled), không cần tìm đường A*.
@@ -840,7 +949,8 @@ Người chơi không sống một mình giữa mảnh vườn: nhà {ten} nằm
 
 | Tham số | Giá trị | Đơn vị | Khoảng hợp lý | Ảnh hưởng |
 |---|---|---|---|---|
-| `villageMapSize` | 60, 42 | ô | 48–64 × 32–44 | Bản đồ Xóm làng Lầy (thay `gardenMapSize` của prototype từ chặng 4). Rộng thì "đi chơi trong làng" nhiều hơn nhưng đi làm lâu hơn |
+| `villageMapSize` | **72, 50** (D-040; trước là 60, 42) | ô | 60–80 × 42–54 | Bản đồ Xóm làng Lầy (thay `gardenMapSize` của prototype từ chặng 4). Rộng thì "đi chơi trong làng" nhiều hơn nhưng đi làm lâu hơn |
+| `weatherHintFromTempleKeeper` | true | bật/tắt | — | (Should, D-040) Cụ Từ "xem ngày" nói đúng thời tiết ngày mai. Thời tiết mỗi ngày tính sẵn từ `seed` của save + số ngày (như gà gáy T-026), nên biết trước được mà không lưu thêm. Tắt = cụ chỉ nói câu vui |
 | `npcSlotHours` | 6, 12, 19, 22 | giờ game | — | Giờ bắt đầu 4 khung Sáng / Chiều / Tối / Đêm |
 | `shopOpenHour` / `shopCloseHour` | 6 / 19 | giờ game | 6–8 / 17–22 | Giờ mở cửa hàng ở xóm. Đóng sớm thì phải tính giờ, nhưng dễ làm người mới khó chịu |
 | `npcSwapFadeSeconds` | 0.5 | giây | 0.3–1 | NPC mờ đi rồi hiện ở chỗ mới |
@@ -902,54 +1012,97 @@ Người chơi không sống một mình giữa mảnh vườn: nhà {ten} nằm
 
 | Khu | Kích thước dự kiến (ô) | Nối với | Cổng bị chặn tới khi | Có gì |
 |---|---|---|---|---|
-| **Xóm làng Lầy** (gồm Nhà + Vườn + hồ làng — D-021, D-027) | **60 × 42** (prototype chặng 3: Vườn 48 × 32) | Núi (bắc), làng Sung (tây) | — (bến câu ở hồ gãy tới Lv 4) | Nhà {ten} + ruộng chung khuôn viên (**cảnh trong nhà riêng** có giường, bếp, rương — D-034; ruộng mở dần tới 24 ô, thùng bán); 11 nhà hàng xóm kiểu Bắc Bộ (quầy hạt cô Tám Thóc, lò rèn ông Hai Bễ, xưởng mộc chú Đục…); giếng; chợ cóc đầu xóm (trang trí + quán chè bà Chém); **hồ làng câu cá** (2 bến câu); cây đa; đình làng; dân làng theo lịch trình (§3.16) |
+| **Xóm làng Lầy** (gồm Nhà + Vườn + hồ làng — D-021, D-027, D-040) | **72 × 50** (D-040; trước 60 × 42; prototype chặng 3: Vườn 48 × 32) | Núi (bắc), làng Sung (tây) | — (bến câu ở hồ gãy tới Lv 4) | Nhà {ten} + ruộng chung khuôn viên (**cảnh trong nhà riêng** có giường, bếp, rương — D-034; ruộng mở dần tới 24 ô, thùng bán); 11 nhà hàng xóm kiểu Bắc Bộ, **mỗi nhà một khuôn viên có rào/tường + cổng**, 5 nhà có vườn (quầy hạt cô Tám Thóc, lò rèn ông Hai Bễ, xưởng mộc chú Đục…); giếng; **chợ phiên Lầy** (họp mỗi 3 ngày, §3.9b; quán chè bà Chém mở mọi ngày); **hồ làng câu cá** (2 bến câu); cây đa; đình làng có người; dân làng theo lịch trình (§3.16) |
 | Núi sau nhà | 48 × 36 | Xóm | Level 2 (cây đổ chắn đường) | Điểm nấm/măng/sim, cây củi, bụi tre, bụi rậm gà rừng |
+| **Đồng Lầy** (D-041) | **40 × 28** | Xóm (cổng **đông**, cuối đường xóm x 70–71, y 14–15) | Level 5 (rào tre + biển "Đồng đang cấy — Lv 5") | 6 thửa ruộng lớn thuê / mua ở ông Sào (§3.4a), mương + cầu tre, chòi canh, bù nhìn "thằng Rơm", ruộng làng trang trí, đầm sen có cò |
 | ~~Suối~~ | — | — | — | **Bỏ (D-027)**: câu cá chuyển về hồ làng trong Xóm |
 | Chợ làng Sung (= "Chợ làng bên") | 40 × 28 | Xóm (đường cái, tốn `marketTravelGameMinutes`) | Level 6 (biển "đường đang sửa") | Chợ thật: sạp bà Cân (bán giá cao, lễ vật, gia súc), nhà bố vợ |
 
-Còn **3 bản đồ**: Xóm, Núi, làng Sung. Núi và làng Sung cỡ 1,5–2 màn hình mỗi chiều: đi hết một khu mất 10–15 giây (Giả định). Xóm to hơn (2 × 2,5 màn) vì là nơi về mỗi ngày và chứa luôn hồ câu (thời gian đi bộ ở bảng dưới).
+Còn **4 bản đồ** (D-041 thêm Đồng Lầy): Xóm, Núi, Đồng Lầy, làng Sung. Núi, Đồng và làng Sung cỡ 1,3–2 màn hình mỗi chiều: đi hết một khu mất 10–15 giây (Giả định). Xóm to hơn (khoảng 2,4 × 2,9 màn — D-040) vì là nơi về mỗi ngày và chứa luôn hồ câu (thời gian đi bộ ở bảng dưới).
 
-**Bố cục Xóm làng Lầy (60 × 42 ô, chặng 4 — D-021, theo phác thảo người dùng D-027)** — phác thảo gốc: `docs/design/sketches/xom-layout-nguoi-dung-2026-10-13.png`. Sơ đồ thô, x tính từ trái, y tính từ trên, T = lũy tre. **Mọi nhà quay mặt về nam** (kiểu nhà Bắc Bộ): art chỉ vẽ mặt tiền nhìn từ trên-nam, cửa nhà luôn mở ra con đường ngay phía dưới.
+**Bố cục Xóm làng Lầy (72 × 50 ô, chặng 4 — D-021, theo phác thảo người dùng D-027, mở rộng D-040)** — phác thảo gốc: `docs/design/sketches/xom-layout-nguoi-dung-2026-10-13.png` (bản 60×42 cũ xem lịch sử git của file này). **Ảnh chuẩn cho bản đồ (người dùng duyệt 2026-10-15): concept ART-CON-002 `art-source/reference/concept-xom-lang-lay-v2.png`** — thay ART-CON-001 khi dựng T-032 / T-033. Concept lệch tài liệu ở vài chỗ, **theo GDD**: hồ có **2 bến câu** (concept thiếu bến thứ 2); cau phải ra cau (không giống dừa), nương chè khác luống rau, bó hương cụ Từ to rõ — sửa khi gen thật; đình có tường + cổng gạch → **chừa ô cổng mặt nam** nối đường cái. Sơ đồ thô, x tính từ trái, y tính từ trên, T = lũy tre, ▯ = cổng. **Mọi nhà quay mặt về nam** (kiểu nhà Bắc Bộ): art chỉ vẽ mặt tiền nhìn từ trên-nam. Mỗi nhà nằm trong **một khuôn viên khép kín** (rào / tường + cổng — luật ở mục "Khuôn viên từng nhà" ngay dưới).
 
 ```
- y   x: 0         10        20        30        40        50      59
- 0   TTTTT[NÚI↑ Lv2]TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
- 2   T┌ Nhà {ten}+U ┐║ [Ông Gật ]  [Cô Tám Thóc]         [ CHỢ CÓC   ]T
- 6   T│nhà tranh nhãn│║ [chuồng gà]  [quầy hạt hiên] (giếng) [lều, sạp ]T
- 9   T│ruộng 24 ô  ▯ │║                          bãi trống [quán chè  ]T
-12   T└──────────────┘║====== đường xóm ====================================T
-15   T[Nhà         ] ║  [Lò rèn ]  [Xưởng mộc] ║ ║ [Nhà Khướt] [Nhà Chém ]T
-18   T[ cô Ngóng   ] ║  [Hai Bễ ]  [chú Đục  ] ║ ║                        T
-21   T[ giàn mướp  ] ║========== ngõ giữa ===========================     T
-23   T[            ] ║  [Nhà Sún]  [Nhà Tráng] ║ ║ [Nhà Ba Trầu][Nhà hoang]T
-30  [←LÀNG SUNG Lv6]===== ĐƯỜNG CÁI =========================================T
-33   T  ~~[bến]~~~[bến nước]~~~[bến]~~ (CÂY ĐA)    [ sân đình (gạch) ]   T
-36   T  ~~~~~~~~ HỒ LÀNG ~~~~~~~~~~~~   miếu       [   ĐÌNH LÀNG     ]   T
-40   TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
+ y   x:0         12        24        36        48        60       71
+ 0   TTTT[NÚI↑Lv2]TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
+ 2   T┌Nhà {ten}+U─┐║┌Ông Gật─────┐ngõ┌Cô Tám──┐ (giếng) ┌──CHỢ PHIÊN LẦY──┐T
+ 6   T│nhà tranh nhãn▯║│nhà  vườn rau▯chung▯quầy hạt│ bãi đất │lều  sạp sạp sạp │T
+ 9   T│ruộng 24 ô   │║│sân chuồng gà│   │sân gạch│         │sạp  sạp quán chè│T
+13   T└─rào tre─────┘║└────────────┘   └────────┘         └─────────────────┘T
+14   T┌Cô Ngóng────┐║════════════════ đường xóm ═══════════════════════════════T
+16   T│nhà  giàn    │║┌Lò rèn────┬Xưởng mộc──┐║┌Nhà Khướt──┬Nhà Chém+nương chè┐T
+20   T│sân  mướp    ▯║│          │           │║│           │                  │T
+24   T│vườn rau     │║└──▯───────┴──▯────────┘║└──▯────────┴──▯───────────────┘T
+25   T│nhãn         │║══════════════ ngõ giữa ══╬═══════════════════════════════T
+27   T│             │║┌Cu Sún───┐ngõ┌Tráng+lúa┐║┌Ba Trầu+trầu┬Nhà bỏ hoang────┐T
+32   T│             │║│        ▯chung▯         │║│            │ (rào đổ)        │T
+35   T└─────────────┘║└──────────┘   └─────────┘║└──▯─────────┴──▯──────────────┘T
+36  [←LÀNG SUNG Lv6]════════════════ ĐƯỜNG CÁI ═════════════════════════════════T
+38   T ~~[bến Tây]~~[bến nước]~~[bến Đông]~~ (CÂY ĐA) ║ ┌tường──ĐÌNH LÀNG───┐ T
+42   T ~~~~~~~~~~~ HỒ LÀNG ~~~~~~~~~~~~~~~   miếu    ║ │hiên: chiếu cờ     │ T
+44   T ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~          ║ │SÂN ĐÌNH gạch cụ Từ│ T
+46   T                                               ║ └──────▯cổng───────┘ T
+47   T                                               ╚═══ lối vòng ══╝      T
+48   TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
 ```
 
 | Điểm | Vùng ô (x, y) | Ghi chú cho dev / art |
 |---|---|---|
-| Lũy tre | Viền 2 ô (x 0–1, x 58–59, y 0–1, y 40–41) | Vật cản. Hở **2 chỗ** làm cổng (Núi, làng Sung) |
+| Lũy tre | Viền 2 ô (x 0–1, x 70–71, y 0–1, y 48–49) | Vật cản. Hở **3 chỗ** làm cổng (Núi, làng Sung, **Đồng Lầy — cổng đông x 70–71, y 14–15, D-041**) |
 | Cổng **Núi** (bắc) | x 5–7, y 0–1 | Ngay sau nhà {ten} ("núi sau nhà"). Thân cây đổ tới Lv 2 |
-| **Khuôn viên nhà {ten} + U Hến** | x 2–14, y 2–12 | Nhà tranh x 3–8, y 3–6 (hiên có chõng). Sân đất y 7–8. **Ruộng 24 ô** (8×3) x 4–11, y 9–11, mở dần, cọc rào. **1 cây nhãn** x 11–13, y 3–6. **Cổng ngõ có mái** x 14, y 7–8 ra ngõ trái. **Thúng bán** cạnh cổng (13, 9). U ở chung nhà |
-| Ngõ trái (dọc) | x 15–16, y 2–31 | Nối cổng nhà với đường xóm, ngõ giữa, đường cái |
-| **Nhà cô Ngóng** (khối dọc) | x 2–12, y 15–27 | Nhà x 3–9, y 16–20 + vườn rau, giàn mướp, 1 cây nhãn. **Rào tre thấp** y 13–14 giáp ruộng {ten}: sáng cô đứng sau rào nhìn sang |
-| **Nhà ông Gật** | x 18–25, y 2–10 | Nhà + chuồng gà. Gà Mái Mơ băng qua ngõ trái sang mổ rau (Should) |
-| **Nhà cô Tám Thóc** | x 28–35, y 2–10 | **Quầy hạt ở hiên** (chõng, thúng hạt, biển gỗ). Mở 6–19h |
-| **Giếng làng** + bãi đất trống | giếng x 38–40, y 7–9; bãi x 37–43, y 5–11 | Chỗ U, cô Ngóng, chú Đục, trẻ trâu tụ tập |
-| **Chợ cóc đầu xóm** | x 45–56, y 2–10 | **Chỉ trang trí**: 2 lều tranh, 3 sạp bày hàng tĩnh (rổ rau, buồng chuối, gà trong lồng), không người bán, không mua bán. Click sạp → bong bóng {ten} (vd. "Hàng ai bày đây? …Thôi, cô Ngóng đang nhìn."). **Quán chè bà Chém** góc tây-nam x 45–48, y 8–10 (chỗ tụ tập buổi tối) |
-| Đường xóm (ngang) | y 12–13, x 15 → 57 | Mép đông là lũy tre kín (không còn cổng Suối) |
-| Lưới 8 nhà giữa | hàng 1: y 15–20 · hàng 2: y 23–28 · 4 cột: x 19–25, 28–34, 38–44, 47–53 | Hàng 1 quay mặt ra ngõ giữa ngang (y 21–22); hàng 2 quay mặt ra đường cái. Ai ở nhà nào: bảng dưới |
-| Ngõ giữa | ngang y 21–22, x 15 → 56; dọc x 35–37, y 12–31 | |
-| Đường cái | y 30–31, x 0 → 57 | Mép tây = cổng **làng Sung** (rào + biển "đường đang sửa" tới Lv 6) |
-| **Hồ làng** | nước x 3–30, y 33–39; bờ bắc y 32 | Bèo, sen, lau sậy ven bờ (vật cản). Mùa mưa nước đục, dâng hơn (Should) |
-| **2 bến câu** (tre) | bến Tây x 8–9, y 33–35; bến Đông x 24–25, y 33–35 | Nhô ra mặt hồ. **Chỉ câu được khi đứng trên bến** (§3.6). Trước Lv 4: bến gãy, chăng dây, biển "Bến gãy — cấm câu"; click mặt hồ → {ten} "Tiên sư cái bến!". Nhiệm vụ 4: chú Đục sửa |
-| Bến nước (gạch) | x 15–17, y 33–34 | Bậc gạch xuống hồ (kiểu cầu ao Bắc Bộ): trẻ trâu tắm buổi chiều. Không câu |
-| **Cây đa cổ thụ** | tán x 31–37, y 32–38; gốc (vật cản) x 33–34, y 35–36 | Bộ "cây đa – bến nước – sân đình". Tán vẽ đè lên người (lớp trên). **Miếu nhỏ** ở gốc. Ông Khướt nằm gốc đa; ông Gật ngồi gật buổi chiều |
-| **Đình làng + sân đình** | sân x 42–54, y 33–35; đình x 41–55, y 36–39 | Trang trí, không vào trong. Anh Tráng tập võ ở sân. Nơi intro diễn ra |
-| Cây nhãn khác | vườn ông Gật, 2 cây dọc đường xóm | Bóng mát, điểm mốc |
+| **Khuôn viên nhà {ten} + U Hến** | x 2–15, y 2–13 | Nhà tranh x 3–8, y 3–6 (hiên có chõng). Sân đất x 3–13, y 7–8. **Ruộng 24 ô** (8×3) x 4–11, y 9–11, mở dần, cọc rào. **1 cây nhãn** x 11–13, y 3–6. **Cổng ngõ có mái** x 15, y 7–8 ra ngõ trái. **Thúng bán** (14, 9). Ranh: dâm bụt x 15 (trừ cổng), **rào tre thấp y 13 chung với nhà cô Ngóng**. U ở chung nhà |
+| Ngõ trái (dọc) | x 16–17, y 2–37 | Nối cổng nhà với đường xóm, ngõ giữa, đường cái |
+| **Nhà cô Ngóng** (khối dọc) | x 2–15, y 14–35 | Nhà x 3–9, y 15–19; giàn mướp x 10–13, y 15–19; sân x 3–13, y 20–21; **vườn rau** x 3–9, y 23–28; 1 cây nhãn x 11–13, y 24–27. **Cổng tre** x 15, y 20–21 ra ngõ trái. Sáng cô đứng sát rào tre y 14 nhìn sang ruộng {ten} |
+| **Nhà ông Gật** | x 18–29, y 2–13 | Nhà x 19–25, y 3–7; sân x 19–25, y 8–11; **vườn rau** x 26–28, y 3–6; **chuồng gà** x 26–28, y 8–9. Cổng ngõ mái ngói bên hông đông x 29, y 9–10 ra **ngõ chung**. Gà Mái Mơ chui hàng chè tàu x 18 sang ngõ trái, mổ rau nhà {ten} (Should) |
+| Ngõ chung Gật – Tám | x 30–31, y 3–13 | Ngõ nhỏ hai nhà dùng chung, mở ra đường xóm (kiểu ngõ xóm Bắc Bộ) |
+| **Nhà cô Tám Thóc** | x 32–42, y 2–13 | Nhà x 33–39, y 3–7; **quầy hạt ở hiên** x 34–37, y 8 (chõng, thúng hạt, biển gỗ), sân gạch x 33–40, y 8–11. **Cổng rộng 3 ô** bên hông tây x 32, y 8–10 ra ngõ chung. Mở 6–19h |
+| **Giếng làng** + bãi đất trống | giếng x 46–48, y 7–9; bãi x 44–51, y 3–13 | Chỗ U, cô Ngóng, chú Đục, trẻ trâu tụ tập. Không rào (đất chung) |
+| **Chợ phiên Lầy** (thay chợ cóc — D-040) | x 53–69, y 2–13 | Nền đất nện. 2 lều tranh x 55–59 và x 62–66, y 3–6. **5 gian** dưới mái lều / trước lều, y 8–9: cô Lanh x 55–56 · bà Xén x 58–59 · chị Cục Tác x 61–62 · ông Vung x 64–65 (Should) · ông Lái Giống x 67–68 (Should). **Quán chè bà Chém** góc tây-nam x 53–56, y 10–13 (mở mọi ngày; chỗ tụ tập buổi tối). Ngày phiên: người bán + người đi chợ; ngày thường: sạp trống. Luật: §3.9b |
+| Đường xóm (ngang) | y 14–15, x 16 → 69 | Mép đông: **cổng Đồng Lầy** (D-041, rào + biển "Lv 5" tới Lv 5) |
+| Lưới 8 khuôn viên giữa | hàng 1: y 16–24 (nhà y 17–21, sân y 22–23, ranh nam + cổng y 24) · hàng 2: y 27–35 (nhà y 28–32, sân y 33–34, ranh nam + cổng y 35) · cột: x 19–30, 31–42, 45–56, 57–69 | Hàng 1 mở cổng ra ngõ giữa; hàng 2 mở cổng ra đường cái. Hàng 2 cột 1–2 (Cu Sún x 19–29, anh Tráng x 32–42) chung **ngõ nhỏ x 30–31, y 27–35**, cổng hai bên hông ở y 32–33. Ai ở nhà nào: bảng dưới |
+| Ngõ giữa | ngang y 25–26, x 16 → 69; dọc x 43–44, y 14–37 | |
+| Đường cái | y 36–37, x 0 → 69 | Mép tây = cổng **làng Sung** (rào + biển "đường đang sửa" tới Lv 6) |
+| **Hồ làng** | nước x 3–34, y 39–46; bờ bắc y 38 | Bèo, sen, lau sậy ven bờ (vật cản). Mùa mưa nước đục, dâng hơn (Should) |
+| **2 bến câu** (tre) | bến Tây x 9–10, y 39–41; bến Đông x 29–30, y 39–41 | Nhô ra mặt hồ. **Chỉ câu được khi đứng trên bến** (§3.6). Trước Lv 4: bến gãy, chăng dây, biển "Bến gãy — cấm câu"; click mặt hồ → {ten} "Tiên sư cái bến!". Nhiệm vụ 4: chú Đục sửa |
+| Bến nước (gạch) | x 18–20, y 39–40 | Bậc gạch xuống hồ (kiểu cầu ao Bắc Bộ): trẻ trâu tắm buổi chiều. Không câu |
+| **Cây đa cổ thụ** | tán x 37–43, y 38–45; gốc (vật cản) x 39–40, y 42–43; miếu (41, 44) | Bộ "cây đa – bến nước – sân đình". Tán vẽ đè lên người (lớp trên). **Miếu nhỏ** ở gốc. Ông Khướt nằm gốc đa; ông Gật ngồi gật buổi chiều |
+| **Đình làng + sân đình** | tường gạch thấp bao quanh x 48–67, y 38–46; đình (quay mặt về nam như mọi nhà) x 50–65, y 38–41, hiên y 42; sân gạch **phía trước (nam)** x 49–66, y 43–45; **cổng đình** (2 trụ biểu) mặt nam x 56–59, y 46; **lối vòng** đất nện từ đường cái: dọc x 45–46, y 38–47 → ngang y 47, x 45 → 59 | Theo concept ART-CON-002: cổng chính mặt nam, nên vào đình phải đi vòng (đúng kiểu đình làng, ~6 ô thêm). Không vào trong đình. Anh Tráng tập võ giữa sân (57, 44). **Chiếu cờ** cụ Hoàn + cụ Chiếu ở hiên x 51–53, y 42; **cụ Từ** quét sân (62, 44) / hiên (63, 42). Ông Mõ đứng ngoài cổng đình (57, 47) chiều trước phiên. Nơi intro diễn ra |
+| Cây nhãn khác | vườn cô Ngóng, 2 cây dọc đường xóm | Bóng mát, điểm mốc |
 | Lối đi + cụm thực vật | xem mục "Lối đi đất nện và cụm thực vật" ngay dưới (D-035) | Mọi lối đi là **đất nện**, không phải cỏ. Cụm thực vật vừa trang trí vừa chặn đi tắt |
+
+**Khuôn viên từng nhà (D-040)**
+
+Người dùng muốn các nhà "có vách ngăn chia với nhau" như làng Bắc Bộ thật: mỗi nhà một khoảnh đất có bờ rào hoặc tường, ra vào qua cổng riêng. Phục vụ pillar **"Làm giàu từ hai bàn tay"** (nhìn rào cổng là biết nhà nghèo hay khá, {ten} thấy mình ở đâu trong làng) và giúp người chơi **đi theo đường**, không đi tắt qua sân nhà người khác.
+
+*Luật chung (cho game-dev, kiểm ở T-032 / T-033):*
+- Khuôn viên = nhà + sân + (vườn nếu có) + **ranh giới khép kín**. Ranh giới là **vật cản**, chỉ hở ở cổng.
+- **Cổng ở mặt nam, lệch sang một bên** so với cửa chính (tục "cổng không nhìn thẳng cửa"); nhà có ngõ chung thì cổng ở **bên hông** mở vào ngõ. Cổng rộng **2 ô**; nhà có quầy (cô Tám, lò rèn, xưởng mộc) rộng **3 ô**, luôn mở.
+- **Cổng thụt vào 1 ô** so với hàng rào (hõm cổng kiểu cổng ngõ Bắc Bộ), không lấn ra đường; đường, ngõ chính luôn thông ≥ 2 ô.
+- Hai khuôn viên sát nhau dùng **chung một bờ rào** (một hàng ô, không làm rào đôi).
+- Người chơi **vào được sân mọi nhà** qua cổng (để nói chuyện, xem vườn), **không vào trong nhà** (click cửa → câu của chủ nhà; trong nhà chỉ có nhà {ten} — D-034). Cổng là ô đi được, không có cánh đóng mở (cánh cổng vẽ mở sẵn). Riêng nhà ông Khướt: cổng mở, **cửa nhà** cài then (câu cũ).
+- `npcSpots` của chủ nhà (hiên, vườn) đặt **trong** khuôn viên; tìm đường (D-038) đi vòng qua cổng, không cần luật mới.
+- Ranh giới vẽ bằng **mảnh ghép** (rào tre, dâm bụt, chè tàu có sẵn từ Lô 1; tường đất / gạch mộc thấp và cổng tre ngõ chung ở Lô 2 — ART-BLD-017). Dữ liệu (Giả định tên file): `villageLayout.json` ghi mỗi khuôn viên dạng `{ id, rect, fence: "bamboo" | "hibiscus" | "tea" | "mudWall" | "brickWall", sides?, gate: { side, at, width } }`; code tự rải mảnh theo cạnh (dùng lại cách ghép rào của `systems/propArt.ts`).
+
+*Quy ước theo mức nhà:*
+
+| Mức | Ranh giới | Cổng | Sân |
+|---|---|---|---|
+| **Nghèo** (mái rạ) | Rào tre đan thấp hoặc hàng dâm bụt; mặt sau có thể là chè tàu | Cổng tre đơn / phên liếp, có thể có mái rạ nhỏ | Đất nện |
+| **Khá** (ngói cũ) | Mặt trước: **tường đất thấp** hoặc **gạch mộc** rêu; hai bên + sau: chè tàu cắt bằng | **Cổng ngõ có mái** (trụ gạch, mái ngói nhỏ) | Nửa sân gạch bát |
+| **Công / giàu** (đình; nhà làng Sung) | Tường gạch thấp có trụ biểu | Cổng gạch hai trụ (đình) / hai cánh gỗ (làng Sung) | Sân gạch |
+| **Bỏ hoang** | Rào tre đổ một đoạn (vẫn chặn, chỗ đổ là lối vào) | Cổng xiêu, biển "Nhà bán" | Cỏ um |
+
+*Vườn cạnh nhà (D-040 — chỉ trang trí):* 5 nhà có vườn trong khuôn viên. Dùng **hình cây trồng Lô 1** ở giai đoạn chín đặt trên ô đất ruộng (không phải ô ruộng của người chơi, không click làm việc được), đổi theo mùa. Click vườn → bong bóng chủ nhà (nếu đang ở nhà), không thì {ten} nói một câu.
+
+| Nhà | Vườn | Mùa nắng | Mùa mưa |
+|---|---|---|---|
+| Cô Ngóng | Luống rau + giàn mướp | Cải | Rau muống |
+| Ông Gật | Luống rau + chuồng gà | Cải (vài cây bị mổ dở — Should) | Rau muống |
+| Bà Chém | Nương chè xanh nhỏ (hình mới, sheet ART-ENV-018) | Như nhau | Như nhau |
+| Anh Tráng | Thửa lúa 4×3 | Gốc rạ + đống rơm (ART-ENV-018) | Lúa nếp mạ xanh (hình cây Lô 1) |
+| Bà Ba Trầu | Giàn trầu + hàng cau (ART-ENV-018, ART-ENV-007) | Như nhau | Như nhau |
+
+- **Để sau:** xin rau, đổi công, hái trộm, NPC tưới vườn bằng hoạt ảnh.
 
 **Lối đi đất nện và cụm thực vật (D-035)**
 
@@ -957,22 +1110,25 @@ Người dùng muốn làng trông "có người ở": người ta đi nhiều t
 
 *Lối đi = đất nện* (lớp Nền, viền tự nối với cỏ — tile Lô 1 "đường đất"):
 
+*(Tọa độ đã đổi theo bản 72×50 — D-040.)*
+
 | Lối | Vùng ô (x, y) | Ghi chú |
 |---|---|---|
-| Đường xóm | y 12–13, x 15 → 57 | Như bảng trên |
-| Ngõ trái | x 15–16, y 2–31 | |
-| Ngõ giữa | ngang y 21–22, x 15 → 56; dọc x 35–37, y 12–31 | |
-| Đường cái | y 30–31, x 0 → 57 | Nối ra cổng làng Sung |
+| Đường xóm | y 14–15, x 16 → 69 | Như bảng trên |
+| Ngõ trái | x 16–17, y 2–37 | |
+| Ngõ giữa | ngang y 25–26, x 16 → 69; dọc x 43–44, y 14–37 | |
+| Ngõ chung | Gật – Tám x 30–31, y 3–13; Cu Sún – Tráng x 30–31, y 27–35 | Ngõ nhỏ 2 nhà dùng chung |
+| Đường cái | y 36–37, x 0 → 69 | Nối ra cổng làng Sung |
 | Sân nhà {ten} | x 3–13, y 7–8 | Sân đất trước hiên, cũng là **lối vào ruộng** (mép bắc ruộng) |
-| Lối ra thúng bán + cổng ngõ | x 12–13, y 7–10; cổng x 14, y 7–8 | Từ sân xuống thúng bán (13, 9) và ra ngõ trái |
+| Lối ra thúng bán + cổng ngõ | x 12–14, y 7–10; cổng x 15, y 7–8 | Từ sân xuống thúng bán (14, 9) và ra ngõ trái |
 | Lối hậu ra cổng Núi | cổng x 5–7, y 0–1 → dải y 2, x 5–10 → khe x 9–10, y 2–6 → sân | Vòng sau nhà tranh, giữa nhà và cây nhãn |
-| Sân + lối nhà cô Ngóng | sân x 3–9, y 21–22; lối x 10–14, y 21–22 ra ngõ trái | Như ngõ giữa kéo dài sang tây |
-| Lối cổng từng nhà hàng xóm | 2 ô rộng, từ điểm cửa thẳng xuống đường ngay dưới (hàng trên: y 11; hàng 2: y 29) | game-dev đặt theo điểm cửa từng nhà |
-| Bãi giếng | x 37–43, y 5–11 | Cả bãi là đất nện, nối đường xóm |
-| Nền chợ cóc | x 45–56, y 2–10 | Đất nện, có lều / sạp đặt lên |
-| Lối xuống bến | bến Tây x 8–9, bến nước x 15–17, bến Đông x 24–25 — đều ở y 32 | Nối đường cái tới đầu bến |
-| Lối vào gốc đa | x 33–34, y 32–34 | Chỗ ông Khướt nằm, ông Gật ngồi |
-| Lối vào sân đình | x 46–50, y 32 | Sân đình vẫn là **gạch** (không đổi) |
+| Sân + lối nhà cô Ngóng | sân x 3–13, y 20–21; cổng x 15, y 20–21 ra ngõ trái | |
+| Sân + lối cổng từng khuôn viên | sân đất (nhà nghèo) / nửa sân gạch (nhà khá) trước hiên; lối 2 ô từ cửa nhà tới cổng (luật ở mục "Khuôn viên từng nhà") | game-dev đặt theo điểm cửa + cổng từng nhà |
+| Bãi giếng | x 44–51, y 3–13 | Cả bãi là đất nện, nối đường xóm |
+| Nền chợ phiên | x 53–69, y 2–13 | Đất nện, có lều / sạp / quán chè đặt lên |
+| Lối xuống bến | bến Tây x 9–10, bến nước x 18–20, bến Đông x 29–30 — đều ở y 38 | Nối đường cái tới đầu bến |
+| Lối vào gốc đa | x 39–40, y 38–41 | Chỗ ông Khướt nằm, ông Gật ngồi |
+| Lối vòng vào sân đình | dọc x 45–46, y 38–47 → ngang y 47, x 45 → 59 → cổng đình x 56–59, y 46 | Sân đình vẫn là **gạch** |
 
 *Các loại cụm thực vật* (mỗi cụm 1–3 ô):
 
@@ -987,7 +1143,9 @@ Người dùng muốn làng trông "có người ở": người ta đi nhiều t
 
 (Đề xuất của game-planner, khác một chút với ý ban đầu "lùm hoa thấp đi xuyên": dâm bụt thật cao ~1–2 m nên cho **chặn**, coi như rào hoa; chỉ mười giờ, cúc dại là thấp.)
 
-*Đặt ở đâu* (vị trí theo vùng, game-dev được xê dịch 1–2 ô cho đẹp):
+*Đặt ở đâu* (vị trí theo vùng, game-dev được xê dịch 1–2 ô cho đẹp).
+
+> **D-040:** tọa độ trong bảng này vẫn theo bản **60×42 cũ** — ở T-032 game-dev đặt lại theo **tên vùng** trên bản 72×50 (bảng bố cục ở trên). Các dòng "Ranh đông khuôn viên nhà {ten}", "Khe ngõ trái – nhà ông Gật", "Khe ông Gật – cô Tám", "Khe cô Tám – bãi giếng", "Khe giữa 8 nhà", "Vườn cô Ngóng", "Hai bên sân đình" giờ **là ranh giới khuôn viên** (rào / tường / chè tàu / dâm bụt — mục "Khuôn viên từng nhà"), không đặt thêm cụm chặn riêng. "Chợ cóc" đọc là "chợ phiên". Tổng cụm thực vật lên **~60–80** (bản đồ rộng hơn).
 
 | Vùng | Cụm | Mục đích |
 |---|---|---|
@@ -1018,7 +1176,8 @@ Người dùng muốn làng trông "có người ở": người ta đi nhiều t
 - Dùng cụm chặn (tre, lùm cây, dâm bụt) để **bít khe 1–2 ô giữa các nhà** → người chơi đi theo đường, không đi tắt qua sân nhà người khác.
 - Cụm chặn có **chân đế va chạm nhỏ hơn hình** (chỉ gốc ~1 ô), lá vẽ ở lớp Trên đầu → đi sát không kẹt (bài học BUG-001).
 - Cụm thực vật ở Xóm **chỉ trang trí**, không hái / chặt được (hái lượm, chặt tre ở Núi — §3.5).
-- Khoảng **40–50 cụm** cả Xóm; dùng lại vài hình cho nhiều cụm (lật ngang, ghép 1–3 cái).
+- Khoảng ~~40–50~~ **60–80 cụm** cả Xóm 72×50 (D-040); dùng lại vài hình cho nhiều cụm (lật ngang, ghép 1–3 cái).
+- **(D-040)** Khe giữa các nhà giờ do **ranh giới khuôn viên** bít (rào / tường / chè tàu / dâm bụt, mục "Khuôn viên từng nhà"), không cần cụm chặn riêng. Cụm thực vật không đặt trong hõm cổng và cách cổng ≥ 1 ô; trong sân hàng xóm chỉ đặt cụm đi xuyên hoặc ở góc sân.
 
 | Tham số | Giá trị | Đơn vị | Khoảng hợp lý | Ảnh hưởng |
 |---|---|---|---|---|
@@ -1029,43 +1188,59 @@ Người dùng muốn làng trông "có người ở": người ta đi nhiều t
 
 *Núi, làng Sung (Giả định, chi tiết khi làm T-054 / T-063):* cùng nguyên tắc — đường mòn đất nện ở Núi, đường chính làng Sung đất nện (sạp chợ có thể lát gạch).
 
-**Ai ở nhà nào** (11 nhà hàng xóm — D-027; chỉ 3 nhà có cửa hàng, đều là cửa hàng đã có từ trước):
+**Ai ở nhà nào** (11 nhà hàng xóm — D-027; khuôn viên + vườn theo D-040; chỉ 3 nhà có cửa hàng, đều là cửa hàng đã có từ trước; người bán chợ phiên ở làng khác / xóm ngoài, không có nhà trên bản đồ):
 
-| # | Chỗ (phác thảo) | Nhà | Chức năng | Mức |
-|---|---|---|---|---|
-| 1 | Khối dọc cột trái | Nhà cô Ngóng | NPC phụ, bong bóng | Must |
-| 2 | Hàng trên, nhà 1 | Nhà ông Gật + chuồng gà | NPC chính (nhiệm vụ 2, 7) | Must |
-| 3 | Hàng trên, nhà 2 (cạnh giếng) | Nhà cô Tám Thóc | **Quầy hạt** + tab Sắm sửa bậc 2 | Must |
-| 4 | Hàng 1, cột 1 | Lò rèn ông Hai Bễ (lều ngói vỡ, khói đen) | **Rèn**: chế, sửa cuốc, rìu, thùng tưới | Must |
-| 5 | Hàng 1, cột 2 | Xưởng mộc chú Đục (lán tre, ngựa cưa) | **Mộc**: cần câu, nỏ, gùi, bếp gạch, chuồng; sửa bến câu (Lv 4) | Must (mục cắt 7: gộp với rèn) |
-| 6 | Hàng 1, cột 3 | Nhà ông Khướt: cửa cài then, chổi dựng ngoài cửa | Câu đùa: click cửa → giọng bà Khướt (không bao giờ xuất hiện) "Ngủ ngoài đa đi!". Giải thích vì sao ông ngủ gốc đa | Must (chỉ 1–2 câu chữ) |
-| 7 | Hàng 1, cột 4 | Nhà bà Chém (ấm tích phơi trên tường rào) | Trang trí; bà bán chè ở chợ cóc | Must |
-| 8 | Hàng 2, cột 1 | Nhà Cu Sún (đống rơm, ngựa rơm dựng cổng) | Trang trí; 3 đứa trẻ trâu về đây | Must |
-| 9 | Hàng 2, cột 2 | Nhà anh Tráng (cọc gỗ tập võ, đòn gánh dựng hiên) | Trang trí | Must |
-| 10 | Hàng 2, cột 3 | Nhà bà Ba Trầu (chậu trầu ở cổng) | Trang trí; bà ra khi có việc | Must |
-| 11 | Hàng 2, cột 4 (gần đình) | **Nhà bỏ hoang**: mái thủng, biển "Nhà bán" | **Khóa — Để sau**: "căn nhà thứ 2" cho bản 1.1 (D-007: vợ thứ n cần n nhà). Click → {ten}: "Mua cái này thì cưới thêm được… thôi, cưới một đã." | Trang trí, khóa |
+| # | Chỗ | Nhà | Chức năng | Mức nhà | Ranh giới | Cổng / lối | Vườn kèm | Mức |
+|---|---|---|---|---|---|---|---|---|
+| 0 | Góc tây-bắc | Nhà {ten} + U Hến | Nhà người chơi (trong nhà — D-034) | Nghèo nhất | Dâm bụt (đông), rào tre thấp (nam, chung với cô Ngóng), lũy tre (bắc, tây) | Cổng ngõ mái rạ ra ngõ trái | Ruộng 24 ô | Must |
+| 1 | Khối dọc cột trái | Nhà cô Ngóng | NPC phụ, bong bóng | Nghèo | Rào tre thấp tới ngực (bắc), chè tàu (đông) | Cổng tre ra ngõ trái | **Rau + giàn mướp** | Must |
+| 2 | Hàng trên, nhà 1 | Nhà ông Gật + chuồng gà | NPC chính (nhiệm vụ 2, 7) | Khá | Tường đất thấp (nam), chè tàu (tây, bắc) | Cổng ngõ mái ngói, bên hông, **ngõ chung với cô Tám** | **Rau + chuồng gà** | Must |
+| 3 | Hàng trên, nhà 2 (cạnh giếng) | Nhà cô Tám Thóc | **Quầy hạt** + tab Sắm sửa bậc 2 | Khá | Tường gạch mộc thấp | Cổng 3 ô bên hông, ngõ chung | — | Must |
+| 4 | Hàng 1, cột 1 | Lò rèn ông Hai Bễ (lều ngói vỡ, khói đen) | **Rèn**: chế, sửa cuốc, rìu, thùng tưới | Nghèo (lều) | Rào tre thưa, sân đất đen than | Cổng 3 ô, luôn mở | — | Must |
+| 5 | Hàng 1, cột 2 | Xưởng mộc chú Đục (lán tre, ngựa cưa) | **Mộc**: cần câu, nỏ, gùi, bếp gạch, chuồng; sửa bến câu (Lv 4) | Nghèo (lán) | Rào cọc + đống gỗ làm ranh | Cổng 3 ô, luôn mở | — | Must (mục cắt 7: gộp với rèn) |
+| 6 | Hàng 1, cột 3 | Nhà ông Khướt: cửa cài then, chổi dựng ngoài cửa | Câu đùa: click cửa → giọng bà Khướt (không bao giờ xuất hiện) "Ngủ ngoài đa đi!". Giải thích vì sao ông ngủ gốc đa | Nghèo | Rào tre | Cổng tre mở; **cửa nhà** cài then | — | Must (chỉ 1–2 câu chữ) |
+| 7 | Hàng 1, cột 4 | Nhà bà Chém (ấm tích phơi trên tường rào) | Trang trí; bà bán chè ở chợ phiên | Nghèo | Dâm bụt | Cổng tre | **Nương chè** | Must |
+| 8 | Hàng 2, cột 1 | Nhà Cu Sún (đống rơm, ngựa rơm dựng cổng) | Trang trí; 3 đứa trẻ trâu về đây | Nghèo | Rào tre | Cổng tre bên hông, **ngõ chung với anh Tráng** | — | Must |
+| 9 | Hàng 2, cột 2 | Nhà anh Tráng (cọc gỗ tập võ, đòn gánh dựng hiên) | Trang trí | Nghèo | Rào tre | Cổng tre bên hông, ngõ chung | **Thửa lúa 4×3** | Must |
+| 10 | Hàng 2, cột 3 | Nhà bà Ba Trầu (chậu trầu ở cổng) | Trang trí; bà ra khi có việc | Khá | Tường đất thấp + hàng cau | Cổng ngõ mái ngói | **Giàn trầu + cau** | Must |
+| 11 | Hàng 2, cột 4 (gần đình) | **Nhà bỏ hoang**: mái thủng, biển "Nhà bán" | **Khóa — Để sau**: "căn nhà thứ 2" cho bản 1.1 (D-007: vợ thứ n cần n nhà). Click → {ten}: "Mua cái này thì cưới thêm được… thôi, cưới một đã." | Bỏ hoang | Rào tre đổ một đoạn | Cổng xiêu | — | Trang trí, khóa |
+| — | Đông-nam | Đình làng | Cụ Từ Nhang, cụ Hoàn + cụ Chiếu, anh Tráng, ông Mõ (§3.16) | Công | Tường gạch thấp | Cổng đình 2 trụ biểu, 4 ô, **mặt nam** (lối vòng) | — | Must (ông Mõ Should) |
 
 - Không thêm cửa hàng tạp hóa, gạo, quán ăn (gạo vẫn tự trừ khi nấu — Để sau).
 - **Nhà kiểu Bắc Bộ** (Giả định): làng Lầy phần lớn **mái rạ vách đất**, vài nhà **mái ngói cũ tường gạch mộc** (cô Tám, ông Gật, bà Ba Trầu); nhà {ten} là nhà tranh nghèo nhất. Làng Sung giữ "ngói mới, gạch đỏ". 11 nhà chỉ dùng **3 biến thể + 1 nhà bỏ hoang**, phân biệt bằng đồ trang trí ghép thêm.
 
-**Thời gian đi bộ** (`walkSpeed` 4 ô/giây, theo đường, cộng ~10% đi vòng):
+**Thời gian đi bộ** (bản 72×50 — D-040; `walkSpeed` 4 ô/giây, theo đường, đã cộng ~10% đi vòng qua cổng; 1 giây thật ≈ 1,8 phút game):
 
-| Từ cổng nhà {ten} tới | Số ô | Giây thật | Giờ game |
-|---|---|---|---|
-| Cổng Núi | ~10 | ~3 s | ~5 phút |
-| Lò rèn ông Hai Bễ | ~20 | ~5 s | ~9 phút |
-| Quầy hạt cô Tám | ~23 | ~6 s | ~10 phút |
-| Xưởng mộc | ~27 | ~7 s | ~12 phút |
-| Bến câu Tây / Đông | ~30 / ~40 | ~8 / ~10 s | ~13 / ~17 phút |
-| Giếng | ~30 | ~8 s | ~13 phút |
-| Quán chè (chợ cóc) | ~37 | ~9–10 s | ~16 phút |
-| Cổng làng Sung | ~38 | ~10 s | ~16 phút |
-| Sân đình | ~58 | ~15 s | ~25 phút |
+| Từ cổng nhà {ten} tới | Số ô | Giây thật | Giờ game | (60×42 cũ) |
+|---|---|---|---|---|
+| Cổng Núi | ~11 | ~3 s | ~5 phút | 3 s |
+| Lò rèn ông Hai Bễ | ~26 | ~6,5 s | ~12 phút | 5 s |
+| Quầy hạt cô Tám | ~30 | ~7,5 s | ~13 phút | 6 s |
+| Xưởng mộc | ~38 | ~9,5 s | ~17 phút | 7 s |
+| Bến câu Tây / Đông | ~40 / ~47 | ~10 / ~12 s | ~18 / ~21 phút | 8 / 10 s |
+| Giếng | ~43 | ~11 s | ~19 phút | 8 s |
+| Chợ phiên / quán chè | ~48 | ~12 s | ~22 phút | 9–10 s |
+| Cổng làng Sung | ~48 | ~12 s | ~22 phút | 10 s |
+| **Cổng Đồng Lầy** (đông, D-041) | ~60 | ~15 s | ~27 phút | — |
+| Sân đình (qua lối vòng, cổng mặt nam) | ~84 | ~21 s | ~38 phút | 15 s |
 
-Vòng mua sắm thường ngày (nhà → cô Tám → lò rèn → về) ≈ 20 giây (3% một ngày). Bến câu gần hơn Suối cũ (đi bộ qua cổng + khu riêng) nên câu cá "rẻ giờ" hơn; nếu playtest thấy câu cá át việc làm vườn thì tăng `fishBiteWaitMin` / `fishBiteWaitMax` hoặc tăng `staminaCostMinigame`.
+Vòng mua sắm thường ngày (nhà → cô Tám → lò rèn → về) ≈ 24 giây (4% một ngày; cũ 20 giây). Ghé chợ phiên buổi sáng (nhà → chợ → về) ≈ 24 giây + thời gian mua — rẻ, nên phiên chợ là lựa chọn "nhẹ" chứ không phải hy sinh cả buổi. Bến câu gần hơn Suối cũ (đi bộ qua cổng + khu riêng) nên câu cá "rẻ giờ" hơn; nếu playtest thấy câu cá át việc làm vườn thì tăng `fishBiteWaitMin` / `fishBiteWaitMax` hoặc tăng `staminaCostMinigame`.
 
-- **Chuyển từ prototype**: bản đồ Vườn 48×32 của chặng 3 (T-001 dựng bằng code, chưa dùng Tiled) được dựng lại thành Xóm 60×42 trong Tiled ở chặng 4. Ruộng, nhà, giường, thùng bán, sạp hạt giữ nguyên cách hoạt động, chỉ đổi tọa độ. Ở chặng 4, vị trí các thứ này đọc từ lớp đối tượng của Tiled. Trong prototype chỉ cần **gom tọa độ về một chỗ** (một bảng dữ liệu bản đồ hoặc `gameConfig.ts`), không rải số trong code gameplay — đây là lưu ý, không thêm việc cho T-001…T-009.
-- Mép lũy tre (2 ô) luôn là vật cản; mọi công trình nằm trong x 2–57, y 2–39.
+- **Chuyển từ prototype**: bản đồ Vườn 48×32 của chặng 3 (T-001 dựng bằng code, chưa dùng Tiled) được dựng lại thành Xóm ~~60×42~~ **72×50** (D-040) ở chặng 4. Ruộng, nhà, giường, thùng bán, sạp hạt giữ nguyên cách hoạt động, chỉ đổi tọa độ. Ở chặng 4, vị trí các thứ này đọc từ lớp đối tượng của Tiled. Trong prototype chỉ cần **gom tọa độ về một chỗ** (một bảng dữ liệu bản đồ hoặc `gameConfig.ts`), không rải số trong code gameplay — đây là lưu ý, không thêm việc cho T-001…T-009.
+- Mép lũy tre (2 ô) luôn là vật cản; mọi công trình nằm trong x 2–69, y 2–47 (D-040).
+
+**Bố cục Đồng Lầy (40 × 28 ô — D-041, §3.4a)** — khu riêng, vào từ cổng đông Xóm; x tính từ trái, cổng ở mép tây.
+
+| Điểm | Vùng ô (x, y) | Ghi chú |
+|---|---|---|
+| Lũy tre / bờ tre | viền 2 ô ba mặt bắc, nam, đông; mép tây hở cổng x 0–1, y 12–13 | Vật cản |
+| Đê đất nện | ngang y 12–13, x 0 → 37 | Lối chính từ cổng |
+| **6 thửa người chơi** | hàng trên y 7–9, hàng dưới y 16–18; cột x 4–6, 8–10, 12–14 | 3×3 ô mỗi thửa, bờ ruộng 1 ô giữa các thửa (đi được); thửa sát đê để vào nhanh |
+| **Chòi canh ông Sào** | x 16–17, y 9–11 | Chòi tre sàn cao, mái rạ, cạnh đê; chỗ đứng `spot_choiCanh` (17, 12) |
+| **Mương nước + cầu tre** | mương dọc x 20–21, y 2–25; cầu tre x 20–21, y 12–13 | Vật cản trừ cầu |
+| Ruộng làng (trang trí) | x 23–37, y 3–24 (trừ đầm) + dải x 3–15, y 21–24 | Lúa đổi màu theo mùa (dùng lại hình thửa), không click được |
+| **Bù nhìn "thằng Rơm"** | (30, 8) | Giữa ruộng làng, thấy được từ cầu |
+| Đầm sen + cò | x 31–36, y 18–23 | Nước + sen (dùng lại tile hồ Xóm); cò (Should) |
 - Save cũ của prototype không cần giữ (Giả định: save prototype chỉ để thử).
 
 ```mermaid
@@ -1079,8 +1254,9 @@ flowchart TD
   subgraph Game[Scene Game - đi bộ qua cổng]
     Vuon[Xóm làng Lầy: Nhà + Vườn + hồ làng] <--> Nui[Núi sau nhà]
     Vuon <-->|đường cái| Cho[Chợ làng Sung]
+    Vuon <-->|cổng đông, Lv 5| Dong[Đồng Lầy]
   end
-  Vuon -.-> CuaHangXom[Cửa sổ: quầy hạt / lò rèn / xưởng mộc]
+  Vuon -.-> CuaHangXom[Cửa sổ: quầy hạt / lò rèn / xưởng mộc / gian chợ phiên]
   Vuon -.-> Bep[Cửa sổ: bếp / thùng bán / rương]
   Vuon -.->|bến câu hồ làng| CauCa[Mini-game câu cá]
   Nui -.-> BanNo[Mini-game bắn nỏ]
@@ -1128,6 +1304,7 @@ flowchart TD
 |---|---|
 | Hái 1 cây (rau, khoai / dưa, lúa) | 2 / 5 |
 | Hái lượm, chặt 1 món | 1 |
+| Gặt 1 thửa ở Đồng Lầy (D-041, `fieldHarvestXp`) | 15 |
 | Câu 1 cá (rô / trê / chép / lóc / dép) | 3 / 4 / 6 / 8 / 1 |
 | Săn 1 gà rừng | 15 |
 | Chế đồ, nâng cấp hoặc sắm bộ đồ (§3.14) | 10 |
@@ -1196,6 +1373,8 @@ Juice = các hiệu ứng nhỏ làm hành động "đã tay". Trên PC không c
 | Cây khát / héo | Lá rũ, ô nâu; héo: ruồi bay + màu xám | "Phù" (héo) | — |
 | Chặt củi / tre | Cây rung, mảnh gỗ văng | "Cốc" chắc | Vừa + khựng hình 0.05 giây |
 | Hái nấm, măng, sim | Món nảy lên rồi bay vào gùi | "Pụp" | — |
+| Gặt thửa lúa (D-041) | Lúa ngả rạp theo nhịp gặt, bó lúa bay vào gùi, "+12 bó lúa"; lần đầu: bong bóng khoe vàng; (Should) cò bay lên | "Roạt" mỗi nhịp + bó lúa "bịch" + jingle ngắn | Thửa nảy nhẹ khi xong |
+| Ngày phiên chợ (D-040) | Băng chữ "Hôm nay phiên chợ Lầy" + icon gánh hàng cạnh đồng hồ | Tiếng chợ to dần khi lại gần; mõ "cốc cốc" chiều hôm trước | — |
 | Nông cụ sắp cùn / cùn | Icon nông cụ vàng / đỏ nhấp nháy | "Cạch" lệch tông (lúc cùn) | Icon lắc |
 | Quăng câu | Dây cong, phao rơi, vòng nước | "Vút" + "tõm" | — |
 | Phao giật | Phao chìm, dấu **"!"** to vàng trên đầu, vòng nước lớn | "Tõm" mạnh | **Vừa** (báo cả khi tắt tiếng) |
@@ -1328,6 +1507,10 @@ Không có cho bản đầu tay (giả định). Chơi miễn phí trên web, kh
 
 > **Cập nhật D-034 (bước 4.1, chốt 2026-10-14):** chặng 4 được tách thành **77 task** (T-018 … T-094, `docs/tasks.md`) ≈ **310–416 giờ, mốc 363 giờ** → với 15 giờ/tuần: **20,5–28 tuần**, mốc kế hoạch xong chặng 4 **~08/04/2027** (khoảng 14/03 – 03/05/2027, đã cộng ~1 tuần nghỉ Tết). Con số này **cao hơn** ước cũ bên dưới vì tính đủ từng việc gắn hình, gắn tiếng, cửa sổ, kiểm tra. Chặng 3 thực tế nhanh hơn ước ~4 lần (ước 3 tuần, xong ~5 ngày) nên mốc được soát lại bằng giờ thật ở **T-052** (mốc giữa chặng 4). Chi tiết: mục "Kế hoạch sản xuất chặng 4 (D-034)" và "Thứ tự cắt khi sản xuất (D-034)" bên dưới. Các con số cũ giữ lại để đối chiếu.
 
+> **Cập nhật D-041 (2026-10-15, Đồng Lầy):** thêm khu thứ 4 + thửa ruộng lớn (§3.4a): T-100 (M, art), T-101 (M), T-102 (L), T-103 (M), âm thanh nhỏ trong T-060 / T-061 → **+≈ 19 giờ (16–24)**, hình **+≈ 2,8 USD** (~3,2 có dự phòng, Lô 3; kế hoạch hình sau D-040 + D-041 ≈ 95,6 USD có dự phòng, vượt trần 85 trên giấy — chờ người dùng chọn nâng trần hay cắt). Chặng 4: **≈ 357–484 giờ, mốc ≈ 419 giờ, 86 task** → 24–32 tuần, **mốc kế hoạch ~05/05/2027** (sau D-040 là ~26/04). Đợt E thành "Núi + hồ câu + đồng".
+>
+> **Cập nhật D-040 (2026-10-15, Xóm 72×50 + khuôn viên + chợ phiên + đình có người):** thêm T-097 (M), T-098 (L), T-099 (M); T-037 S→M, T-038 M→L, T-032 / T-033 / T-035 / T-040 nặng hơn trong cùng size → **+≈ 25 giờ (21–31)**, hình **+≈ 6,5 USD** (~7,4 có dự phòng; bù bằng phần Lô 1 tiêu dưới ước ~5,6 USD — asset list §1). Chặng 4 (đã gồm D-037, D-038): **≈ 341–460 giờ, mốc ≈ 400 giờ, 82 task** → 23–31 tuần với 15 giờ/tuần, **mốc kế hoạch ~26/04/2027** (trước ~14/04). Đợt C: 82,5 → ~107 giờ.
+
 Ước lượng (cũ, trước D-034): **khoảng 17–21 tuần với 15 giờ/tuần** (D-019 + D-021), tính từ đầu chặng 3 (9/10/2026). Tổng khối lượng: khoảng **258–320 giờ** (D-019 là 230–280 giờ; D-021 Xóm làng thêm 25–32 giờ cho phần Must; D-027 Xóm theo phác thảo người dùng + bỏ Suối thêm ròng 3–8 giờ) (trước đây ghi 27–35 tuần với 6–10 giờ/tuần, gồm D-015: +2–3 tuần; D-017 meme Must: +1,5–2 tuần). Độ khó 3–4/5. Bản 1.1 (nhiều vợ) thêm khoảng 1–2 tuần sau đó.
 
 ### Lộ trình ngắn (15 giờ/tuần — D-019)
@@ -1347,9 +1530,9 @@ Không có cho bản đầu tay (giả định). Chơi miễn phí trên web, kh
 | A Nền móng | Test e2e ổn định (BUG-006) + bộ smoke | T-018 | 3,5 | — |
 | B Vườn thật | Lô 1 hình (đất, cây, nhà {ten}, quầy hạt, cây nhãn, rào, giao diện HUD) + tiếng; **cảnh trong nhà** (T-093); juice hái / bán / tổng kết | T-019 … T-027, T-091 … T-093 | 56 | 2 (phần thưởng nhạt) |
 | B2 Mục tiêu sớm | Save v2 + bảng Thử, level, nhiệm vụ + hướng dẫn ngày 1 (người dùng chọn chen trước Xóm) | T-041 … T-043 | 17,5 | 1 (mục tiêu) |
-| C Xóm + NPC | Lô 2 (kể cả {ten} bậc 2); bản đồ Xóm 60×42; hệ NPC, lịch giờ, quầy cô Tám, **kỳ kèo (T-095, D-037)**, dân làng phụ | T-028 … T-040, T-065, T-095 | 82,5 | 4 (thế giới trống) |
+| C Xóm + NPC | Lô 2 (kể cả {ten} bậc 2); bản đồ Xóm **72×50 + khuôn viên từng nhà, vườn NPC (D-040)**; hệ NPC, lịch giờ, quầy cô Tám, **kỳ kèo (T-095, D-037)**, dân làng phụ + **NPC đình**, **chợ phiên (T-097, T-098)** | T-028 … T-040, T-065, T-095, T-097 … T-099 | ~~82,5~~ **~107** | 4 (thế giới trống) |
 | D Mục tiêu | Ruộng mở rộng, 5 cây, mưa, gùi kéo thả, bếp, nông cụ + độ bền, chế đồ, chửi thề; **T-052 mốc giữa chặng (PT-002)** | T-044 … T-052 | 31 | 1, 3 (lựa chọn) — kiểm ở T-052 |
-| E Núi + hồ câu | Chuyển khu, Núi, hái lượm / chặt, câu cá, bắn nỏ, Lô 3a/3b | T-053 … T-061 | 43,5 | — |
+| E Núi + hồ câu + đồng | Chuyển khu, Núi, hái lượm / chặt, câu cá, bắn nỏ, Lô 3a/3b; **Đồng Lầy + thửa ruộng lớn (D-041)** | T-053 … T-061, T-100 … T-103 | ~~43,5~~ **~62,5** | 1, 3 (mục tiêu dài, lựa chọn) |
 | F Chợ + cưới | Làng Sung, sạp bà Cân, bậc 3–4, sắm sửa, mặc cả, nhiệm vụ 5–9, cảnh cưới | T-062 … T-071 (trừ T-065) | 49 | — |
 | G Gia đình | Vợ tưới, tiền cơm, con, chuồng, sự kiện | T-072 … T-076 | 17,5 | — |
 | H Meme + menu | Meme, menu, intro + đặt tên, cài đặt, Lô 4, âm thanh Lô 3b + Lô 4 / cân mix | T-077 … T-086, T-094 | 49 | — |
@@ -1426,8 +1609,9 @@ Tổng ≈ 363 giờ (310–416); **sau D-037 (kỳ kèo, +T-095 và phần nh�
 
 - **Must (bản đầu phải có):**
   - 3 khu là **bản đồ Tilemap lớn hơn màn hình, camera đi theo, nối nhau bằng cổng / đường mòn** (§5; D-027 bỏ Suối):
-    - **Xóm làng Lầy** 60×42 (D-021, D-027): cây mùa nắng và mùa mưa (5 loại), 11 nhà hàng xóm kiểu Bắc Bộ (quầy hạt cô Tám Thóc, lò rèn ông Hai Bễ, xưởng mộc chú Đục), giếng, chợ cóc đầu xóm (trang trí), **hồ làng câu cá từ Lv 4** (2 bến câu), cây đa, đình.
+    - **Xóm làng Lầy** 72×50 (D-021, D-027, D-040): cây mùa nắng và mùa mưa (5 loại), 11 nhà hàng xóm kiểu Bắc Bộ, **mỗi nhà một khuôn viên rào/tường + cổng, 5 nhà có vườn trang trí đổi theo mùa** (quầy hạt cô Tám Thóc, lò rèn ông Hai Bễ, xưởng mộc chú Đục), giếng, **chợ phiên Lầy** (mỗi 3 ngày, 4 gian bán thật — §3.9b), **hồ làng câu cá từ Lv 4** (2 bến câu), cây đa, đình có cụ Từ + hai cụ cờ.
     - Núi sau nhà: hái lượm, chặt củi, săn gà bằng nỏ.
+    - **Đồng Lầy** 40×28 (D-041, §3.4a): 6 thửa ruộng lớn, thuê theo vụ từ Lv 5, mua đứt từ Lv 8; cày / cấy / gặt cả thửa một lần, lúa tẻ (nắng) + lúa nếp (mưa), không tưới; ông Sào, bù nhìn "thằng Rơm". (Should: cò bay, trâu Ì cày nhanh, U nấu cơm bằng lúa nhà.)
     - Chợ làng Sung: bán giá cao, lễ vật, nhà bố vợ.
   - Bản web (Chrome/Edge/Firefox máy tính): WASD + chuột, hotbar 9 ô, cửa sổ túi đồ, co theo cửa sổ + nút toàn màn hình (§4, §11).
   - **Tài khoản và cloud save** (D-011, D-029): **bắt buộc đăng nhập**; đăng ký/đăng nhập email + mật khẩu, đăng nhập Google, đăng nhập Facebook, đăng xuất, xóa tài khoản; 1 save/tài khoản trên server + bản đệm trên máy khi mất mạng; trang quyền riêng tư (§5, §12).
@@ -1443,7 +1627,9 @@ Tổng ≈ 363 giờ (310–416); **sau D-037 (kỳ kèo, +T-095 và phần nh�
   - **4 bậc ngoại hình** (D-015, §3.14): sprite {ten} đi + làm việc 4 hướng cho bậc 1–3; **bậc 4 chỉ đi / đứng, làm việc mượn khung bậc 3** (mục cắt 0b(d) áp dụng sẵn — D-034), tab Sắm sửa, danh hiệu HUD theo bậc, giảm giá/mặc cả nhẹ, hiệu ứng "lột xác", câu làng gọi theo bậc.
   - Khoảng 5 NPC có thoại lầy: thợ mộc, thợ rèn, bà mối, bố vợ, cô dâu.
   - **"Kỳ kèo" — mặc cả nhẹ khi mua** (D-037, §3.9a): ở quầy cô Tám, lò rèn ông Hai Bễ, xưởng mộc chú Đục; 1 lần/quầy/ngày, chọn 1 trong 3 câu, bớt 5–15% một lần trả tiền hoặc bị cà khịa / phản tác dụng nhẹ. ("Làng đồn" về vụ kỳ kèo đi theo "Làng đồn" — Should.)
-  - **Dân làng sống động — phần Must** (D-021, §3.16): NPC chính ở Xóm đứng đúng chỗ theo 4 khung giờ (đổi chỗ bằng mờ), cửa hàng mở 6–19h, **U Hến và ông Gật có sprite trên bản đồ**; **5 dân làng phụ** (bà Chém, ông Khướt, cô Ngóng, anh Tráng, trẻ trâu Sún–Hĩm–Cò) đứng/hoạt ảnh tại chỗ, F/click để nói **bong bóng** 2–4 câu có điều kiện (theo giờ, level, bậc ngoại hình).
+  - **Dân làng sống động — phần Must** (D-021, §3.16): NPC chính ở Xóm đứng đúng chỗ theo 4 khung giờ (đổi chỗ bằng mờ), cửa hàng mở 6–19h, **U Hến và ông Gật có sprite trên bản đồ**; **5 dân làng phụ** (bà Chém, ông Khướt, cô Ngóng, anh Tráng, trẻ trâu Sún–Hĩm–Cò) **+ NPC đình (D-040): cụ Từ Nhang, cụ Hoàn + cụ Chiếu** đứng/hoạt ảnh tại chỗ, F/click để nói **bong bóng** 2–4 câu có điều kiện (theo giờ, level, bậc ngoại hình).
+  - **Chợ phiên Lầy (D-040, §3.9b)**: họp ngày 3, 6, 9…, 6–12h; 4 gian bán thật (bà Chém quà bánh + chè, cô Lanh thu mua ×1,15, bà Xén hàng xén, chị Cục Tác gà vịt), băng chữ + icon báo phiên; ngày thường chỉ quán chè.
+  - **Khuôn viên từng nhà + vườn trang trí (D-040, §5)**; vào được sân hàng xóm, không vào nhà.
   - 1 cô dâu + màn mặc cả sính lễ + cảnh cưới; sau cưới vợ giúp tưới. Cô dâu và bố vợ nằm trong dữ liệu `BrideData` để bản 1.1 thêm vợ dễ (§3.13).
   - **Gia đình và tiêu sản** (§3.11): con (2 độ tuổi), gà, lợn, chuồng, tiền cơm trừ cuối ngày, ngày "ăn cháo" khi thiếu tiền, 4 sự kiện gia đình Must.
   - **Nhân vật chửi thề** bằng bong bóng thoại, luôn bật, không che (§3.12).
@@ -1459,9 +1645,10 @@ Tổng ≈ 363 giờ (310–416); **sau D-037 (kỳ kèo, +T-095 và phần nh�
   - Cỡ giao diện 90/100/125% (§11).
   - ~~Chơi thử bằng tài khoản khách; quên mật khẩu qua email~~ → chuyển xuống **Để sau** (D-029).
   - **5 meme nhái Should** (§3.15): ổn mà, chọn / không chọn, cụ Bá Kẹo cười giấu đau, đỉnh nóc kịch trần, vỗ tay chậm "khá khen".
+  - **Xóm — phần Should mới (D-040)**: ông Mõ rao phiên chợ / rao mùa; cụ Từ "xem ngày" báo mai mưa/nắng; gian ông Vung (nồi niêu) + ông Lái Giống (hạt hạ giá); người đi chợ trang trí ngày phiên.
   - **Dân làng — phần Should** (D-021, §3.16): dân làng tự nói khi đi ngang (bark); NPC đi bộ theo đường đặt sẵn khi đổi giờ, trẻ trâu chạy vòng; chào hỏi mỗi ngày +1 tiếng tăm (tối đa 5/ngày); câu chê của dân làng kích hoạt meme "trừ sĩ diện".
 - **Could (có thì vui):**
-  - **Dân làng — phần Could** (D-021): tặng quà một chạm (1 câu phản ứng + 2 tiếng tăm, không thanh thân thiện); bà Chém bán bát chè xanh hồi Sức; ông Mõ gõ mõ rao ngày đầu mùa; mèo Mướp ngồi trên mái nhà ông Gật; dân làng trú mưa.
+  - **Dân làng — phần Could** (D-021): tặng quà một chạm (1 câu phản ứng + 2 tiếng tăm, không thanh thân thiện); ~~bà Chém bán bát chè xanh hồi Sức~~ (lên Must cùng chợ phiên, D-040); ~~ông Mõ gõ mõ rao ngày đầu mùa~~ (lên Should, D-040); mèo Mướp ngồi trên mái nhà ông Gật; dân làng trú mưa.
   - Liên kết thêm Google/Facebook vào tài khoản email bằng tay; đổi email. (Xác minh email → Để sau, D-029.)
   - Nấu món ăn từ nhiều nguyên liệu.
   - Nhiệm vụ hằng ngày lặp lại.
@@ -1499,9 +1686,11 @@ Tổng ≈ 363 giờ (310–416); **sau D-037 (kỳ kèo, +T-095 và phần nh�
 | C2 | Bậc ngoại hình rút gọn (mục 0b): **(d) bậc 4 chỉ đi / đứng đã áp dụng sẵn (D-034)**; còn lại: gộp 3 bậc, bỏ bậc 2 | T-065 bỏ, T-066 thu nhỏ | 4–7 giờ, ~4–5 USD |
 | C3 | Gia đình rút gọn: 2 sự kiện, con 1 độ tuổi, bỏ lợn (mục 1–3) | T-074, T-075, T-076 thu nhỏ; T-072 bớt ảnh | 4–6 giờ |
 | C4 | Xóm rút gọn: dân làng phụ còn 3, lịch 2 khung (mục 0d c, d) | T-031, T-038 thu nhỏ; T-035 đơn giản hơn | 4–5 giờ |
+| C4a | Xóm D-040 rút gọn, cắt dần: (a) bỏ ông Vung, ông Lái Giống, ông Mõ, người đi chợ; (b) bỏ cụ Từ "xem ngày" + hai cụ cờ (đình chỉ còn anh Tráng); (c) vườn NPC không đổi theo mùa; (d) **chợ phiên chỉ là cảnh** (người bán đứng bong bóng, không bán — phương án B), giữ bát chè bà Chém; (e) thu bản đồ về 66×46 | T-097 bớt ảnh; T-098 còn M (d); T-099 còn S (c) | (a) 2–3 giờ, ~1,6 USD · (b) 2 giờ, ~1,2 USD · (c) 1 giờ · (d) 4–5 giờ · (e) 1–2 giờ |
 | C4b | Kỳ kèo rút gọn (D-037): chỉ quầy cô Tám, bỏ ở 2 thợ; bỏ "Làng đồn" vụ kỳ kèo | T-050 bỏ phần kỳ kèo; T-095 không đổi | 1–2 giờ |
 | C5 | Bỏ độ bền nông cụ (mục 4) | T-049 còn S; T-050 bỏ tab Sửa | 2–3 giờ |
 | C6 | Bỏ bắn nỏ; nhiệm vụ 8 → "bán 20 bó củi" (mục 5) | Bỏ T-059; T-057, T-089 thu nhỏ | 9–10 giờ |
+| C6b | Đồng Lầy rút gọn (D-041), cắt dần: (a) bỏ Should (cò, trâu cày, cơm từ lúa nhà); (b) chỉ thuê, bỏ mua đứt; (c) bỏ hẳn khu Đồng — mở rộng ruộng nhà thêm 2 nấc (24 → 30 ô) thay vào | (a) T-103 nhẹ hơn · (b) T-102 bớt ~1 giờ · (c) bỏ T-100 … T-103 | (a) 1–2 giờ · (b) 1 giờ · (c) ~17 giờ, ~2,8 USD |
 | C7 | Bỏ mùa mưa riêng, chỉ giữ ngày mưa ngẫu nhiên (mục 6) | T-045, T-046 thu nhỏ | 2 giờ |
 | C8 | Gộp thợ mộc + thợ rèn (mục 7) | T-028, T-030 bớt ảnh; T-050 một cửa hàng | 2–3 giờ |
 | C9 | Thu nhỏ Núi + làng Sung còn ~34×20 (mục 8) | T-053, T-054, T-062, T-063 nhẹ hơn | 4–6 giờ |
@@ -1564,3 +1753,5 @@ Tổng ≈ 363 giờ (310–416); **sau D-037 (kỳ kèo, +T-095 và phần nh�
 - 2026-10-14 — D-038 bổ sung (góp ý người dùng sau khi thử T-096): **việc ruộng phải đứng sát ô** — §3.3 thêm mục, 3 dòng tham số (`farmWorkRange` 1.2, `farmStand*`), sửa ý nghĩa `interactRange`, §4 dòng chuột trái.
 - 2026-10-14 — D-038: v0.17, **click đâu đi đó + tự tìm đường** (người dùng chọn, chuẩn bị bản điện thoại): §3.3 thêm mục "Click đâu đi đó" + 5 tham số (`clickMoveMarkerSeconds`, `pathMaxNodes`, `clickMoveBlockedSearchRadius`, `clickMoveReachMargin`, `clickMoveStuckSeconds` / `clickMoveMaxReplans`); §4 bảng phím (chuột trái / chạm, WASD huỷ đường) + ghi chú bản điện thoại (không cần điều khiển ảo, danh sách chỗ còn phụ thuộc bàn phím). Task T-096.
 - 2026-10-14 — D-037: v0.16. Người dùng thử Vườn có hình thật, góp ý "sạp hạt không có người bán, muốn giao tiếp hài khi mua sắm". (1) **Giữ kế hoạch**: người bán + thoại lầy vẫn ở đợt C (T-034, T-036, T-037). (2) Thêm **§3.9a "Kỳ kèo"** — mặc cả nhẹ khi mua ở quầy cô Tám, lò rèn, xưởng mộc: 1 lần/quầy/ngày, 3 kiểu nói (nịnh / kể khổ / khoác lác), mỗi NPC ăn một kiểu theo tính cách, thành công bớt 5–15% một lần trả tiền, thất bại bị cà khịa (+ meme trừ sĩ diện), phản tác dụng +10% (tối đa 20 quan) hoặc cô Tám đồn; level cao dễ được; trần 20% / 40 quan; bảng so với mặc cả sính lễ; bảng tham số `kyKeo*`. Sửa §3.8 (bỏ "mặc cả với thợ: Để sau"), §4 phím K, §8 juice 3 dòng, §11 cửa sổ cửa hàng, §14 Must (thêm), Could (gạch dòng mặc cả với thợ), bảng đợt C (+T-095, 82,5 giờ), tổng ≈ 368 giờ / 78 task, mục cắt C4b.
+- 2026-10-15 — D-040: v0.18, **Xóm 72×50, khuôn viên từng nhà, chợ phiên, đình có người** (người dùng chưa hài lòng concept Xóm, chọn cả 4 đề xuất). §3.9: chợ cóc → **chợ phiên Lầy**; thêm **§3.9b** (họp ngày 3, 6, 9…, 6–12h; 4 gian Must + 2 Should; thu mua ×1,15 trần 200 quan; không kỳ kèo; tham số `marketDay*`, `marketOpenHour/CloseHour`, `phien*`). §3.16: bảng 3 lớp NPC thêm người bán chợ phiên + NPC đình; lịch thêm cụ Từ, hai cụ cờ, ông Mõ, người bán, người đi chợ; mục ngày phiên, vườn NPC, sân hàng xóm; `villageMapSize` 72,50; `weatherHintFromTempleKeeper`. §5: sơ đồ + bảng tọa độ 72×50, mục mới **"Khuôn viên từng nhà"** (luật cổng lệch / thụt / ngõ chung, quy ước nghèo / khá / công / bỏ hoang, vườn 5 nhà theo mùa), lối đi đổi tọa độ, ghi chú bảng cụm thực vật (đặt lại ở T-032), "Ai ở nhà nào" thêm ranh giới / cổng / vườn, thời gian đi bộ tính lại. §14: ghi chú D-040 (+25 giờ, mốc ~26/04/2027), đợt C ~107 giờ, Must / Should / Could, mục cắt C4a.
+- 2026-10-15 — D-041: v0.19, **Đồng Lầy** (người dùng chọn "thêm cánh đồng ngoài lũy tre"; ruộng nhà giữ 24 ô). Thêm **§3.4a** (thửa 3×3 làm như một ô lớn: cày / cấy / gặt một lần, không tưới; lúa tẻ nắng + lúa nếp mưa, 4 ngày; thuê theo vụ Lv 5, mua đứt Lv 8, số thửa theo level 2/4/6; ông Sào, bù nhìn "thằng Rơm"; gặt có juice; Should trâu cày, cò; Để sau làm công, chim, hội mùa; bảng `field*`). §2 bảng level (5, 7, 8, 9, 11+). §5: khu thứ 4 (bảng khu, mermaid, cổng đông Xóm x 70–71 y 14–15, thời gian đi bộ, bảng bố cục Đồng 40×28). §14: ghi chú D-041 (+19 giờ, mốc ~05/05/2027), đợt E ~62,5 giờ, Must, mục cắt C6b. Cùng ngày: concept **ART-CON-002 được duyệt** làm ảnh chuẩn Xóm (§5); đình đổi thành sân trước mặt nam + cổng nam + lối vòng theo concept.

@@ -1,6 +1,6 @@
 # Story Bible — Bride Price Hustle
 
-> Phụ đề: *Làng Lầy Cưới Vợ* · Chủ sở hữu: `game-planner` (vai Narrative Designer) · Phiên bản: v1.4 (bước 1.3, D-010; bậc ngoại hình D-015; meme nhái D-017; Xóm làng Lầy + dân làng D-021; bố cục Xóm theo phác thảo người dùng, bỏ Suối, đổi tên cô Tám Thóc / ông Hai Bễ D-027)
+> Phụ đề: *Làng Lầy Cưới Vợ* · Chủ sở hữu: `game-planner` (vai Narrative Designer) · Phiên bản: v1.7 (bước 1.3, D-010; bậc ngoại hình D-015; meme nhái D-017; Xóm làng Lầy + dân làng D-021; bố cục Xóm theo phác thảo người dùng, bỏ Suối, đổi tên cô Tám Thóc / ông Hai Bễ D-027; kỳ kèo D-037; Xóm 72×50 + chợ phiên + đình D-040; Đồng Lầy D-041)
 >
 > Đọc kèm: [GDD](GDD.md) (cơ chế, số liệu). File này lo **thế giới, nhân vật, thoại**. Khi hai file lệch nhau: số liệu theo GDD, lời thoại và tên riêng theo file này.
 
@@ -69,24 +69,28 @@ Bên kia đường làng là **làng Sung** (sung túc): giàu hơn, tường g�
 - **Mùa nắng / mùa mưa**: đất Lầy mưa là ngập, nên có rau muống, lúa nếp; nắng thì cải, dưa hấu.
 - **Không ai cho không**: thợ nào cũng chê khó, cụ Bá Kẹo đòi sính lễ, ăn cơm phải mua gạo.
 
-### 2.2 Ba khu (mô tả những gì thấy trên màn hình — cho `art-director`)
+### 2.2 Các khu (mô tả những gì thấy trên màn hình — cho `art-director`; D-041 thêm Đồng Lầy)
 
 Góc nhìn từ trên xuống, hơi nghiêng (GDD §4). Màu chung: xanh lá mạ, vàng rơm, nâu đất, đỏ gạch cho làng Sung. Khu Suối đã bỏ (D-027): câu cá ở **hồ làng** trong Xóm.
 
-**Xóm làng Lầy** (khu trung tâm, 60 × 42 ô — D-021, bố cục theo phác thảo người dùng D-027: `docs/design/sketches/xom-layout-nguoi-dung-2026-10-13.png`. Prototype chặng 3 vẫn chỉ là Vườn 48 × 32. Sơ đồ, tọa độ, "ai ở nhà nào": GDD §5)
+**Xóm làng Lầy** (khu trung tâm, **72 × 50 ô** — D-021, bố cục theo phác thảo người dùng D-027, mở rộng D-040: `docs/design/sketches/xom-layout-nguoi-dung-2026-10-13.png`. Prototype chặng 3 vẫn chỉ là Vườn 48 × 32. Sơ đồ, tọa độ, "ai ở nhà nào", khuôn viên: GDD §5)
 
 Cảm giác cần có: **nhà {ten} là một nóc nhà trong xóm Bắc Bộ**, không phải trang trại giữa đồng. Ra khỏi cổng ngõ là thấy khói bếp nhà bên, nghe tiếng búa lò rèn, thấy lũ trẻ chạy quanh giếng, ông say ngủ gốc đa bên hồ. Xóm bao bởi **lũy tre** xanh dày; trong xóm là đường đất nâu, ngõ hẹp, bờ rào dâm bụt và rào tre thấp, bụi cây xanh mướt, vài **cây nhãn** tán tròn cho bóng mát. Cây cối **hiền, thân thiện** (tán tròn, rễ mềm, không gai góc, không u ám).
 
 **Kiến trúc Bắc Bộ (Giả định chung cho art):** nhà quay mặt về nam; nhà 2–3 gian, hiên trước có cột (tre hoặc gỗ), bậc thềm thấp; **cổng ngõ có mái** (trụ gạch, mái ngói nhỏ) hoặc cổng tre đơn; sân đất hoặc gạch bát trước nhà; chum vại, đống rơm, giàn mướp. Làng Lầy phần lớn **mái rạ, vách đất** vàng xám; vài nhà **mái ngói cũ, tường gạch mộc** rêu phong (cô Tám Thóc, ông Gật, bà Ba Trầu). Làng Sung thì "ngói mới, gạch đỏ" — khác hẳn để thấy giàu nghèo.
 
-- **Bố cục**: góc tây-bắc là **khuôn viên nhà {ten}** (nhà + ruộng chung một bờ rào). Hàng trên: nhà ông Gật, nhà cô Tám Thóc, **giếng**, **chợ cóc đầu xóm** (góc đông-bắc). **Đường xóm** chạy ngang. Giữa xóm là **lưới 8 nhà** (2 hàng × 4) chia bởi ngõ. Cột trái dưới nhà {ten} là nhà cô Ngóng. **Đường cái** chạy ngang phía nam; bên kia đường là **hồ làng** (tây-nam, rộng gần nửa bản đồ), **cây đa** bên bờ hồ, **đình làng** (đông-nam) — bộ "cây đa, bến nước, sân đình".
+**Khuôn viên — "nhà nào ra nhà nấy" (D-040):** mỗi nhà là một khoảnh đất khép kín, nhìn ranh giới là biết giàu nghèo. Nhà nghèo: **rào tre đan** thấp, hàng dâm bụt, cổng tre / phên liếp. Nhà khá: **tường đất** hoặc **gạch mộc** thấp rêu phong ở mặt trước, chè tàu cắt bằng hai bên, **cổng ngõ có mái** ngói nhỏ. Đình: tường gạch thấp, cổng hai trụ biểu. Cổng không bao giờ nhìn thẳng cửa nhà (lệch sang một bên), thụt vào một chút so với hàng rào. Vài nhà sát nhau **chung một ngõ nhỏ**, hai cổng mở đối nhau. {ten} vào sân nhà ai cũng được — làng Lầy không ai đóng cổng ban ngày — nhưng không vào nhà.
+
+**Vườn cạnh nhà (D-040):** cô Ngóng có luống rau + giàn mướp; ông Gật có luống rau (bị gà nhà mổ dở) + chuồng gà; bà Chém có **nương chè** xanh (chè ở quán là chè nhà); anh Tráng có **thửa lúa** nhỏ (mùa mưa mạ xanh, mùa nắng gốc rạ + đống rơm); bà Ba Trầu có **giàn trầu + hàng cau** (bà mối mà không có trầu cau thì mất nghề). Vườn đổi theo mùa, chỉ để ngắm.
+
+- **Bố cục**: góc tây-bắc là **khuôn viên nhà {ten}** (nhà + ruộng chung một bờ rào). Hàng trên: nhà ông Gật, nhà cô Tám Thóc (hai nhà chung ngõ), **giếng**, **chợ phiên Lầy** (góc đông-bắc). **Đường xóm** chạy ngang. Giữa xóm là **lưới 8 nhà** (2 hàng × 4) chia bởi ngõ. Cột trái dưới nhà {ten} là nhà cô Ngóng. **Đường cái** chạy ngang phía nam; bên kia đường là **hồ làng** (tây-nam, rộng gần nửa bản đồ), **cây đa** bên bờ hồ, **đình làng** (đông-nam) — bộ "cây đa, bến nước, sân đình".
 - **Nhà {ten}**: túp nhà tranh nhỏ, mái rạ xơ xác, vách đất có chỗ nứt, cửa liếp tre. Hiên trước có chõng tre. Trong nhà: giường tre, **bếp rơm** (3 hòn đầu rau, ám khói) — sau nâng cấp thành **bếp gạch** đỏ có ống khói; hũ gạo, rương gỗ. Sau cưới có thêm chuồng tre ở góc vườn. Một **cây nhãn** già góc vườn.
 - **Ruộng** (cùng khuôn viên): 3×3 ô lúc đầu, xung quanh là đất đầy cỏ dại; các ô mở rộng có cọc rào tre cắm sẵn. Thùng bán là **cái thúng tre có nắp** đặt cạnh cổng ngõ. Bờ rào dâm bụt đỏ.
 - **Nhà cô Ngóng** (ngay dưới khuôn viên nhà {ten}): nhà mái rạ, vườn rau, giàn mướp. Rào tre thấp chỉ cao tới ngực giáp ruộng {ten}, nên sáng nào cũng thấy đầu cô nhô lên nhìn sang.
 - **Nhà ông Gật** (bên kia ngõ, phía đông): nhà ngói cũ thấp, chuồng gà tre; gà Mái Mơ băng qua ngõ sang mổ rau. (Could: mèo Mướp ngồi trên nóc nhà ông.)
 - **Nhà cô Tám Thóc**: nhà ngói cũ, **quầy hạt ở hiên** — chõng tre bày thúng hạt, biển gỗ vẽ hạt (không cần chữ đọc được). Cạnh giếng nên ai gánh nước cũng ghé.
 - **Giếng làng**: giếng tròn thành gạch, gáo dừa buộc dây, giữa bãi đất trống — chỗ U và cô Ngóng gánh nước buổi chiều, trẻ trâu chạy vòng.
-- **Chợ cóc đầu xóm** (chỉ để ngắm — **không phải** chợ làng Sung): 2 lều tranh nhỏ, vài sạp tre bày hàng tĩnh (rổ rau, buồng chuối, gà trong lồng), không người bán, không mua bán. Góc chợ là **quán chè bà Chém**: mái lá nhỏ, chõng tre, ghế đẩu, ấm tích ủ trong giỏ, lọ kẹo lạc. Buổi tối đông nhất xóm (cô Tám Thóc, ông Hai Bễ, ông Khướt tụ về).
+- **Chợ phiên Lầy** (D-040, thay "chợ cóc đầu xóm"; **không phải** chợ làng Sung — chợ Sung vẫn là chợ lớn): bãi đất nện với 2 lều tranh và 5 gian tre (sạp có mái nhỏ). Họp **mỗi 3 ngày, buổi sáng** như chợ phiên ngày xưa: người bán từ xóm ngoài gánh hàng tới, người đi chợ đội nón, xách giỏ, gà kêu trong lồng, khói bánh. **Trưa là tan**, chỉ còn sạp trống và lá chuối vương vãi. Gian hàng: thu mua nông sản (cô Lanh, bàn tính kẹp nách), hàng xén (bà Xén, hòm gương lược), gà vịt (chị Cục Tác, lồng gà trên đầu), nồi niêu (ông Vung, đội vung nồi), hạt hạ giá (ông Lái Giống, hai thúng hạt). Góc chợ là **quán chè bà Chém**: mái lá nhỏ, chõng tre, ghế đẩu, ấm tích ủ trong giỏ, lọ kẹo lạc — mở mọi ngày, ngày phiên bà gánh thêm bánh đúc. Buổi tối đông nhất xóm (cô Tám Thóc, ông Hai Bễ, ông Khướt tụ về). Hôm trước phiên, ông Mõ đứng cổng đình gõ mõ rao.
 - **Lò rèn ông Hai Bễ** (hàng nhà giữa, gần nhà {ten} nhất): lều mái ngói vỡ, đe sắt, lò than đỏ, ống bễ da, khói đen bốc lên.
 - **Xưởng mộc chú Đục** (cạnh lò rèn): lán tre chất gỗ, ngựa cưa, phoi bào trên đất.
 - **Nhà các dân làng** (trang trí, không vào được — "ai ở nhà nào" ở GDD §5): nhà ông Khướt (**cửa cài then, cái chổi dựng ngoài cửa** — bà Khướt không cho ông vào; click cửa: giọng bà Khướt "Ngủ ngoài đa đi!" / "Còn mùi rượu là đừng gõ!"), nhà bà Chém (ấm tích phơi trên tường rào), nhà Cu Sún (đống rơm, ngựa rơm dựng cổng), nhà anh Tráng (cọc gỗ tập võ, đòn gánh dựng hiên), nhà bà Ba Trầu (chậu trầu ở cổng). Khói bếp bốc lên buổi sáng và buổi tối.
@@ -94,12 +98,19 @@ Cảm giác cần có: **nhà {ten} là một nóc nhà trong xóm Bắc Bộ**,
 - Cổng ra **2 hướng**: **bắc** sau nhà lên núi (lúc đầu có **thân cây đổ** chắn), **tây** cuối đường cái sang làng Sung (lúc đầu **rào tre + biển gỗ "đường đang sửa"**). Mỗi cổng có biển "Lv N". Mép đông là lũy tre kín.
 - **Hồ làng** (tây-nam): mặt nước rộng xanh rêu, bèo tấm, vài khóm sen, lau sậy ven bờ. Có **2 bến câu** bằng tre nhô ra mặt hồ và **1 bến nước** bậc gạch (kiểu cầu ao Bắc Bộ, trẻ trâu tắm buổi chiều). Trước Lv 4 hai bến câu **gãy sập một nửa**, chăng dây, cắm **biển gỗ "Bến gãy — cấm câu"** (click mặt hồ: {ten} "Tiên sư cái bến!"). Nhiệm vụ 4: chú Đục sửa bến. Mùa mưa nước đục và dâng hơn (đổi màu nước — Should).
 - **Cây đa cổ thụ** bên bờ hồ, sát đường cái: tán rộng tròn, rễ buông mềm như rèm, gốc có **miếu nhỏ** (trang trí). Gốc đa là "giường" của **ông Khướt**; chiều ông Gật ra ngồi gật cạnh.
-- **Đình làng** (đông-nam): mái cong đầu đao, cột đỏ, **sân gạch** rộng phía trước (trang trí, không vào trong — là nơi xảy ra intro). Anh Tráng tập võ ở sân.
+- **Đình làng** (đông-nam): mái cong đầu đao, cột đỏ, **sân gạch** rộng phía trước, bao bởi tường gạch thấp có **cổng hai trụ biểu** (trang trí, không vào trong — là nơi xảy ra intro). Có người cả ngày (D-040): anh Tráng tập võ giữa sân; **cụ Từ Nhang** quét sân, ngủ gật ở hiên, tối thắp hương; **cụ Hoàn và cụ Chiếu** ngồi chiếu đánh cờ tướng ở hiên, cãi nhau suốt; tối trẻ trâu chạy quanh sân.
 
 **Núi sau nhà** (48 × 36 ô, mở Lv 2)
 - Đồi thấp, đường mòn đất đỏ ngoằn ngoèo, rừng tre và cây thấp. Bụi sim tím (mùa nắng), nấm hương dưới gốc cây mục, măng tre nhú (mùa mưa), cây khô để chặt củi, bụi tre dày.
 - **Bụi rậm gà rừng**: bụi cây tối màu, khi có gà thì rung lá + lông gà bay (GDD §3.7).
 - Chỗ cao có tảng đá phẳng nhìn xuống thấy mái làng Lầy (trang trí).
+
+**Đồng Lầy** (40 × 28 ô, mở Lv 5 — D-041; luật ở GDD §3.4a)
+- Ra **cổng đông** cuối đường xóm (sau chợ phiên) là cánh đồng chung của làng: đê đất chạy ngang, ruộng lúa thẳng tắp tới chân lũy tre xa, **mương nước** có **cầu tre** bắc qua. Mùa mưa ruộng ngập nước xanh mạ; mùa nắng lúa vàng rồi gốc rạ. Gió thổi lúa thành sóng.
+- **6 thửa** gần cổng là chỗ {ten} thuê / mua; còn lại là ruộng của làng. Thửa {ten} mua được cắm **cọc gỗ khắc tên** (khoe).
+- **Chòi canh** tre sàn cao, mái rạ, của **ông Sào**. Giữa ruộng làng có **bù nhìn "thằng Rơm"** — áo vá, nón lá rách lệch quai đỏ, **y hệt {ten} bậc 1** (làng bảo "dựng thằng Khoác ra đuổi chim, chim cười chết").
+- Góc đông có **đầm sen** nhỏ, **cò trắng** đứng một chân (Should: bay lên khi có người tới).
+- Lý do truyện vì sao Lv 5 mới mở: ông Sào không cho "thằng khoác lác" thuê ruộng làng — phải có tiếng tăm đã ("Ruộng làng không cho người nói phét cấy.").
 
 ~~**Suối**~~ — **bỏ (D-027)**: câu cá chuyển về hồ làng trong Xóm (xem trên).
 
@@ -393,7 +404,7 @@ Ngoại hình {ten} đổi khi **đủ level và tự bỏ tiền sắm bộ đ�
 ### 3.12 Gợi ý cô dâu 2–3 (bản 1.1 — chưa làm, chỉ để giữ chỗ trong `BrideData`)
 
 - **Cô Thơm** (vợ 2): con gái ông Lái Chép ở bến sông, nấu ăn ngon nhất vùng, nói ít mà câu nào cũng trúng. Điều kiện: **5 con cá chép** "để em biết anh câu thật hay mua". Bonus: nấu cơm sáng (+Sức).
-- **Cô Lanh** (vợ 3): cháu gái bà Cân, buôn bán tính nhẩm nhanh hơn bàn tính, coi mặc cả là trò chơi. Điều kiện: **nhà phải có trâu** "nhà không có trâu thì ai cày?". Bonus: đi chợ được giá (+giá bán).
+- **Cô Lanh** (vợ 3; từ D-040 đã có mặt ở gian thu mua chợ phiên Lầy — §3.13): cháu gái bà Cân, buôn bán tính nhẩm nhanh hơn bàn tính, coi mặc cả là trò chơi. Điều kiện: **nhà phải có trâu** "nhà không có trâu thì ai cày?". Bonus: đi chợ được giá (+giá bán).
 - Bố vợ 2–3 dùng lại sprite cụ Bá Kẹo đổi màu áo/râu (GDD §3.13). Cô Bưởi là vợ cả, **cầm chổi đứng cổng** mỗi lần {ten} đi mặc cả.
 
 ### 3.13 Dân làng phụ — Xóm làng Lầy (D-021, chặng 4)
@@ -406,18 +417,25 @@ Quy ước chung cho art: cùng tỉ lệ chibi, nét viền `#2E2118`, màu ch�
 
 | Ai | Ở đâu | Tính cách (3 từ) | Visual hook (nhận ra ở 32 px) | Mức |
 |---|---|---|---|---|
-| **Bà Chém** | Quán chè ở góc chợ cóc đầu xóm (D-027) | Chém gió, xởi lởi, nhớ nhầm | Khăn chàm buộc ngược thành **hai tai thỏ** trên đầu + **ấm tích to trong giỏ ủ** | Must (cắt được, mục 0d) |
+| **Bà Chém** | Quán chè ở góc chợ phiên Lầy (D-027, D-040) | Chém gió, xởi lởi, nhớ nhầm | Khăn chàm buộc ngược thành **hai tai thỏ** trên đầu + **ấm tích to trong giỏ ủ** | Must (cắt được, mục 0d) |
 | **Ông Khướt** | Nằm gốc đa bên hồ làng (cả ngày lẫn đêm — bà Khướt cài then cửa nhà) | Lè nhè, hiền khô, triết lý vớ vẩn | Nằm ngửa **gối đầu lên bầu rượu hồ lô**, một chân gác lên rễ đa, mũi hồng | Must |
 | **Cô Ngóng** | Sau rào tre nhà cô (giáp ruộng {ten}) / giếng | Tò mò, giả vờ vô tình, nhanh tai | **Đầu nhô qua rào + một tay khum sau tai**, rổ rau không bao giờ nhặt xong | Must |
 | **Anh Tráng** | Sân đình | Hiếu thắng, khoe cơ, tốt bụng (ngầm) | Cởi trần, **đai lưng vàng nghệ**, **xoay đòn gánh tre** trên đầu, tóc buộc túm ngược | Must (cắt được, mục 0d) |
 | **Trẻ trâu Sún–Hĩm–Cò** | Giếng / bến nước hồ làng / sân đình | Nghịch, nhanh chân, hay nhại | 3 đứa nhỏ xíu: **đầu để chỏm**, một đứa **cưỡi gậy tre đầu ngựa rơm** | Must |
-| Ông Mõ | Đi dọc đường cái, sáng ngày đầu mùa | Oai oai, rao to, hay quên | **Mõ tre to đeo trước ngực** + dùi gõ | Could |
+| Ông Mõ | Cổng đình chiều trước phiên; đầu chợ sáng phiên; đường cái sáng đầu mùa | Oai oai, rao to, hay quên | **Mõ tre to đeo trước ngực** + dùi gõ | **Should** (D-040) |
+| **Cụ Từ Nhang** (D-040) | Sân / hiên đình | Mê tín, lẩm cẩm, đoán trúng | **Bó hương to như bó đuốc** + chổi rễ, khăn xếp | Must |
+| **Cụ Hoàn + cụ Chiếu** (D-040, một cụm) | Chiếu cờ ở hiên đình | Hoàn: ăn gian, chối khéo · Chiếu: nóng nảy, hô to | Hai cụ ngồi đối nhau qua **bàn cờ tướng**: một cụ **râu dài vắt vai**, một cụ **trọc cầm quạt nan** | Must |
+| **Cô Lanh** (D-040) | Gian thu mua, chợ phiên | Tính nhanh, thẳng, trêu dai | **Bàn tính kẹp nách** (không bao giờ gảy) + khăn mỏ quạ xanh | Must |
+| **Bà Xén** (D-040) | Gian hàng xén, chợ phiên | Kỹ tính, kể lể, dỗi nhanh | **Hòm gỗ đeo trước ngực mở ra như cái tủ**, lủng lẳng gương lược | Must |
+| **Chị Cục Tác** (D-040) | Gian gà vịt, chợ phiên | Ồn, nhanh nhảu, mê gà | **Đội lồng gà tre trên đầu** thay nón, gà thò đầu ra | Must |
+| Ông Vung (D-040) | Gian nồi niêu, chợ phiên | Triết lý, mai mối, chậm rãi | **Đội vung nồi đất** làm nón | Should |
+| Ông Lái Giống (D-040) | Gian hạt hạ giá, chợ phiên | Lơ lớ giọng, nổ, hào phóng | **Đòn gánh hai thúng hạt** + nón cời rộng vành | Should |
 
 #### Bà Chém — bà bán nước chè
 
 | Mục | Nội dung |
 |---|---|
-| Vai trò gameplay | Không có luật. Chủ "trụ sở tin đồn" buổi tối (cô Tám Thóc, ông Hai Bễ tụ về quán bà). Could: bán bát chè xanh 2 quan, +5 Sức. Intro khung 2: ông Gật sặc **nước chè của bà**. |
+| Vai trò gameplay | Chủ "trụ sở tin đồn" buổi tối (cô Tám Thóc, ông Hai Bễ tụ về quán bà). **Must (D-040)**: bán bát chè xanh 2 quan, +5 Sức (mọi ngày); ngày phiên gánh thêm bánh đúc, kẹo lạc (GDD §3.9b). Chè hái từ nương chè nhà bà. Intro khung 2: ông Gật sặc **nước chè của bà**. |
 | Tính cách (3 từ) | **Chém gió, xởi lởi, nhớ nhầm** |
 | Mong muốn / nỗi sợ | Muốn: có người ngồi nghe hết chuyện. Sợ: quán vắng, khách bỏ sang nghe cô Tám Thóc. |
 | Visual hook | Khăn vuông chàm buộc ngược thành **hai tai thỏ** trên đỉnh đầu + **ấm tích sứ trong giỏ ủ tre** to bằng cái thúng; tay kia vung giữa trời như đang kể. |
@@ -508,17 +526,118 @@ Câu mẫu (đồng dao chọc):
 
 **Handoff cho Audio:** Tiếng cười khanh khách, bước chạy lạch bạch, một câu đồng dao huýt sáo 4 nốt (không thành lời) khi đi ngang. Mood: lít nhít, tinh nghịch.
 
-#### Ông Mõ — người rao mõ (Could)
+#### Ông Mõ — người rao mõ (Should — D-040, trước là Could)
 
 | Mục | Nội dung |
 |---|---|
-| Vai trò gameplay | Lý do trong truyện cho băng chữ đổi mùa (GDD §3.1): sáng ngày đầu mỗi mùa, ông đi dọc đường cái gõ mõ rao. Không có thì băng chữ vẫn hiện như cũ. |
+| Vai trò gameplay | Lý do trong truyện cho băng chữ đổi mùa (GDD §3.1) và **báo phiên chợ** (§3.9b): chiều hôm trước phiên đứng cổng đình rao "Mai phiên chợ!", sáng phiên đứng đầu chợ; sáng ngày đầu mỗi mùa đi đường cái rao mùa. Không có ông thì băng chữ vẫn hiện như cũ. |
 | Tính cách (3 từ) | **Oai oai, rao to, hay quên** |
 | Visual hook | **Mõ tre to đeo trước ngực** + dùi gõ, khăn xếp sờn. |
 
-Câu mẫu: "Cốc cốc! Mùa mưa tới rồi! Ai gieo cải thì… thôi, kệ!" · "Cốc cốc! Mùa nắng! Ai thấy dép tôi đâu không?"
+Câu mẫu: "Cốc cốc! Mùa mưa tới rồi! Ai gieo cải thì… thôi, kệ!" · "Cốc cốc! Mùa nắng! Ai thấy dép tôi đâu không?" · (chiều trước phiên) "Cốc cốc! Mai phiên chợ! Ai nợ tiền tôi thì mang theo!" · (sáng phiên) "Chợ họp rồi! Trưa tan! Tan thật đấy, đừng hỏi!"
 
 **Handoff cho Art:** Ông khoảng 60, gầy, khăn xếp nâu sờn (mô tả chống turban như cụ Bá Kẹo: vòng vải thấp, đỉnh phẳng, nếp ngang), áo cánh nâu, ống mõ tre to treo dây trước ngực, tay cầm dùi. Sprite đi 2 khung. **Handoff cho Audio:** mõ "cốc cốc" (đã có trong bộ gõ), giọng rao "lẩm bẩm" to, kéo dài.
+
+#### Cụ Từ Nhang — ông từ giữ đình (D-040)
+
+| Mục | Nội dung |
+|---|---|
+| Vai trò gameplay | Bong bóng. **Should**: câu "xem ngày" báo **đúng** thời tiết ngày mai (GDD `weatherHintFromTempleKeeper`) — lý do truyện cho một mẹo có ích: "đình thiêng". Tắt thì cụ chỉ nói câu vui. |
+| Tính cách (3 từ) | **Mê tín, lẩm cẩm, đoán trúng** (cái gì cũng xem ngày, mà trúng thật — chính cụ cũng ngạc nhiên) |
+| Mong muốn / nỗi sợ | Muốn: làng nghe lời cụ xem ngày. Sợ: hương tắt giữa chừng. |
+| Visual hook | **Bó hương to như bó đuốc** cầm một tay, khói bay ngoằn ngoèo; tay kia chổi rễ; khăn xếp, áo dài nâu the cũ. |
+
+Câu mẫu:
+1. (mai mưa) "Cụ xem rồi: mai trời đổ nước. Khỏi tưới. Ngủ thêm."
+2. (mai nắng) "Mai ngày hoàng đạo, nắng to. Tưới đi, đừng đổ tại cụ."
+3. "Hôm nay kỵ cuốc ô thứ tư. …Ô nào là ô thứ tư thì cụ không biết."
+4. (bậc 1) "Mặt anh này… số cưới vợ. Năm nào thì cụ chưa xem tới."
+
+**Handoff cho Art:** Ông khoảng 75, gầy còm, lưng hơi còng, râu bạc dài thưa, lông mày bạc rủ. Khăn xếp nâu thấp (mô tả chống turban như cụ Bá Kẹo: vòng vải thấp, đỉnh phẳng, nếp ngang). Áo dài the nâu sờn, quần trắng ngà. Tay phải giơ **bó hương to bằng cổ tay** (khói vẽ rõ, cuộn kiểu mây Đông Hồ), tay trái chổi rễ. Cần: sprite 2 khung (quét sân / giơ bó hương) + 1 khung ngồi gật (Should). Khác ông Mõ (mõ tre trước ngực) và ông Gật (ôm gà).
+
+**Handoff cho Audio:** Giọng "lẩm bẩm" run, chậm, kéo đuôi như khấn; tiếng chổi rễ "xoẹt xoẹt"; chuông đình nhỏ "boong" khi thắp hương tối. Mood: trầm, buồn cười.
+
+#### Cụ Hoàn và cụ Chiếu — hai cụ đánh cờ tướng (D-040)
+
+| Mục | Nội dung |
+|---|---|
+| Vai trò gameplay | Không có luật. **Một cụm NPC** (hai cụ + chiếu + bàn cờ): click → một trong hai cụ nói (xoay vòng), đôi khi cụ kia cãi lại bằng bong bóng thứ hai ngay sau. Có câu theo bậc ngoại hình. |
+| Tính cách (3 từ) | **Cụ Hoàn**: ăn gian, chối khéo, mặt dày · **Cụ Chiếu**: nóng nảy, hô to, thua dai |
+| Mong muốn / nỗi sợ | Hoàn: muốn được đi lại nước. Sợ: bị bắt bài. · Chiếu: muốn thắng một ván trọn vẹn. Sợ: cụ Hoàn đòi hoàn cờ. |
+| Visual hook | Ngồi xếp bằng đối nhau qua bàn cờ tướng gỗ. **Cụ Hoàn râu dài vắt qua vai**, tay giấu một quân cờ sau lưng. **Cụ Chiếu trọc đầu**, cầm **quạt nan** đập xuống bàn. |
+
+Câu mẫu:
+1. Cụ Chiếu: "CHIẾU TƯỚNG!" — Cụ Hoàn: "Hoàn! Tay tôi trượt."
+2. Cụ Hoàn: "Ván này hòa. Ván trước cũng hòa. Tôi chưa thua bao giờ."
+3. Cụ Chiếu: "Thằng {ten} đứng xem thì đứng im, đừng mách nước!"
+4. (bậc 3+) Cụ Hoàn: "Anh {ten} giàu thế, mua cho bộ cờ mới. Bộ này… thiếu con mã." (con mã đang nằm trong tay cụ)
+
+**Handoff cho Art:** Hai ông khoảng 70, cùng tỉ lệ chibi, ngồi xếp bằng trên chiếu cói đỏ sọc, giữa là bàn cờ tướng gỗ thấp có quân tròn. Cụ Hoàn: gầy, râu bạc dài vắt qua vai trái, khăn xếp đen, áo cánh trắng ngà, một tay giấu sau lưng. Cụ Chiếu: béo lùn, đầu trọc bóng, mặt đỏ, áo cánh nâu, tay giơ quạt nan. Cần: **một ảnh cụm** 2 khung (khung 1 đang nghĩ; khung 2 cụ Chiếu đập quạt, cụ Hoàn giật mình). Khung ~192×128.
+
+**Handoff cho Audio:** Quân cờ gỗ "cạch" lên bàn, quạt nan "bộp"; hai giọng "lẩm bẩm": Chiếu trầm to gắt, Hoàn mỏng, giả lả. Mood: cãi nhau vui.
+
+#### Người bán chợ phiên Lầy (D-040)
+
+Vai trò chung: chỉ có mặt **ngày phiên, 6–12h** (GDD §3.9b). Nói bằng bong bóng khi đi ngang / click; click lúc chợ họp → cửa sổ gian hàng (tên + biểu tượng gian, **không chân dung**). Ở làng khác / xóm ngoài tới, không có nhà trên bản đồ Xóm. Không kỳ kèo. Sprite đứng sau sạp 2 khung, khung người lớn 64×96, cùng quy ước art như dân làng phụ.
+
+**Cô Lanh — gian thu mua (Must).** Cháu gái bà Cân (làng Sung), sang phiên Lầy mua nông sản về cho bà; là **cô dâu 3 của bản 1.1** (§3.12) — gặp sớm để người chơi nhớ mặt.
+- Tính cách: **Tính nhanh, thẳng, trêu dai**. Muốn: mua rẻ bán đắt, thắng bà Cân một lần. Sợ: bị bảo "con gái biết gì buôn bán".
+- Visual hook: **bàn tính gỗ kẹp nách** (không bao giờ gảy — tính nhẩm nhanh hơn), khăn mỏ quạ xanh lá, áo cánh vàng nhạt, yếm đỏ, gùi tre sau lưng.
+- Câu: "Khoai này một quan hai, anh bán thì em đếm tiền ngay, khỏi gảy." · "Hết tiền rồi anh. Phiên sau. Bà em đếm lại từng đồng." · (đã gặp cô Bưởi) "Anh cưới xong chị Bưởi rồi hẵng tính chuyện khác nhé." · (bậc 1) "Áo vá thế mà bán rau ngon. Lạ."
+- **Handoff cho Art:** cô gái ~20, nhanh nhẹn, mắt sáng, cười nửa miệng; khác cô Bưởi (cô Bưởi dịu, áo màu khác — chọn màu khóa không trùng). Sprite đứng sau sạp thúng rau, 2 khung (cười / nhướng mày). **Audio:** giọng "líu lo" nhanh, gọn, có tiếng hạt bàn tính "lách cách" khi đứng gần (không cần cho luật).
+
+**Bà Xén — gian hàng xén (Must).**
+- Tính cách: **Kỹ tính, kể lể, dỗi nhanh**. Muốn: khách nghe hết giá từng món. Sợ: khách chê "hàng tàu".
+- Visual hook: **hòm gỗ đeo trước ngực, mở ra như cái tủ**, cánh hòm treo gương nhỏ, lược, kim chỉ, gói muối.
+- Câu: "Kim này một xu, chỉ này hai xu, muối này ba xu, nghe chưa? Nghe lại nhé." · "Men rượu bà gói kỹ. Ủ hỏng là tại tay, không tại men." · "Mua khăn cho ai? Cho cô Bưởi à? Thôi lấy cái đỏ."
+- **Handoff cho Art:** bà ~55, thấp, tóc vấn khăn nhung đen, áo tứ thân nâu, kính tròn gọng đồng trễ mũi. 2 khung (mở hòm / chỉ tay vào món). **Audio:** giọng "lẩm bẩm" đều đều như đọc sổ; tiếng nắp hòm "cạch".
+
+**Chị Cục Tác — gian gà vịt (Must).**
+- Tính cách: **Ồn, nhanh nhảu, mê gà**. Muốn: ai cũng nuôi gà. Sợ: cáo (và ông Gật — "ông ấy ôm gà nhà người ta").
+- Visual hook: **đội lồng gà tre trên đầu thay nón**, một con gà thò đầu qua nan; hai tay xách giỏ trứng.
+- Câu: "Cục ta cục tác! Trứng mới đẻ, còn ấm, ăn khỏe như trâu!" · "Gà con à? Cưới vợ đi đã, có người cho gà ăn." · (sau cưới) "Mua gà con đi anh, nhà đông thì phải có trứng."
+- **Handoff cho Art:** chị ~30, người tròn, má đỏ, áo cánh nâu xắn tay, váy đen. Lồng gà tre hình chuông trên đầu. 2 khung (đứng / giơ quả trứng). **Audio:** giọng "líu lo" cao, ngắt như gà; tiếng gà "cục tác" CC0 (D-039) phát ngẫu nhiên gần gian.
+
+**Ông Vung — gian nồi niêu (Should).**
+- Tính cách: **Triết lý, mai mối, chậm rãi**. Muốn: "nồi nào úp vung nấy" — ai cũng có đôi. Sợ: vỡ nồi.
+- Visual hook: **đội cái vung nồi đất** làm nón, xung quanh xếp chồng nồi đất.
+- Câu: "Nồi nào úp vung nấy. Anh {ten} tìm được vung chưa?" · "Nồi này nấu cơm cho hai người. Mua đi, sắp cần." · (đã cưới) "Thấy chưa, vung vừa nồi rồi."
+- **Handoff cho Art:** ông ~60, béo tròn như cái nồi, râu quai nón, áo cánh nâu. 2 khung (gõ nồi nghe tiếng / gật gù). **Audio:** gõ nồi đất "boong" đục; giọng trầm chậm.
+
+**Ông Lái Giống — gian hạt hạ giá (Should).**
+- Tính cách: **Giọng lơ lớ, nổ, hào phóng**. Muốn: bán hết trước khi tan chợ để còn đi phiên khác. Sợ: mang hàng về.
+- Visual hook: **đòn gánh hai thúng hạt** đặt trước mặt, **nón cời rộng vành** che nửa mặt.
+- Câu: "Hạt giống xứ người, gieo một gặt mười! …Mười là nói quá, chín." · "Cuối phiên rồi, bớt cho hai phần, gánh về nặng vai." · "Làng Lầy đất tốt, chỉ người là lầy."
+- **Handoff cho Art:** ông ~45, gầy, đen nhẻm, nón cời rách vành, áo cánh chàm bạc. 2 khung (đứng / vốc nắm hạt). **Audio:** giọng "lẩm bẩm" cao, nói nhanh như rao; tiếng hạt rơi "sạt".
+
+### 3.13a Đồng Lầy — ông Sào và bù nhìn "thằng Rơm" (D-041)
+
+#### Ông Sào — người giữ đồng làng
+
+| Mục | Nội dung |
+|---|---|
+| Vai trò gameplay | Cho thuê theo vụ (Lv 5) / bán đứt (Lv 8) **thửa ruộng** ở Đồng Lầy, bán bó mạ tẻ / nếp (GDD §3.4a). Có mặt 6–19h ở chòi canh; đêm ẩn. Bong bóng + cửa sổ "Ruộng đồng" (không chân dung — Giả định). Không kỳ kèo: "Ruộng làng, giá làng." |
+| Tính cách (3 từ) | **Đa nghi, tính toán, thích dọa** |
+| Mong muốn / nỗi sợ | Muốn: ruộng làng không bỏ hoang một gang. Sợ: người thuê "cấy bằng mồm" (nhìn {ten} là sợ). |
+| Visual hook | **Cây sào tre dài gấp đôi người** cầm dọc, đầu sào buộc dải vải đỏ đánh dấu; nón mê rách vành. Cây sào là "thước" đo ruộng — và lúc nào cũng **đo thiếu một gang**. |
+
+Câu mẫu:
+1. (Lv < 5, ở cổng) "Ruộng làng không cho người nói phét cấy. Lên tiếng tăm đã."
+2. "Thửa này ba sào. …Ừ thì hai sào rưỡi. Sào tôi hơi dài."
+3. (thuê) "Năm mươi quan một vụ. Gặt xong trả ruộng. Đừng có cấy bằng mồm."
+4. (mua đứt) "Từ nay thửa này của anh {ten}. Tôi vẫn đo lại hằng năm, đề phòng."
+5. (bậc 3+) "Anh {ten} mặc áo chàm ra đồng à? Lúa nó ngại đấy."
+
+**Handoff cho Art:** Ông ~60, gầy cao, da đen sạm nắng, râu cằm lún phún, mắt nheo nghi ngờ. Nón mê (nón lá cũ rách vành), áo cánh nâu bạc, quần xắn tới gối, chân đất bùn. Tay phải cầm **cây sào tre** dài ~2 thân người (vượt khung — khung 64×160 hoặc vẽ sào nghiêng), đầu sào buộc vải đỏ. Sprite 2 khung (đứng chống sào / giơ sào đo). Khác ông Lái Giống (nón cời, gánh thúng) và ông Mõ (mõ trước ngực).
+
+**Handoff cho Audio:** Giọng "lẩm bẩm" trầm khàn, chậm, lên giọng nghi ngờ "hử?"; tiếng sào tre gõ đất "cộc". Nền đồng: gió lúa, ếch nhái chiều, cò kêu xa (CC0 — D-039).
+
+#### Bù nhìn "thằng Rơm" (đồ vật, không phải NPC)
+
+- **Hình:** cọc tre chữ thập, áo nâu vá, **nón lá rách lệch quai đỏ y hệt {ten} bậc 1**, mặt vẽ than cười toe. Lá cờ giẻ đỏ phất phơ (Should: lắc theo gió bằng code).
+- **Click** → {ten}: "Đứa nào mặc đồ của ông?!" · "Mày đứng đây đuổi chim, ông đứng kia đuổi vợ… ý là đuổi theo vợ." · (bậc 3+) "Đồ cũ của ông, cho mày đấy. Mặc cho tử tế."
+- (Giả định) Bản đầu không đặt trẻ trâu hay dân làng khác ở đồng; chỉ ông Sào.
+- **Handoff cho Art:** ~1×2 ô, nền hồng `#FF00FF` để tách, dùng chung bộ màu nón của {ten} (đúng visual hook). **Audio:** không.
 
 ### 3.14 Câu theo giờ và đóng cửa của NPC chính (D-021, mẫu)
 
@@ -537,7 +656,10 @@ Câu mẫu: "Cốc cốc! Mùa mưa tới rồi! Ai gieo cải thì… thôi, k�
 |---|---|---|
 | Cửa nhà ông Khướt | Click cửa (giọng bà Khướt, không thấy người) | "Ngủ ngoài đa đi!" · "Còn mùi rượu là đừng gõ!" |
 | Nhà bỏ hoang | Click biển "Nhà bán" | {ten}: "Mua cái này thì cưới thêm được… thôi, cưới một đã." |
-| Sạp chợ cóc | Click sạp (không có người bán) | {ten}: "Hàng ai bày đây? …Thôi, cô Ngóng đang nhìn." · "Buồng chuối đẹp thế. Của ai thì của, không phải của ông." · "Chợ cóc mà vắng cả cóc." |
+| Sạp chợ phiên (ngày thường, không có người bán) | Click sạp trống | {ten}: "Hàng ai bày đây? …Thôi, cô Ngóng đang nhìn." · "Buồng chuối đẹp thế. Của ai thì của, không phải của ông." · "Chưa tới phiên mà. Chợ vắng cả cóc." |
+| Vườn nhà hàng xóm (D-040) | Click vườn, chủ không ở nhà | {ten}: "Rau nhà người ta xanh hơn. …Tại người ta tưới." · "Lúa anh Tráng cũng tập võ à? Đứng thẳng thế." |
+| Vườn cô Ngóng (D-040) | Click vườn, cô ở nhà | Cô Ngóng: "Rau nhà em, anh đừng nhìn. …Nhìn thì nhìn." |
+| Cửa nhà hàng xóm (D-040) | Click cửa (không vào được) | Chủ nhà / {ten}: "Sân thì vào, nhà thì thôi nhé." · "Nhà tôi không có gì đâu. Có gì cũng không cho xem." |
 | Bến câu gãy (trước Lv 4) | Click mặt hồ / bến | {ten}: "Tiên sư cái bến!" · "Cá đầy hồ mà bến gãy. Số ông khổ." |
 
 ## 4. Cấu trúc câu chuyện
@@ -919,3 +1041,5 @@ Mỗi kết quả bản đầu cần ~2 câu/NPC (đây là câu chuẩn giọng
 - 2026-10-10 — (ghi bổ sung ngày 2026-10-13) Người dùng đã duyệt D-021 ngày 2026-10-10: làm đầy đủ Must, một bản đồ Xóm liền, cửa hàng mở 6–19h (GDD §15 câu 21). Dòng trên "chờ duyệt" đã lỗi thời.
 - 2026-10-13 — D-027: v1.4, **bố cục Xóm theo phác thảo người dùng** + **bỏ Suối** + **đổi tên**. §2.2 viết lại thành "Ba khu": Xóm 60×42, mô tả kiến trúc Bắc Bộ, khuôn viên nhà {ten} + ruộng góc tây-bắc, nhà cô Ngóng ngay dưới, quầy hạt ở hiên nhà cô Tám, lò rèn và xưởng mộc ở hàng nhà giữa, nhà dân làng (cửa nhà ông Khướt cài then), nhà bỏ hoang, chợ cóc đầu xóm (chỉ trang trí + quán chè), hồ làng + 2 bến câu + bến nước, cây đa bên hồ, đình; còn 2 cổng; mục Suối gạch bỏ; chợ làng Sung ghi rõ là chợ thật. §1: lý do mở Lv 4 thành "bến câu gãy", ngân sách chữ +10 câu (~406), dép tổ ong câu dưới hồ. Chị Thóc → **cô Tám Thóc**, ông Bễ → **ông Hai Bễ** (thay toàn file, kể cả changelog cũ; ghi chú tên ở §3.6, §3.8). §3.7 chú Đục sửa bến câu. §3.3 bà Ba Trầu ngồi quán chè. §3.13 chỗ đứng mới (quán chè ở chợ cóc, gốc đa bên hồ, bến nước). §3.14 thêm câu cho chỗ mới. §4 nhiệm vụ 4 sửa bến câu. §6 câu dép, gét gô "Hồ ơi". §7 thuật ngữ mới, bỏ "Đầu ngõ". §8 giả định D-027.
 - 2026-10-14 — D-037: v1.5, **"Kỳ kèo"** (mặc cả nhẹ khi mua). Thêm **§6.6**: luật chửi yêu của người bán (nhẹ: khỉ gió, cha bố nhà em, trời đánh, tiên sư cái mồm em; không dùng từ mạnh của {ten}, không tục), 12 câu cô Tám (mở sạp, mua ít / nhiều, thiếu tiền, kỳ kèo thành công / thất bại / phản tác dụng, lần 2) + 1 "Làng đồn", 9 câu chọn (3 người bán × nịnh / kể khổ / khoác lác) kèm mức ăn của từng người, câu kết quả của ông Hai Bễ và chú Đục. §3.8 vai trò cô Tám, §7 thuật ngữ "Kỳ kèo", ngân sách chữ +30 (~436). Sạp bà Cân và nhà cụ Bá Kẹo không có kỳ kèo (Giả định ở §8).
+- 2026-10-15 — D-040: v1.6, **Xóm 72×50, khuôn viên, chợ phiên, đình có người**. §2.2: kích thước, đoạn "Khuôn viên — nhà nào ra nhà nấy" + "Vườn cạnh nhà", chợ cóc → **chợ phiên Lầy** (họp mỗi 3 ngày buổi sáng, 5 gian), đình có tường + cổng trụ biểu và người. §3.13: bảng thêm 8 dòng; bà Chém bán chè lên Must; **ông Mõ lên Should** (rao phiên chợ, 2 câu mới); thêm mục **cụ Từ Nhang**, **cụ Hoàn + cụ Chiếu**, **người bán chợ phiên** (cô Lanh, bà Xén, chị Cục Tác — Must; ông Vung, ông Lái Giống — Should) với tính cách, visual hook, câu mẫu, Handoff Art/Audio. §3.12 cô Lanh gặp sớm ở chợ phiên. §3.14 câu sạp trống, vườn, cửa nhà hàng xóm. Ngân sách chữ +~45 câu (~481).
+- 2026-10-15 — D-041: v1.7, **Đồng Lầy**. §2.2 thêm khu Đồng Lầy (đê, mương, cầu tre, 6 thửa, chòi canh, bù nhìn, đầm sen + cò; lý do mở Lv 5). Thêm **§3.13a** ông Sào (người giữ đồng, cây sào đo thiếu một gang — tính cách, mong muốn / nỗi sợ, visual hook, 5 câu, Handoff Art/Audio) và bù nhìn "thằng Rơm" (đội nón rách giống {ten}, 3 câu click). Ngân sách chữ +~8 câu (~489).

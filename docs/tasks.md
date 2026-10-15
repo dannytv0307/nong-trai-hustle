@@ -91,19 +91,22 @@ Mục tiêu: từ prototype "một ngày ở Vườn" thành game trọn vòng *
 | T-041 | B2 Mục tiêu sớm | 4.4 | Save version 2 + bảng phím thử cho chặng 4 | game-dev | M | T-024 | ⬜ |
 | T-042 | B2 Mục tiêu sớm | 4.4 | Level và tiếng tăm (XP, HUD, thẻ mở khóa) | game-dev | L | T-041 | ⬜ |
 | T-043 | B2 Mục tiêu sớm | 4.4 | Nhiệm vụ, sổ nhiệm vụ (Q) và hướng dẫn ngày 1 | game-dev | L | T-042 | ⬜ |
-| T-028 | C Xóm + NPC | 4.2 | Gen hình **Lô 2a**: nhà và công trình Xóm | art-director | L | asset list Lô 2 | ⬜ |
-| T-029 | C Xóm + NPC | 4.2 | Gen hình **Lô 2b**: nền, nước hồ, cây đa, lũy tre, bụi, đồ trang trí | art-director | L | asset list Lô 2 | ⬜ |
+| T-028 | C Xóm + NPC | 4.2 | Gen hình **Lô 2a**: nhà và công trình Xóm + **mảnh tường / cổng khuôn viên (D-040)** | art-director | L | asset list Lô 2 | ⬜ |
+| T-029 | C Xóm + NPC | 4.2 | Gen hình **Lô 2b**: nền, nước hồ, cây đa, lũy tre, bụi, đồ trang trí + **vườn NPC: giàn trầu, nương chè, cau (D-040)** | art-director | L | asset list Lô 2 | ⬜ |
 | T-030 | C Xóm + NPC | 4.2 | Gen hình **Lô 2c**: NPC chính ở Xóm (sprite + chân dung) + khung thoại, tab cửa hàng | art-director | L | asset list Lô 2 | ⬜ |
 | T-031 | C Xóm + NPC | 4.2 | Gen hình **Lô 2d**: 5 dân làng phụ | art-director | L | asset list Lô 2 | ⬜ |
+| T-097 | C Xóm + NPC | 4.2 | Gen hình **Lô 2f** (D-040): người bán chợ phiên, sạp phiên, người đi chợ, icon món mới, **NPC đình** (cụ Từ, hai cụ cờ, ông Mõ) | art-director | M | asset list Lô 2 (D-040) | ⬜ |
 | T-065 | C Xóm + NPC | 4.2 | Gen hình **Lô 2e**: {ten} bậc 2 (đi, cuốc, tưới, cúi), hiệu ứng lột xác, icon nông cụ / bộ đồ | art-director | L | asset list Lô 2 | ⬜ |
-| T-032 | C Xóm + NPC | 4.4 | Dựng bản đồ Xóm làng Lầy 60×42 bằng hình khối, thay bản đồ Vườn | game-dev | L | T-043, T-093 | ⬜ |
+| T-032 | C Xóm + NPC | 4.4 | Dựng bản đồ Xóm làng Lầy **72×50** (D-040) bằng hình khối + khuôn viên từng nhà, thay bản đồ Vườn | game-dev | L | T-043, T-093 | ⬜ |
 | T-033 | C Xóm + NPC | 4.2 | Gắn hình Lô 2 lên bản đồ Xóm | game-dev | L | T-028, T-029, T-032 | ⬜ |
+| T-099 | C Xóm + NPC | 4.2 | **Khuôn viên từng nhà** (ghép rào / tường / cổng) + **vườn NPC theo mùa** (D-040) | game-dev | M | T-032 | ⬜ |
 | T-034 | C Xóm + NPC | 4.4 | Hệ NPC: đứng tại chỗ, nói chuyện, khung thoại có chân dung | game-dev | L | T-032 | ⬜ |
-| T-035 | C Xóm + NPC | 4.4 | Lịch trình 4 khung giờ + giờ mở cửa hàng | game-dev | M | T-034 | ⬜ |
+| T-035 | C Xóm + NPC | 4.4 | Lịch trình 4 khung giờ + giờ mở cửa hàng + **ngày phiên (D-040)** | game-dev | M | T-034 | ⬜ |
 | T-036 | C Xóm + NPC | 4.4 | Quầy hạt cô Tám Thóc + cửa sổ cửa hàng dùng chung (bỏ sạp hạt tạm) | game-dev | M | T-035 | ⬜ |
-| T-037 | C Xóm + NPC | 4.4 | Chốt thoại Xóm thành bảng câu cho `npcs.json` | game-planner | S | — | ⬜ |
-| T-038 | C Xóm + NPC | 4.4 | Năm dân làng phụ + các câu đùa trong Xóm | game-dev | M | T-034, T-037 | ⬜ |
+| T-037 | C Xóm + NPC | 4.4 | Chốt thoại Xóm thành bảng câu cho `npcs.json` (+ NPC đình, người bán chợ phiên, món mới — D-040) | game-planner | M | — | ⬜ |
+| T-038 | C Xóm + NPC | 4.4 | Dân làng phụ + **NPC đình** (cụ Từ "xem ngày", hai cụ cờ, ông Mõ) + các câu đùa trong Xóm | game-dev | L | T-034, T-037 | ⬜ |
 | T-095 | C Xóm + NPC | 4.4 | **"Kỳ kèo"**: mặc cả nhẹ khi mua ở quầy cô Tám (hệ dùng chung cho cả 3 quầy — D-037) | game-dev | M | T-036, T-037 | ⬜ |
+| T-098 | C Xóm + NPC | 4.4 | **Chợ phiên Lầy** (D-040): họp mỗi 3 ngày 6–12h, 4 gian bán thật, cô Lanh thu mua, băng chữ báo phiên | game-dev | L | T-035, T-036 | ⬜ |
 | T-039 | C Xóm + NPC | 4.3 | Làm âm thanh **Lô 2** (nhạc ngày Xóm, nền làng, giọng NPC, cửa hàng) | audio-director | L | audio list Lô 2 | ⬜ |
 | T-040 | C Xóm + NPC | 4.3 | Gắn âm thanh Lô 2 (môi trường theo vị trí, giọng NPC) | game-dev | M | T-038, T-039 | ⬜ |
 | T-044 | D Mục tiêu | 4.4 | Mở rộng ruộng bằng cọc rào (9 → 24 ô) | game-dev | M | T-032, T-042 | ⬜ |
@@ -123,7 +126,11 @@ Mục tiêu: từ prototype "một ngày ở Vườn" thành game trọn vòng *
 | T-058 | E Núi + hồ câu | 4.4 | Mini-game câu cá ở hồ làng | game-dev | L | T-033, T-046, T-050 | ⬜ |
 | T-059 | E Núi + hồ câu | 4.4 | Mini-game bắn nỏ săn gà rừng | game-dev | L | T-050, T-054 | ⬜ |
 | T-060 | E Núi + hồ câu | 4.3 | Làm âm thanh **Lô 3a** (Núi, câu cá, nỏ) | audio-director | L | audio list Lô 3 | ⬜ |
-| T-061 | E Núi + hồ câu | 4.3 | Gắn âm thanh Lô 3a | game-dev | S | T-058, T-059, T-060 | ⬜ |
+| T-061 | E Núi + hồ câu | 4.3 | Gắn âm thanh Lô 3a (+ tiếng Đồng Lầy — D-041) | game-dev | S | T-058, T-059, T-060 | ⬜ |
+| T-100 | E Núi + hồ câu + đồng | 4.2 | Gen hình **Lô 3i** (D-041): Đồng Lầy — ruộng nước, thửa lúa theo giai đoạn, mương, chòi canh, ông Sào, bù nhìn, icon lúa / mạ | art-director | M | asset list Lô 3 (D-041) | ⬜ |
+| T-101 | E Núi + hồ câu + đồng | 4.4 | Khu **Đồng Lầy** (hình khối) + cổng đông Xóm mở Lv 5 | game-dev | M | T-054, T-042 | ⬜ |
+| T-102 | E Núi + hồ câu + đồng | 4.4 | **Thửa ruộng lớn**: thuê theo vụ / mua đứt ở ông Sào, cày – cấy – gặt lúa tẻ / nếp cả thửa | game-dev | L | T-101, T-036, T-045 | ⬜ |
+| T-103 | E Núi + hồ câu + đồng | 4.2 | Gắn hình Đồng Lầy + juice gặt, bù nhìn, cò (Should) | game-dev | M | T-100, T-102 | ⬜ |
 | T-062 | F Chợ + cưới | 4.2 | Gen hình **Lô 3c**: làng Sung + bà Cân, cụ Bá Kẹo (4 mặt), cô Bưởi | art-director | L | asset list Lô 3 | ⬜ |
 | T-063 | F Chợ + cưới | 4.4 | Bản đồ làng Sung + đường sang chợ (cổng Lv 6, tốn giờ) | game-dev | L | T-054, T-062 | ⬜ |
 | T-064 | F Chợ + cưới | 4.4 | Sạp bà Cân: bán ngay giá cao, mua lễ vật | game-dev | M | T-036, T-063 | ⬜ |
@@ -157,6 +164,10 @@ Mục tiêu: từ prototype "một ngày ở Vườn" thành game trọn vòng *
 **Người dùng chốt (2026-10-14, D-034):** giữ đủ Must, soát giờ thật ở T-052 · bậc ngoại hình 2–3 đủ động tác, **bậc 4 chỉ đi / đứng, làm việc mượn khung bậc 3** · **level + nhiệm vụ (T-041 … T-043) chen lên ngay sau T-027** (đợt "B2") · **có cảnh trong nhà riêng** (T-093). Đội chọn: intro 4 khung + cảnh cưới vẽ trọn tranh; Xóm dùng nhạc ngày bản B; mỗi NPC một bộ giọng lẩm bẩm tổng hợp. Lô asset theo đúng `docs/art/asset-list.md` (nhà {ten}, trong nhà, quầy hạt, cây nhãn, rào, đường đất, giao diện HUD ở **Lô 1**; {ten} bậc 2 ở **Lô 2**; intro ở **Lô 4**).
 
 **Theo bước:** 4.2 = 24 task (16 gen hình + 8 gắn hình) · 4.3 = 9 task · 4.4 = 42 task · 4.5 = 4 task. Tổng **79 task**: 4 S + 45 M + 30 L. (ID T-091 … T-096 thêm sau nên nằm xen trong bảng; làm theo thứ tự dòng, không theo số.)
+
+**Cập nhật D-041 (2026-10-15, Đồng Lầy):** thêm **T-100** (M, art), **T-101** (M), **T-102** (L), **T-103** (M) ở đợt E; T-060 / T-061 thêm tiếng đồng (cùng size) → **+≈ 19 giờ (16–24)** → **≈ 357–484 giờ, mốc ≈ 419 giờ** (4.2 ≈ 144 · 4.3 ≈ 45 · 4.4 ≈ 216 · 4.5 ≈ 14). **86 task**: 3 S + 50 M + 33 L (4.2 = 28 · 4.3 = 9 · 4.4 = 45 · 4.5 = 4). Với 15 giờ/tuần: 24–32 tuần, **mốc kế hoạch ~05/05/2027**. Hình thêm ≈ 2,8 USD (3,2 có dự phòng, Lô 3). Thứ tự: T-101 ngay sau T-054; T-102 sau T-045 + T-036 (T-045 ở đợt D nên xong trước); T-100 gen cùng phiên Lô 3a (T-053).
+
+**Cập nhật D-040 (2026-10-15, Xóm 72×50 + khuôn viên + chợ phiên + đình có người):** thêm **T-097** (M, art), **T-098** (L), **T-099** (M); T-037 S → M, T-038 M → L; T-028, T-029, T-032, T-033, T-035, T-040 thêm việc trong cùng size (~+4,5 giờ). Tổng **+≈ 25 giờ (21–31)** → **≈ 341–460 giờ, mốc ≈ 400 giờ** (4.2 ≈ 137 · 4.3 ≈ 44 · 4.4 ≈ 205 · 4.5 ≈ 14). **82 task**: 3 S + 47 M + 32 L (4.2 = 26 · 4.3 = 9 · 4.4 = 43 · 4.5 = 4). Với 15 giờ/tuần: 23–31 tuần, **mốc kế hoạch ~26/04/2027** (trước ~14/04). Hình thêm ≈ 6,5 USD (7,4 có dự phòng — asset list §1 mục D-040). Thứ tự trong đợt C: T-097 làm cùng phiên gen với T-031; T-099 ngay sau T-032; T-098 sau T-036 (trước T-095 cũng được).
 
 **Cập nhật D-038 (2026-10-14, click đâu đi đó):** thêm T-096 (L, ~7 giờ, đợt B ngay sau T-093) → **≈ 320–429 giờ, mốc ≈ 375 giờ** (4.4 ≈ 191,5 giờ) → 21,5–28,5 tuần, **mốc kế hoạch lùi ~3–4 ngày, ~14/04/2027**.
 
@@ -910,8 +921,11 @@ Mục tiêu: từ prototype "một ngày ở Vườn" thành game trọn vòng *
 **Mục tiêu:** đủ nhà và công trình để dựng Xóm làng Lầy (GDD §5, D-027).
 
 **Điều kiện xong:**
-- [ ] Theo asset list Lô 2: nhà {ten}, 3 biến thể nhà + nhà bỏ hoang, lò rèn, xưởng mộc, cổng ngõ, đình, giếng, miếu, quán chè, lều chợ cóc, bến câu (gãy / lành), bến nước.
+- [ ] Theo asset list Lô 2: nhà {ten}, 3 biến thể nhà + nhà bỏ hoang, lò rèn, xưởng mộc, cổng ngõ, đình, giếng, miếu, quán chè, lều chợ phiên, bến câu (gãy / lành), bến nước.
+- [ ] **(D-040)** Mảnh ranh giới khuôn viên ART-BLD-017: tường đất thấp, tường gạch mộc thấp, tường gạch đình + cổng 2 trụ biểu, cổng tre ngõ chung — ghép nối được theo ô (ngang / dọc / góc), cùng chuẩn với mảnh rào tre / dâm bụt Lô 1. Sạp phiên có mái ART-BLD-018 làm ở T-097.
 - [ ] Nhà quay mặt về nam, nhìn 3/4 trên-nam, đúng kích thước ô gợi ý. Hậu kỳ, đặt file, cập nhật asset list. Bạn duyệt.
+
+**Thông số / ghi chú (D-040):** ảnh tham chiếu bố cục: concept mới ART-CON-002 (`art-source/reference/concept-xom-lang-lay-v2.png`). Size vẫn L (+~0,5 giờ cho mảnh tường).
 
 **Bạn thử thế nào:** xem ảnh so sánh, duyệt.
 
@@ -926,6 +940,7 @@ Mục tiêu: từ prototype "một ngày ở Vườn" thành game trọn vòng *
 **Điều kiện xong:**
 - [ ] Theo asset list Lô 2: sân gạch, nước hồ + bờ (viền tự nối), lũy tre, cây đa (tách tán / gốc), bụi cây, lau sậy / sen, 2 sheet đồ trang trí, vật chặn cổng theo level. (Đường đất, cây nhãn, rào đã làm ở Lô 1 — T-019, T-020.)
 - [ ] Đủ các loại cụm thực vật GDD §5 (D-035): bụi cỏ, mười giờ, cúc dại (đi xuyên — thấp, không có chân đế); dâm bụt, chè tàu, duối, **khóm tre lẻ** khác lũy tre viền (chặn — tách gốc / lá để vẽ lá đè người); sen trên mặt hồ.
+- [ ] **(D-040)** Sheet vườn nhà NPC ART-ENV-018: giàn trầu, nương chè xanh (luống chè cắt bằng — **khác hẳn luống rau**), gốc rạ + đống rơm; cây cau ART-ENV-007 (Should trong ngân sách) — cau **thân mảnh thẳng, tán nhỏ chùm trên ngọn, có buồng cau**, không giống dừa. Rau / lúa trong vườn dùng hình cây Lô 1, không gen thêm.
 - [ ] Hậu kỳ, đặt file, cập nhật asset list. Bạn duyệt.
 
 **Bạn thử thế nào:** xem ảnh so sánh, duyệt.
@@ -957,13 +972,13 @@ Mục tiêu: từ prototype "một ngày ở Vườn" thành game trọn vòng *
 - [ ] Theo asset list Lô 2 (~12 ảnh: ngồi, nằm ngủ, sau rào, tập võ, trẻ trâu 3 đầu nhảy).
 - [ ] Hậu kỳ, đặt file, cập nhật asset list. Bạn duyệt.
 
-**Thông số / ghi chú:** nếu trễ: mục cắt C4 giữ 3 người (ông Khướt, cô Ngóng, trẻ trâu).
+**Thông số / ghi chú:** nếu trễ: mục cắt C4 giữ 3 người (ông Khướt, cô Ngóng, trẻ trâu). **(D-040)** NPC đình (cụ Từ Nhang, cụm cụ Hoàn + cụ Chiếu) và người bán chợ phiên gen ở **T-097** (cùng đợt, có thể làm liền sau T-031 trong một phiên gen); ông Mõ ART-CHR-072 lên Should **trong ngân sách** — gen ở T-097.
 
 **Bạn thử thế nào:** xem ảnh so sánh, duyệt.
 
 ---
 
-### T-032 — Dựng bản đồ Xóm làng Lầy 60×42 bằng hình khối, thay bản đồ Vườn
+### T-032 — Dựng bản đồ Xóm làng Lầy 72×50 bằng hình khối, thay bản đồ Vườn
 
 **Bước:** 4.4 · **Ai làm:** game-dev · **Size:** L (1 ngày) · **Cần trước:** T-043, T-093
 
@@ -971,7 +986,7 @@ Mục tiêu: từ prototype "một ngày ở Vườn" thành game trọn vòng *
 
 **Điều kiện xong:**
 - [ ] Bản đồ dạng **Tilemap JSON** (định dạng Tiled; game-dev được sinh bằng script từ dữ liệu bố cục nếu không dùng Tiled — Giả định). Lớp Nền / Vật cản / Trên đầu; lớp đối tượng: ruộng 24 ô (`maxPlots`, mở trước `startPlots` 9), giường, bếp, thùng bán, 2 cổng (chặn), quầy hạt, lò rèn, xưởng mộc, điểm `npcSpots`, 2 bến câu.
-- [ ] Đúng bảng tọa độ GDD §5, `villageMapSize` [60, 42]; nhà quay mặt về nam, cửa ra đường.
+- [ ] Đúng bảng tọa độ GDD §5 (bản D-040), `villageMapSize` [72, 50]; nhà quay mặt về nam. **Mỗi nhà một khuôn viên khép kín** bằng khối ranh giới (màu khác nhau cho rào tre / dâm bụt / chè tàu / tường đất / tường gạch) theo mục "Khuôn viên từng nhà": cổng lệch, thụt 1 ô, ngõ chung Gật–Tám và Cu Sún–Tráng; vào được sân, không vào nhà. Dữ liệu khuôn viên dạng `{ id, rect, fence, gate }` (ghép mảnh thật ở T-099). Chừa ô cho vườn NPC (T-099) và 5 gian + quán chè ở chợ phiên (T-098).
 - [ ] Va chạm bằng lớp Tilemap (bài học BUG-001); tán cây đa / mái nhà vẽ trên người; camera dừng ở mép.
 - [ ] Lối đi **đất nện** (khối màu đất) và **cụm thực vật** (khối màu xanh, phân biệt chặn / đi xuyên) đặt theo GDD §5 mục "Lối đi đất nện và cụm thực vật" (D-035): tre, lùm cây, dâm bụt chặn; bụi cỏ, mười giờ, cúc dại đi xuyên; không cụm chặn nào trên đường / ngõ / lối, cách điểm tương tác ≥ 1 ô.
 - [ ] Cuốc–gieo–tưới–hái, thùng bán, ngủ, qua đêm chạy như cũ ở tọa độ mới; nhà {ten} + cửa vào **cảnh trong nhà** (T-093) giữ nguyên; quầy hạt chuyển sang hiên nhà cô Tám (vẫn không người tới T-036).
@@ -979,9 +994,9 @@ Mục tiêu: từ prototype "một ngày ở Vườn" thành game trọn vòng *
 - [ ] Save: `player.area` = `village`. Save Vườn cũ nạp được: 9 ô cũ chuyển sang 9 ô đầu của ruộng Xóm theo thứ tự, nhân vật đứng cạnh giường, không mất cây / tiền / gùi (Giả định).
 - [ ] e2e cũ sửa theo tọa độ mới; thêm ca đi từ cổng nhà tới giếng, bến câu, sân đình không kẹt.
 
-**Thông số / ghi chú:** `villageMapSize` [60, 42]. Đối chiếu thời gian đi bộ với bảng GDD §5; lệch > 30% thì báo `game-planner`. Có thể giữ `?scene=garden` để so (game-dev quyết, ghi chú).
+**Thông số / ghi chú:** `villageMapSize` [72, 50] (D-040). Bảng cụm thực vật D-035 còn tọa độ 60×42 — đặt lại theo tên vùng (GDD §5 ghi chú D-040). Ảnh tham chiếu: concept ART-CON-002 (đã duyệt — chừa ô cổng đình mặt nam như concept; bến câu thứ 2 theo GDD, concept thiếu). Đối chiếu thời gian đi bộ với bảng GDD §5; lệch > 30% thì báo `game-planner`. Có thể giữ `?scene=garden` để so (game-dev quyết, ghi chú). Size vẫn L nhưng ở đầu trên (~8 giờ).
 
-**Bạn thử thế nào:** mở game, đi từ cổng nhà tới quầy cô Tám (~6 giây), giếng (~8 giây), sân đình (~15 giây). Tự hỏi: đi trong xóm **xa quá hay vừa**?
+**Bạn thử thế nào:** mở game, đi từ cổng nhà tới quầy cô Tám (~7–8 giây), giếng (~11 giây), sân đình (~21 giây, đi vòng vào cổng mặt nam). Đi vào sân nhà ông Gật qua ngõ chung, thử đi tắt qua rào — phải bị chặn. Tự hỏi: đi trong xóm **xa quá hay vừa**?
 
 ---
 
@@ -995,9 +1010,12 @@ Mục tiêu: từ prototype "một ngày ở Vườn" thành game trọn vòng *
 - [ ] Thay hình khối bằng nhà, cây, nước, đường, rào, lũy tre thật; viền nước / đường tự nối; tán cây, mái vẽ trên người.
 - [ ] Đường đất nện + cụm thực vật bằng hình thật (D-035): khóm tre / lùm cây / dâm bụt chỉ chặn ở gốc, lá vẽ đè người; bụi cỏ / hoa thấp không va chạm. e2e đi hết đường xóm, ngõ giữa, đường cái không kẹt.
 - [ ] Vùng va chạm khớp chân nhà / gốc cây: không kẹt, không đi xuyên tường (e2e ép tường 4 mặt một nhà mẫu và gốc đa).
-- [ ] Ghi tổng dung lượng asset sau Lô 2 (mục tiêu tải lần đầu < 30 MB, GDD §12) và FPS khi đi qua chỗ nhiều đồ nhất (mục tiêu ≥ 50 trên máy test).
+- [ ] Ghi tổng dung lượng asset sau Lô 2 (mục tiêu tải lần đầu < 30 MB, GDD §12) và FPS khi đi qua chỗ nhiều đồ nhất (mục tiêu ≥ 50 trên máy test — chợ phiên ngày phiên là chỗ đông nhất).
+- [ ] **(D-040)** Đặt ~60–80 cụm thực vật trên bản 72×50; đình có tường gạch + cổng trụ biểu, chợ phiên có lều + sạp thật (sạp phiên từ T-097 khi có).
 
-**Bạn thử thế nào:** đi một vòng Xóm, chụp màn hình chỗ đẹp nhất và chỗ "lạ" nhất gửi lại.
+**Thông số / ghi chú:** D-040 thêm ~2 giờ (bản đồ rộng hơn, nhiều cụm hơn); vẫn L. Ranh giới khuôn viên + vườn gắn ở T-099.
+
+**Bạn thử thế nào:** đi một vòng Xóm, so với ảnh concept ART-CON-002, chụp màn hình chỗ đẹp nhất và chỗ "lạ" nhất gửi lại.
 
 ---
 
@@ -1029,8 +1047,9 @@ Mục tiêu: từ prototype "một ngày ở Vườn" thành game trọn vòng *
 - [ ] Mở game / F5 giữa ngày → NPC đúng chỗ theo giờ (không lưu vị trí NPC).
 - [ ] Cửa hàng mở `shopOpenHour`–`shopCloseHour` (6–19h); ngoài giờ click quầy → bong bóng chủ quán (story bible §3.14), không mở cửa sổ.
 - [ ] Unit test "NPC đứng đâu lúc h giờ".
+- [ ] **(D-040)** Lịch hiểu **ngày đặc biệt**: `schedule` cho phép chỗ đứng riêng khi `marketDay` (ngày phiên), `eveOfMarketDay` (hôm trước phiên), `seasonFirstDay`; không khai thì dùng chỗ thường; "ẩn" là một chỗ hợp lệ. Hàm thuần `isMarketDay(day)` (từ `marketDayFirst`, `marketDayInterval`) + unit test (ngày 1 không phiên; 3, 6, 9 có). NPC đình (cụ Từ, cụm cờ) có lịch theo GDD §3.16.
 
-**Thông số / ghi chú:** `npcSlotHours`, `shopOpenHour`, `shopCloseHour`, `npcSwapFadeSeconds` (GDD §3.16).
+**Thông số / ghi chú:** `npcSlotHours`, `shopOpenHour`, `shopCloseHour`, `npcSwapFadeSeconds` (GDD §3.16); `marketDayFirst`, `marketDayInterval` (§3.9b). D-040 +~1 giờ, vẫn M.
 
 **Bạn thử thế nào:** đứng ở lò rèn, F9 tới 19h: ông Hai Bễ mờ đi; ra quán chè thấy ông ở đó; click lò rèn → "TAO ĐI UỐNG CHÈ! MAI!".
 
@@ -1055,12 +1074,13 @@ Mục tiêu: từ prototype "một ngày ở Vườn" thành game trọn vòng *
 
 ### T-037 — Chốt thoại Xóm cho `npcs.json`
 
-**Bước:** 4.4 · **Ai làm:** game-planner · **Size:** S (1–2h) · **Cần trước:** —
+**Bước:** 4.4 · **Ai làm:** game-planner · **Size:** ~~S~~ **M (3h — D-040)** · **Cần trước:** —
 
 **Mục tiêu:** game-dev có bảng câu chép thẳng vào dữ liệu, không phải tự nghĩ câu.
 
 **Điều kiện xong:**
-- [ ] Rà story bible §3.13, §3.14, §6.1: đủ câu cho 6 NPC chính ở Xóm (chào, theo giờ, đóng cửa, khu chưa mở) và 5 dân làng phụ (2–4 câu, có điều kiện giờ / level / bậc); câu cửa nhà ông Khướt, nhà bỏ hoang, sạp chợ cóc, bến gãy.
+- [ ] Rà story bible §3.13, §3.14, §6.1: đủ câu cho 6 NPC chính ở Xóm (chào, theo giờ, đóng cửa, khu chưa mở) và 5 dân làng phụ (2–4 câu, có điều kiện giờ / level / bậc); câu cửa nhà ông Khướt, nhà bỏ hoang, sạp chợ phiên trống, bến gãy.
+- [ ] **(D-040)** Thêm: cụ Từ Nhang (câu "xem ngày" mưa / nắng có điều kiện `tomorrowWeather`), cụ Hoàn + cụ Chiếu (cặp câu cãi nhau), ông Mõ (rao phiên, rao mùa), 5 người bán chợ phiên (câu mở gian, mua ít / nhiều, thiếu tiền, cô Lanh "hết tiền" khi chạm trần), câu click vườn + cửa nhà hàng xóm. Tên + giá món mới chợ phiên (GDD §3.9b) thành bảng cho `items.json`.
 - [ ] Mỗi câu ≤ 90 ký tự; điều kiện ghi bằng tên trường; tổng chữ cả game vẫn ≤ ~300 câu.
 - [ ] **Kỳ kèo (D-037)**: chép story bible §6.6 vào bảng — 9 câu chọn (`kyKeoStyle`: `flatter` / `sob` / `brag`), `kyKeoAffinity` của 3 người bán, đủ ~2 câu/kết quả (`success` / `fail` / `backfire`) cho cô Tám, ông Hai Bễ, chú Đục, câu "lần 2 trong ngày", 1 câu "Làng đồn". Câu chọn ≤ 60 ký tự.
 
@@ -1068,18 +1088,20 @@ Mục tiêu: từ prototype "một ngày ở Vườn" thành game trọn vòng *
 
 ---
 
-### T-038 — Năm dân làng phụ và các câu đùa trong Xóm
+### T-038 — Dân làng phụ, NPC đình và các câu đùa trong Xóm
 
-**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-034, T-037 (gắn hình T-031 khi có)
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** ~~M~~ **L (6–7h — D-040)** · **Cần trước:** T-034, T-037 (gắn hình T-031, T-097 khi có)
 
-**Mục tiêu:** đi đâu trong xóm cũng có người nói một câu "lầy" (pillar "Mặc cả lầy lội").
+**Mục tiêu:** đi đâu trong xóm cũng có người nói một câu "lầy" (pillar "Mặc cả lầy lội"); sân đình có người.
 
 **Điều kiện xong:**
 - [ ] Bà Chém, ông Khướt, cô Ngóng, anh Tráng, trẻ trâu Sún–Hĩm–Cò đứng đúng chỗ theo khung giờ (GDD §3.16), hoạt ảnh tại chỗ 2–3 khung.
-- [ ] F / click → bong bóng trên đầu `npcBubbleSeconds` (3 s), không khóa điều khiển, đồng hồ chạy, xoay vòng câu theo điều kiện; tối đa 1 bong bóng NPC trên màn.
-- [ ] Click cửa nhà ông Khướt, nhà bỏ hoang, sạp chợ cóc → bong bóng như GDD §5.
+- [ ] **(D-040)** Cụ Từ Nhang (quét sân / ngủ gật hiên / thắp hương), **cụm cụ Hoàn + cụ Chiếu** (một NPC hai người: click → một cụ nói, đôi khi cụ kia cãi lại bằng bong bóng thứ hai sau ~1,5 s), ông Mõ (Should: rao chiều trước phiên ở cổng đình, sáng phiên ở đầu chợ, sáng đầu mùa ở đường cái).
+- [ ] **(D-040, Should)** Câu "xem ngày" của cụ Từ đọc thời tiết ngày mai tính từ `seed` + số ngày (`weatherHintFromTempleKeeper`); hàm thuần `weatherForDay(seed, day)` dùng chung với T-046 + unit test "cụ nói mưa thì mai mưa thật".
+- [ ] F / click → bong bóng trên đầu `npcBubbleSeconds` (3 s), không khóa điều khiển, đồng hồ chạy, xoay vòng câu theo điều kiện; tối đa 1 bong bóng NPC trên màn (riêng cặp cụ cờ được 2, nối tiếp).
+- [ ] Click cửa nhà ông Khướt, nhà bỏ hoang, sạp chợ phiên trống, **cửa nhà hàng xóm** → bong bóng như GDD §5 / story bible §3.14.
 
-**Bạn thử thế nào:** nói chuyện với ông Khướt ở gốc đa buổi sáng rồi ở quán chè buổi tối: câu khác nhau. Click cửa nhà ông: nghe "giọng" bà Khướt.
+**Bạn thử thế nào:** nói chuyện với ông Khướt ở gốc đa buổi sáng rồi ở quán chè buổi tối: câu khác nhau. Click cửa nhà ông: nghe "giọng" bà Khướt. Ra sân đình: click hai cụ đánh cờ xem cãi nhau; hỏi cụ Từ rồi ngủ — mai đúng như cụ nói.
 
 ---
 
@@ -1103,6 +1125,63 @@ Mục tiêu: từ prototype "một ngày ở Vườn" thành game trọn vòng *
 **Thông số / ghi chú:** GDD §3.9a (bảng `kyKeo*`), §8; câu ở story bible §6.6. Không có nút ở sạp bà Cân, nhà cụ Bá Kẹo.
 
 **Bạn thử thế nào:** 8h sáng tới quầy cô Tám, bấm **N**, chọn câu **"Khoác lác"** (cô mê nhất). Được bớt → thấy dải xanh và giá gạch ngang; mua 1 gói hạt → giá rẻ hơn, dải biến mất. Bấm N lần nữa → cô bảo "Kỳ kèo một lần thôi em". Muốn xem đủ 3 kết quả: dùng bảng Thử (T-041) ép kết quả, hoặc ngủ sang ngày mới thử lại.
+
+---
+
+### T-097 — Gen hình Lô 2f: chợ phiên, NPC đình, người bán (D-040)
+
+**Bước:** 4.2 · **Ai làm:** art-director · **Size:** M (3–4h) · **Cần trước:** asset list Lô 2 (mục D-040); nên làm sau T-031 để dùng chung `--ref`
+
+**Mục tiêu:** chợ phiên có người bán và sạp có hàng, sân đình có cụ Từ và hai cụ đánh cờ — đủ hình để T-038, T-098 gắn.
+
+**Điều kiện xong:**
+- [ ] Người bán (đứng sau sạp, 2 khung, 64×96): **cô Lanh, bà Xén, chị Cục Tác** (Must); ông Vung, ông Lái Giống (Should trong ngân sách nếu Lô 2 không vượt) — đúng visual hook story bible §3.13.
+- [ ] NPC đình: **cụ Từ Nhang** 2 khung (bó hương phải **to, khói rõ** — concept ART-CON-002 bó hương khó thấy); **cụm cụ Hoàn + cụ Chiếu** một ảnh 2 khung (~192×128) gồm chiếu + bàn cờ; **ông Mõ** 2 khung (ART-CHR-072, lên Should trong ngân sách).
+- [ ] Sạp phiên có mái ART-BLD-018 (bản trống + bản có hàng: thúng rau / hòm hàng xén / lồng gà / chồng nồi / thúng hạt); người đi chợ ART-CHR-080 (2–3 dáng tĩnh, đổi màu áo bằng script); sheet icon món mới ART-ITM-008 (chè xanh, bánh đúc, kẹo lạc, muối, khăn vuông, nồi đất, **icon HUD "gánh hàng" báo phiên**, bó mạ tẻ / nếp cho Đồng Lầy — D-041; trứng luộc, men rượu đã có ở ITM-007 / ITM-005).
+- [ ] Hậu kỳ, đặt file, cập nhật asset list (chi thật so với ước ~5,8 USD gồm Should trong ngân sách). Bạn duyệt.
+
+**Thông số / ghi chú:** gen bằng `--ref` ảnh mẫu nhân vật chính (D-014) và concept ART-CON-002. Trẻ con / người đi chợ có thể tô màu lại bằng script (0 USD).
+
+**Bạn thử thế nào:** xem ảnh so sánh, duyệt: nhận ra từng người ở cỡ nhỏ không (lồng gà, vung nồi, bàn tính, bó hương)?
+
+---
+
+### T-098 — Chợ phiên Lầy: lịch phiên, gian hàng, thu mua (D-040)
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** L (6–7h) · **Cần trước:** T-035, T-036 (gắn hình T-097 khi có)
+
+**Mục tiêu:** cứ 3 ngày một lần, buổi sáng chợ đông người, mua được đồ ăn / men rượu / trứng, bán nông sản ngay cho cô Lanh (pillar "Làm giàu từ hai bàn tay").
+
+**Điều kiện xong:**
+- [ ] Ngày phiên (`isMarketDay` từ T-035), 6–12h: người bán đứng sau gian, người đi chợ (`phienCrowdCount`, Should) đứng quanh sạp; 12h tan (mờ đi), sạp về trống. Ngày thường: sạp trống, chỉ quán chè bà Chém mở.
+- [ ] Click người bán lúc chợ họp → **cửa sổ cửa hàng chung** (T-036) với tên + biểu tượng gian (không chân dung, không nút Kỳ kèo). Đang mở cửa sổ lúc 12h → mua nốt, đóng mới tan.
+- [ ] 4 gian Must: bà Chém (chè xanh mọi ngày; bánh đúc, kẹo lạc ngày phiên), bà Xén (men rượu, muối, khăn vuông), chị Cục Tác (trứng luộc; gà con chỉ hiện sau cưới — cờ `married`), **cô Lanh thu mua**: kéo / click món trong gùi để bán ngay giá × `phienSellMultiplier`, tổng mỗi phiên ≤ `phienSellCapPerDay`, quá trần → câu "Hết tiền rồi anh, phiên sau." (dùng lại luật bán ngay của T-064 nếu đã có, chưa có thì viết hàm chung để T-064 dùng lại). Should: ông Vung (câu đùa + Could nồi to), ông Lái Giống (1–2 hạt đã mở, rẻ `phienSeedDiscount`, chọn theo `seed` + ngày).
+- [ ] Món mới trong `items.json` (tên, giá, Sức hồi — bảng ở T-037 / GDD §3.9b); ăn được bằng chuột phải như khoai.
+- [ ] Báo phiên **bằng hình**: sáng ngày phiên băng chữ "Hôm nay phiên chợ Lầy — họp tới trưa" + icon gánh hàng cạnh đồng hồ HUD (tắt lúc 12h); tổng kết ngày hôm trước có dòng "Mai phiên chợ".
+- [ ] Hàm thuần + unit test: tính tiền thu mua có trần, hạt hạ giá theo seed, ngày phiên. Save: tiền đã bán cho cô Lanh hôm nay (xóa sang ngày). Debug: `debugState.market` (`isMarketDay`, `open`, `soldToLanhToday`), `debugSetDay(n)` hoặc dùng bảng Thử (T-041).
+- [ ] Thông số `marketDayFirst`, `marketDayInterval`, `marketOpenHour`, `marketCloseHour`, `phienSellMultiplier`, `phienSellCapPerDay`, `phienSeedDiscount`, `phienCrowdCount` trong `gameConfig.ts`.
+
+**Thông số / ghi chú:** GDD §3.9b; câu ở story bible §3.13 (người bán chợ phiên). Cắt nếu trễ: C4a(d) — chợ chỉ là cảnh, giữ bát chè (task còn M).
+
+**Bạn thử thế nào:** dùng bảng Thử nhảy tới sáng ngày 3: thấy băng chữ + icon gánh hàng; ra chợ thấy người bán; mua bánh đúc, ăn (+Sức); bán 10 củ khoai cho cô Lanh, thấy tiền về ngay và đắt hơn thùng bán; bán tiếp tới khi cô hết tiền. Chờ tới 12h: chợ tan. Sang ngày 4: sạp trống, quán chè vẫn mở.
+
+---
+
+### T-099 — Khuôn viên từng nhà + vườn NPC theo mùa (D-040)
+
+**Bước:** 4.2 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-032 (hình T-028 mảnh tường, T-029 sheet vườn khi có). Đổi theo mùa dùng mùa của T-045 — làm T-099 trước T-045 thì vườn để hình mùa nắng, hàm đổi mùa có sẵn và tự chạy khi T-045 xong
+
+**Mục tiêu:** mỗi nhà trong Xóm có rào / tường / cổng thật và vài nhà có vườn xanh đổi theo mùa — làng trông "có người ở", đi theo ngõ, không đi tắt qua sân.
+
+**Điều kiện xong:**
+- [ ] Từ dữ liệu khuôn viên (`fence`, `gate`, T-032) code tự rải mảnh ranh giới theo cạnh: rào tre, dâm bụt (Lô 1, `systems/propArt.ts`), chè tàu, tường đất, gạch mộc, tường gạch đình (ART-BLD-017); góc nối đúng; cổng là ô đi được, cánh cổng vẽ mở. Va chạm chỉ ở chân mảnh (bài học BUG-001).
+- [ ] 5 vườn (GDD §5 "Khuôn viên từng nhà"): đặt hình cây trồng Lô 1 giai đoạn chín trên nền đất ruộng (không phải ô ruộng của người chơi), đổi theo mùa; nương chè, giàn trầu, gốc rạ / đống rơm từ ART-ENV-018. Hàm thuần `npcGardenSprite(garden, season)` + unit test.
+- [ ] Click vườn → bong bóng chủ nhà nếu đang ở nhà, không thì {ten} (câu T-037). Vườn không cuốc / gieo / hái được (con trỏ không hiện viền ô ruộng).
+- [ ] Debug: `debugState.compounds` (số mảnh, cổng), `debugState.npcGardens` (mùa, hình).
+
+**Thông số / ghi chú:** chưa có hình mới thì tường = khối màu, nương chè / giàn trầu = khối xanh + nhãn. Cắt nếu trễ: C4a(c) vườn không đổi mùa.
+
+**Bạn thử thế nào:** đi quanh xóm: nhà nào cũng có rào hoặc tường, chỉ vào được qua cổng; nhìn rào biết nhà nghèo, tường + cổng mái là nhà khá. Ngày 1 (mùa nắng) vườn cô Ngóng là cải; nhảy sang mùa mưa (bảng Thử) thành rau muống, thửa lúa anh Tráng xanh mạ.
 
 ---
 
@@ -1130,8 +1209,9 @@ Mục tiêu: từ prototype "một ngày ở Vườn" thành game trọn vòng *
 **Điều kiện xong:**
 - [ ] Lớp môi trường to / nhỏ theo khoảng cách tới nguồn (lò rèn, xưởng mộc, giếng, hồ), qua kênh Hiệu ứng.
 - [ ] Mở thoại / bong bóng → giọng lẩm bẩm của NPC đó (mỗi người một cao độ). Nhạc Xóm thay nhạc Vườn.
+- [ ] **(D-040)** Ngày phiên 6–12h: lớp tiếng nền **chợ phiên** (ồn chợ, gà kêu, rao xa — dùng lại tiếng nền chợ của audio list nếu có, hạ âm lượng) to dần khi lại gần chợ; người bán + NPC đình dùng bộ giọng sẵn có đổi cao độ (Giả định: không gen giọng mới); mõ "cốc cốc" khi ông Mõ rao. Thêm ~0,5 giờ, vẫn M.
 
-**Bạn thử thế nào:** đi ngang lò rèn: tiếng búa to dần rồi nhỏ dần. Nói chuyện với trẻ trâu: nghe cười.
+**Bạn thử thế nào:** đi ngang lò rèn: tiếng búa to dần rồi nhỏ dần. Nói chuyện với trẻ trâu: nghe cười. Sáng ngày 3 đi về phía chợ: tiếng chợ to dần.
 
 ---
 
@@ -1452,6 +1532,7 @@ Mục tiêu: từ prototype "một ngày ở Vườn" thành game trọn vòng *
 
 **Điều kiện xong:**
 - [ ] Theo audio list Lô 3: nhạc Núi, chặt "cốc", hái lượm "pụp", quăng câu "vút + tõm", phao giật, cuộn dây, jingle bắt được cá, cá sổng "phựt", dép "bẹp", nỏ "phập", gà "cục tác". Hậu kỳ, đặt file. Bạn nghe duyệt.
+- [ ] **(D-041)** Đồng Lầy: tiếng nền đồng (gió lúa, ếch nhái chiều, cò xa — CC0 theo D-039), cày "xoạt" đất ướt, gặt "roạt" + bó lúa "bịch", jingle gặt ngắn (dùng lại jingle hái nếu được), sào gõ "cộc". Nhạc: dùng lại nhạc ngày Xóm (Giả định, không gen nhạc mới). +~0,5 giờ, vẫn L.
 
 **Bạn thử thế nào:** nghe bản nghe thử, duyệt.
 
@@ -1459,12 +1540,88 @@ Mục tiêu: từ prototype "một ngày ở Vườn" thành game trọn vòng *
 
 ### T-061 — Gắn âm thanh Lô 3a
 
-**Bước:** 4.3 · **Ai làm:** game-dev · **Size:** S (1–2h) · **Cần trước:** T-058, T-059, T-060
+**Bước:** 4.3 · **Ai làm:** game-dev · **Size:** S (1–2h) · **Cần trước:** T-058, T-059, T-060 (+ T-102 cho phần Đồng)
 
 **Điều kiện xong:**
 - [ ] Gắn từng tiếng vào sự kiện tương ứng; nhạc đổi theo khu khi qua cổng (mờ chéo).
+- [ ] **(D-041)** Tiếng nền Đồng Lầy + tiếng cày / gặt / sào (T-060). +~0,5 giờ, vẫn S.
 
-**Bạn thử thế nào:** lên Núi nghe nhạc đổi; câu một con cá nghe đủ tiếng.
+**Bạn thử thế nào:** lên Núi nghe nhạc đổi; câu một con cá nghe đủ tiếng. Ra Đồng nghe gió lúa, gặt một thửa nghe "roạt".
+
+---
+
+### T-100 — Gen hình Lô 3i: Đồng Lầy (D-041)
+
+**Bước:** 4.2 · **Ai làm:** art-director · **Size:** M (3–4h) · **Cần trước:** asset list Lô 3 (mục D-041)
+
+**Mục tiêu:** đủ hình để Đồng Lầy trông như cánh đồng Bắc Bộ: thửa lúa đổi theo giai đoạn, mương, chòi canh, ông Sào, bù nhìn.
+
+**Điều kiện xong:**
+- [ ] Tile **ruộng nước + bờ ruộng** (viền script như ART-TIL-004) và đê đất nện (dùng lại TIL-006).
+- [ ] **Thửa lúa** 3×3 ô (192×192): đất cỏ, đất cày (bùn nước), mạ mới cấy, lúa xanh, **lúa chín vàng**, gốc rạ sau gặt — lúa tẻ; lúa nếp = tô màu lại bằng script (0 USD). Dùng lại cho ruộng làng trang trí.
+- [ ] Sheet đồ đồng: mương nước + cầu tre, chòi canh sàn tre mái rạ, cọc gỗ khắc tên (thửa đã mua), biển "Đồng đang cấy — Lv 5" + rào chặn cổng đông.
+- [ ] **Ông Sào** 2 khung (cây sào vượt khung, vải đỏ đầu sào); **bù nhìn "thằng Rơm"** (nón rách quai đỏ y hệt {ten} bậc 1 — `--ref` nón của {ten}).
+- [ ] Icon ART-ITM-009: bó lúa tẻ, giấy thuê ruộng (bó mạ tẻ / nếp đã ở ART-ITM-008 — T-097; lúa nếp dùng icon cây Lô 1).
+- [ ] Should: cò trắng 3 khung (đứng / vỗ cánh / bay).
+- [ ] Hậu kỳ, đặt file, cập nhật asset list (ước ~2,8 USD). Bạn duyệt.
+
+**Thông số / ghi chú:** GDD §3.4a, §5 "Bố cục Đồng Lầy"; story bible §2.2 Đồng Lầy, §3.13a.
+
+**Bạn thử thế nào:** xem ảnh so sánh, duyệt: nhìn thửa lúa có nhận ra "chín, gặt được" không; bù nhìn có giống mình không.
+
+---
+
+### T-101 — Khu Đồng Lầy (hình khối) + cổng đông Lv 5 (D-041)
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-054 (chuyển khu qua cổng), T-042 (level)
+
+**Mục tiêu:** từ Lv 5 đi qua cổng đông cuối đường xóm là tới Đồng Lầy; trước đó cổng chặn.
+
+**Điều kiện xong:**
+- [ ] Thêm khu `field` vào `AreaId` / `AREA_NAMES` ("Đồng Lầy"), chuyển khu bằng `beginAreaChange` (như T-093 / T-054), tự lưu; camera + giới hạn vật lý theo khu.
+- [ ] Bản đồ 40×28 dựng bằng hình khối theo GDD §5 "Bố cục Đồng Lầy": đê, 6 thửa (khối có nhãn số), bờ ruộng đi được, mương (chặn) + cầu, chòi canh, ruộng làng (trang trí), bù nhìn, đầm sen. Tìm đường (D-038) chạy trong khu mới.
+- [ ] Cổng đông Xóm (x 70–71, y 14–15): trước `fieldUnlockLevel` có rào + biển "Đồng đang cấy — Lv 5", click → bong bóng ông Sào / {ten}; đủ level thì mở, thẻ mở khóa ở lên Lv 5 (T-042) có dòng "Đồng Lầy".
+- [ ] Save: `player.area` = `field`, tọa độ trong khu. Debug: `debugEnterArea('field')`, `debugState.area`.
+
+**Thông số / ghi chú:** `fieldMapSize`, `fieldUnlockLevel` (GDD §3.4a). Đo thời gian đi từ cổng nhà tới cổng đông (~15 s); lệch > 30% thì báo `game-planner`.
+
+**Bạn thử thế nào:** bảng Thử lên Lv 5, đi từ nhà ra cuối đường xóm qua cổng đông: màn mờ, vào Đồng; quay ra lại đúng chỗ cổng. Lv 4 thì cổng chặn, có biển.
+
+---
+
+### T-102 — Thửa ruộng lớn: thuê / mua ở ông Sào, cày – cấy – gặt lúa (D-041)
+
+**Bước:** 4.4 · **Ai làm:** game-dev · **Size:** L (1 ngày) · **Cần trước:** T-101, T-036 (cửa sổ cửa hàng chung), T-045 (mùa)
+
+**Mục tiêu:** thuê 2 thửa từ Lv 5, cày – cấy một lèo, 4 ngày sau ra gặt về cả gùi lúa; Lv 8 mua đứt (pillar "Làm giàu từ hai bàn tay").
+
+**Điều kiện xong:**
+- [ ] Ông Sào đứng ở chòi canh 6–19h (lịch T-035, khu `field`); click → cửa sổ "Ruộng đồng" (dùng cửa sổ cửa hàng chung): danh sách 6 thửa (trống / đang thuê / của mình), nút **Thuê vụ này** (`fieldRentPerCrop`), **Mua đứt** (`fieldBuyPrice`, xám + "Lv 8" khi chưa đủ), giới hạn `fieldMaxPlotsByLevel`; tab bán **bó mạ tẻ / nếp** (trái mùa xám). Không nút Kỳ kèo; áp `shopDiscount` bậc ngoại hình.
+- [ ] Mỗi thửa là **một đơn vị**: cầm cuốc click thửa → bước tới sát bờ (`planFarmStand` / `farmWorkRange` của D-038) → **cày** `fieldPlowSeconds` có thanh tiến độ, WASD bỏ dở giữ tiến độ (dùng lại logic §3.3a), trừ `fieldPlowStamina` khi xong; cầm bó mạ click → **cấy** `fieldPlantSeconds`; lớn mỗi đêm tới `fieldGrowDays` (không cần tưới, không héo); chín → click **gặt** `fieldHarvestSeconds` → `fieldYield` bó lúa vào gùi (dư thì thành đống nhặt được ở bờ), +`fieldHarvestXp`; thửa thuê trả về "trống", thửa mua về "đất cỏ".
+- [ ] Món mới: lúa tẻ (bán 18), bó mạ tẻ / nếp; lúa nếp dùng chung món "lúa nếp" của ruộng nhà (rượu nếp, nhiệm vụ 5).
+- [ ] Hàm thuần + unit test: trạng thái thửa qua đêm, giới hạn theo level, giá có giảm giá bậc, sản lượng, thuê → gặt → trả.
+- [ ] Save: mảng `fields` (6 phần tử: `owner` none / rented / owned, `stage`, `crop`, `days`, tiến độ cày dở); nâng cấp save cũ (không có `fields` → 6 thửa trống). Debug: `debugState.fields`, `debugSetField(i, stage)`.
+- [ ] Juice tối thiểu (đủ phản hồi): thanh tiến độ, đất đổi màu khi cày, chữ "+12 bó lúa"; juice đầy đủ ở T-103.
+
+**Thông số / ghi chú:** toàn bộ bảng `field*` GDD §3.4a; câu ông Sào story bible §3.13a. Should (làm nếu kịp, không chặn xong): trâu Ì cày nhanh `fieldBuffaloPlowMultiplier` (cần T-075), U nấu cơm bằng lúa tẻ nhà. Cắt C6b(b): bỏ mua đứt.
+
+**Bạn thử thế nào:** bảng Thử Lv 5 + 200 quan, mùa nắng: ra Đồng, thuê 2 thửa, mua 2 bó mạ tẻ; cầm cuốc click thửa 1 → cày ~15 giây; cấy; làm thửa 2. Ngủ 4 đêm (bảng Thử) → thửa vàng; gặt → 12 bó lúa vào gùi, thửa trả về trống. Lên Lv 8: mua đứt một thửa, thấy cọc tên mình.
+
+---
+
+### T-103 — Gắn hình Đồng Lầy + juice gặt (D-041)
+
+**Bước:** 4.2 · **Ai làm:** game-dev · **Size:** M (3–4h) · **Cần trước:** T-100, T-102
+
+**Mục tiêu:** Đồng trông thật và gặt lúa "đã tay".
+
+**Điều kiện xong:**
+- [ ] Thay hình khối bằng tile ruộng nước / bờ, thửa lúa theo giai đoạn (tẻ / nếp tô màu), mương, cầu, chòi, ông Sào, bù nhìn, cọc tên; ruộng làng đổi màu theo mùa.
+- [ ] Juice gặt (GDD §8): lúa ngả rạp theo nhịp gặt, bó lúa bay vào gùi, chữ "+12 bó lúa", jingle ngắn; gặt thửa đầu tiên → bong bóng khoe vàng của {ten}. Click bù nhìn → câu {ten} (story bible §3.13a).
+- [ ] Should: cò bay lên khi {ten} tới gần đầm; lá cờ bù nhìn lắc.
+- [ ] FPS ≥ 50 khi đứng giữa đồng.
+
+**Bạn thử thế nào:** ra Đồng lúc lúa chín, gặt một thửa: xem lúa đổ, bó lúa bay, nghe jingle (khi T-061 xong). Click bù nhìn.
 
 ---
 
@@ -1911,6 +2068,8 @@ Mục tiêu: từ prototype "một ngày ở Vườn" thành game trọn vòng *
 
 ## Changelog
 
+- 2026-10-15 — D-041 (game-planner): Đồng Lầy. Thêm T-100 (gen hình Lô 3i), T-101 (khu + cổng đông Lv 5), T-102 (thửa ruộng lớn: thuê / mua, cày – cấy – gặt), T-103 (gắn hình + juice gặt); T-060, T-061 thêm tiếng đồng. Tổng ≈ 419 giờ / 86 task, mốc ~05/05/2027. T-028, T-032, T-033 trỏ concept ART-CON-002 (đã duyệt).
+- 2026-10-15 — D-040 (game-planner): Xóm 72×50 + khuôn viên + chợ phiên + đình có người. Thêm T-097 (gen hình Lô 2f), T-098 (chợ phiên), T-099 (khuôn viên + vườn NPC); sửa T-028, T-029, T-031, T-032 (72×50, khuôn viên), T-033, T-035 (ngày phiên), T-037 (S → M), T-038 (M → L, NPC đình), T-040. Tổng ≈ 400 giờ / 82 task, mốc ~26/04/2027.
 - 2026-10-15 — T-026 👀: gắn âm thanh Lô 1 qua một chỗ (`AudioManager` + cue), 2 kênh Nhạc / Hiệu ứng có nút −/+ ở Tạm dừng (lưu `bph-settings`), nhạc ngày ↔ đêm / trong nhà đan chéo, gà gáy theo ngày (save version 3 có `seed`).
 - 2026-10-15 — T-025 ✅ (người dùng nghe vòng 3: gà gáy 6 kiểu từ bản ghi thật + 9 âm CC0 — ổn). Bắt đầu T-026.
 - 2026-10-15 — T-092 ✅ (người dùng thử giao diện mới: ổn). Bắt đầu T-025.
