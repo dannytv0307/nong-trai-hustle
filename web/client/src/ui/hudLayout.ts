@@ -136,12 +136,12 @@ export function clockPlankRect(): Rect {
 
 /**
  * Cửa sổ Tạm dừng (Esc, T-005): rộng/cao khung, nút "Tiếp tục". T-008 thêm dòng "Đã lưu lúc…" (`savedLineY`) và nút
- * "Chơi lại từ đầu" (nhỏ hơn, dưới nút Tiếp tục). Các số y tính từ mép trên khung. Khung cao thêm nhưng nút "Tiếp tục" giữ
- * đúng chỗ cũ trên màn (y 545–629 ở 1080p) để tay người chơi quen chỗ.
+ * "Chơi lại từ đầu" (nhỏ hơn, dưới nút Tiếp tục). T-026 thêm 2 hàng âm lượng (Nhạc / Hiệu ứng: chữ + nút − + số % + nút +,
+ * nút vuông 84 px chạm được) dưới nút Chơi lại — khung cao + rộng thêm. Các số y tính từ mép trên khung.
  */
 export const PAUSE_WINDOW = {
-  w: 640,
-  h: 540,
+  w: 680,
+  h: 760,
   buttonW: 300,
   buttonH: 88,
   titleY: 92,
@@ -151,7 +151,14 @@ export const PAUSE_WINDOW = {
   restartY: 358,
   restartW: 340,
   restartH: 84,
-  escY: 486,
+  /** T-026: đường kẻ + 2 hàng âm lượng (đỉnh hàng), cỡ nút −/+, chữ tên kênh (lề trái), nút − (lề trái), ô số % (rộng). */
+  volumeRuleY: 474,
+  volumeRowsY: [500, 598] as readonly [number, number],
+  volumeButton: 84,
+  volumeLabelX: 64,
+  volumeMinusX: 316,
+  volumeValueW: 132,
+  escY: 716,
 } as const;
 
 /** Khung cửa sổ Tạm dừng (giữa màn). */
@@ -179,6 +186,42 @@ export function pauseRestartButtonRect(): Rect {
     w: PAUSE_WINDOW.restartW,
     h: PAUSE_WINDOW.restartH,
   };
+}
+
+/** T-026: nút −/+ của hàng âm lượng: `music-down`, `music-up`, `sfx-down`, `sfx-up`. */
+export type VolumeButtonId = 'music-down' | 'music-up' | 'sfx-down' | 'sfx-up';
+export const VOLUME_BUTTONS: readonly VolumeButtonId[] = ['music-down', 'music-up', 'sfx-down', 'sfx-up'];
+
+/** Kênh + hướng của nút âm lượng. */
+export function volumeButtonChannel(id: VolumeButtonId): { channel: 'music' | 'sfx'; dir: 1 | -1 } {
+  return { channel: id.startsWith('music') ? 'music' : 'sfx', dir: id.endsWith('up') ? 1 : -1 };
+}
+
+/** Đỉnh hàng âm lượng của kênh (0 = Nhạc, 1 = Hiệu ứng) — y tâm hàng = y + volumeButton/2. */
+export function volumeRowY(channel: 'music' | 'sfx'): number {
+  return pausePanelRect().y + PAUSE_WINDOW.volumeRowsY[channel === 'music' ? 0 : 1];
+}
+
+/** Nút −/+ âm lượng trong cửa sổ Tạm dừng. */
+export function volumeButtonRect(id: VolumeButtonId): Rect {
+  const p = pausePanelRect();
+  const { channel, dir } = volumeButtonChannel(id);
+  const b = PAUSE_WINDOW.volumeButton;
+  const minusX = p.x + PAUSE_WINDOW.volumeMinusX;
+  return { x: dir < 0 ? minusX : minusX + b + PAUSE_WINDOW.volumeValueW, y: volumeRowY(channel), w: b, h: b };
+}
+
+/** Tâm chữ "80%" giữa hai nút của hàng. */
+export function volumeValueCenter(channel: 'music' | 'sfx'): { x: number; y: number } {
+  const p = pausePanelRect();
+  const b = PAUSE_WINDOW.volumeButton;
+  return { x: p.x + PAUSE_WINDOW.volumeMinusX + b + PAUSE_WINDOW.volumeValueW / 2, y: volumeRowY(channel) + b / 2 };
+}
+
+/** Nút âm lượng dưới điểm (px, py), null nếu không trúng. */
+export function volumeButtonAt(px: number, py: number): VolumeButtonId | null {
+  for (const id of VOLUME_BUTTONS) if (inside(volumeButtonRect(id), px, py)) return id;
+  return null;
 }
 
 /** Hộp xác nhận "Chơi lại từ đầu?" (T-008): nằm trên cửa sổ Tạm dừng, 2 nút Có / Không. */

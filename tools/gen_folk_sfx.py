@@ -81,6 +81,9 @@ def modal(f0, ratios, amps, decays, dur, rng, bend=0.0, bend_tau=0.04, glide=0.0
 
 def finish(x, peak_db=-1.0, tail_db=-60):
     x = np.asarray(x, dtype=np.float64)
+    if x.ndim == 2:  # nền stereo (AMB): chỉ bỏ DC + chuẩn hóa peak; làm loop bằng audio_tools loop
+        x = x - x.mean(axis=0)
+        return x / (np.abs(x).max() + 1e-12) * 10 ** (peak_db / 20)
     x -= np.mean(x)
     pk = np.abs(x).max() + 1e-12
     x = x / pk
@@ -595,6 +598,699 @@ def r_harvest_pop(rng, v):
     return reverb(out, rt=0.25, mix=0.07, tone=6000, rng=rng)[: int(SR * (dur + 0.04))]
 
 
+
+# ---------- T-025: Lô 1 Vườn (một ngày ở nhà) ----------
+def conv(x, ir):
+    n = len(x) + len(ir) - 1
+    pad = 1 << int(np.ceil(np.log2(n)))
+    return np.fft.irfft(np.fft.rfft(x, pad) * np.fft.rfft(ir, pad), pad)[:n]
+
+
+def norm(x):
+    return x / (np.abs(x).max() + 1e-9)
+
+
+def env_ad(t, attack, decay):
+    """Đường bao: lên tuyến tính trong `attack` giây rồi tắt mũ với hằng số `decay` (t là mảng giây)."""
+    return np.clip(t / max(attack, 1e-4), 0, 1) * np.exp(-np.maximum(t - attack, 0) / decay)
+
+
+def smooth_noise(rng, dur, rate, lo=0.0):
+    """Nhiễu chậm (LFO ngẫu nhiên) trong [lo, 1], đổi hướng khoảng `rate` lần/giây."""
+    n = int(SR * dur)
+    k = max(2, int(dur * rate) + 2)
+    pts = rng.uniform(0, 1, k)
+    v = np.interp(np.linspace(0, k - 1, n), np.arange(k), pts)
+    return lo + (1 - lo) * v
+
+
+def vox(rng, dur, f0_pts, form_pts, amp_pts, breathy=0.06, nharm=60, fry=0.0, fry_hz=30.0, jitter=0.012):
+    """Giọng formant liền mạch: f0, formant (F1, F2, F3), âm lượng nội suy theo các điểm (t, giá trị)."""
+    t = tt(dur)
+    ft, fv = zip(*f0_pts)
+    f0 = np.interp(t, ft, fv) * (1 + jitter * rng.standard_normal(len(t)).cumsum() / np.sqrt(len(t)))
+    fmt = [np.interp(t, [p[0] for p in form_pts], [p[1][i] for p in form_pts]) for i in range(3)]
+    at, av = zip(*amp_pts)
+    amp = np.interp(t, at, av)
+    ph = 2 * np.pi * np.cumsum(f0) / SR
+    out = np.zeros_like(t)
+    for k in range(1, nharm + 1):
+        fk = k * f0
+        H = (1.0 / np.sqrt(1 + ((fk - fmt[0]) / 55) ** 2) + 0.5 / np.sqrt(1 + ((fk - fmt[1]) / 70) ** 2)
+             + 0.25 / np.sqrt(1 + ((fk - fmt[2]) / 100) ** 2))
+        out += (k ** -0.8) * H * np.sin(k * ph) * (fk < 7000)
+    out = norm(out)
+    if fry:
+        out *= 1 - fry * (0.5 + 0.5 * np.sign(np.sin(2 * np.pi * fry_hz * t)))
+    b = norm(fft_filter(rng.standard_normal(len(t)), lo=400, hi=4500))
+    return (out + breathy * b) * amp
+
+
+def creak(rng, dur, rate0, rate1, modes=(420, 980, 1650, 2700), decay=0.012, jitter=0.25):
+    """Cót két (gỗ / tre / bản lề): chuỗi xung 'dính-trượt' tốc độ rate0 -> rate1 kích các mode cộng hưởng."""
+    n = int(SR * dur)
+    t = np.arange(n) / SR
+    rate = rate0 + (rate1 - rate0) * t / dur
+    rate = rate * (1 + jitter * (smooth_noise(rng, dur, 18) - 0.5))
+    ph = np.cumsum(rate) / SR
+    imp = np.zeros(n)
+    idx = np.where(np.diff(np.floor(ph)) > 0)[0]
+    imp[idx] = rng.uniform(0.5, 1.0, len(idx))
+    ir = modal(modes[0], [m / modes[0] for m in modes], [1, 0.7, 0.45, 0.25][:len(modes)],
+               [decay, decay * 0.7, decay * 0.5, decay * 0.35][:len(modes)], 0.06, rng)
+    out = conv(imp, ir)[:n] * note_env(n, 0.02, 0.04)
+    return fft_filter(out, lo=250, hi=5000)
+
+
+def dirt_step(rng, soft=1.0):
+    """Bước chân đất nện: 'thịch' trầm vừa + quẹt đất + vài hạt."""
+    d = 0.14
+    t = tt(d)
+    thud = norm(fft_filter(noise(d, rng), lo=70, hi=380, order=3)) * env_ad(t, 0.003, 0.022)
+    ts = np.maximum(t - 0.006, 0)
+    scuff = norm(fft_filter(noise(d, rng), lo=350, hi=2200)) * env_ad(ts, 0.006, 0.03) * (t > 0.006)
+    out = thud + 0.45 * scuff
+    for _ in range(4):
+        place(out, _grain(rng, rng.uniform(0.003, 0.006), 1500, 4500) * rng.uniform(0.08, 0.2), rng.uniform(0.01, 0.08))
+    out = fft_filter(out, lo=60, hi=6000) + 0.4 * fft_filter(out, lo=250, hi=1500)
+    return out * soft
+
+
+def grass_step(rng, soft=1.0):
+    """Bước chân trên cỏ: 'thụp' mềm + cỏ sột soạt."""
+    d = 0.15
+    t = tt(d)
+    thud = norm(fft_filter(noise(d, rng), lo=80, hi=320, order=3)) * env_ad(t, 0.006, 0.02) * 0.6
+    rustle = np.zeros(int(SR * d))
+    for _ in range(22):
+        at = rng.uniform(0.0, 0.09)
+        lo = rng.uniform(1500, 3500)
+        place(rustle, _grain(rng, rng.uniform(0.004, 0.012), lo, lo * 2.4) * rng.uniform(0.3, 1), at)
+    bed = norm(fft_filter(noise(d, rng), lo=1200, hi=6000)) * env_ad(t, 0.012, 0.035)
+    out = thud + 0.55 * norm(rustle) + 0.35 * bed
+    return fft_filter(out, lo=70, hi=7500) * soft
+
+
+def r_footstep(rng, v):
+    """Bước chân: v1–3 đất nện, v4–6 cỏ (AUD-SFX-111)."""
+    return dirt_step(rng) if v <= 3 else grass_step(rng)
+
+
+def r_hoe_finish(rng, v):
+    """Nhát cuốc chốt (xong ô): 'phập' cuốc đầy hơn + đất vỡ tung + cục đất rơi lả tả.
+    v1/v2 chỉ tiếng đất; v3 thêm 1 nốt marimba trầm mềm (Đô) báo 'xong'."""
+    base = r_hoe_soil(rng, 2 if v != 2 else 1)
+    dur = 0.55
+    t = tt(dur)
+    out = np.zeros(len(t))
+    place(out, base * 1.0, 0)
+    f = (70 if v != 2 else 82) * (1 + 0.8 * np.exp(-t / 0.015))
+    low = np.sin(2 * np.pi * np.cumsum(f) / SR) * env_ad(t, 0.002, 0.07)
+    out += 0.55 * low
+    tb = np.maximum(t - 0.02, 0)
+    burst = norm(fft_filter(noise(dur, rng), lo=350, hi=2600)) * env_ad(tb, 0.03, 0.09) * (t > 0.02)
+    out += 0.5 * burst
+    for _ in range(4):
+        at = rng.uniform(0.12, 0.38)
+        ct = tt(0.05)
+        clump = norm(fft_filter(noise(0.05, rng), lo=120, hi=650)) * (1 - np.exp(-ct / 0.002)) * np.exp(-ct / 0.014)
+        place(out, clump * rng.uniform(0.15, 0.3), at)
+    for _ in range(26):
+        at = 0.05 + rng.exponential(0.11)
+        if at < dur - 0.03:
+            lo = rng.uniform(900, 2600)
+            place(out, _grain(rng, rng.uniform(0.003, 0.01), lo, lo * 2.4) * rng.uniform(0.1, 0.3)
+                  * np.exp(-(at - 0.05) / 0.2), at)
+    if v == 3:
+        place(out, marimba_soft(rng, 261.6, 0.45) * 0.35 + marimba_soft(rng, 392.0, 0.45) * 0.2, 0.03)
+    out = fft_filter(out, lo=50, hi=8000) + 0.35 * fft_filter(out, lo=300, hi=2500)
+    return np.tanh(2.0 * norm(out)) / np.tanh(2.0)
+
+
+def r_wither(rng, v):
+    """Cây héo 'phù': hơi xì ra (tâm dải trượt xuống) + nốt 'xẹp' tụt mềm Si4 -> Si3 + lá khô rũ sột soạt."""
+    dur = 0.6
+    t = tt(dur)
+    a = norm(fft_filter(noise(dur, rng), lo=1200, hi=3200))
+    b = norm(fft_filter(noise(dur, rng), lo=350, hi=1100))
+    mix = np.clip(t / 0.35, 0, 1)
+    breath = ((1 - mix) * a + mix * b) * env_ad(t, 0.04, 0.16)
+    f = 494 * (247 / 494) ** np.clip(t / 0.42, 0, 1)
+    ph = 2 * np.pi * np.cumsum(f) / SR
+    tone = (np.sin(ph) + 0.3 * np.sin(2 * ph) + 0.1 * np.sin(3 * ph)) * env_ad(t, 0.03, 0.18)
+    out = 0.8 * breath + (0.45 if v == 1 else 0.3) * tone
+    for _ in range(14):
+        at = rng.uniform(0.18, 0.45)
+        lo = rng.uniform(1800, 4000)
+        place(out, _grain(rng, rng.uniform(0.004, 0.01), lo, lo * 2) * rng.uniform(0.08, 0.2), at)
+    return fft_filter(out, lo=120, hi=7000)
+
+
+def r_clear_wither(rng, v):
+    """Dọn cây héo: thân khô gãy 'rắc' nhỏ + lá khô sột soạt + vứt 'phịch'."""
+    dur = 0.5
+    t = tt(dur)
+    out = np.zeros(len(t))
+    snap = modal(rng.uniform(1300, 1700), [1, 2.3, 3.9], [1, 0.5, 0.25], [0.008, 0.005, 0.003], 0.04, rng)
+    place(out, norm(snap) * 0.6, 0)
+    place(out, _grain(rng, 0.006, 1500, 7000) * 0.6, 0)
+    crunch = np.zeros(len(t))
+    for _ in range(55 if v == 1 else 40):
+        at = rng.uniform(0.0, 0.22) if v == 1 else rng.exponential(0.07)
+        if at < dur - 0.03:
+            lo = rng.uniform(1100, 3200)
+            place(crunch, _grain(rng, rng.uniform(0.003, 0.012), lo, lo * 2.2) * rng.uniform(0.25, 1), at)
+    bed = norm(fft_filter(noise(dur, rng), lo=1000, hi=5000)) * env_ad(t, 0.02, 0.09)
+    out += 0.7 * norm(crunch) + 0.3 * bed
+    th = tt(0.06)
+    toss = norm(fft_filter(noise(0.06, rng), lo=100, hi=600, order=3)) * env_ad(th, 0.003, 0.015)
+    place(out, toss * 0.45, 0.28 if v == 1 else 0.24)
+    return fft_filter(out, lo=110, hi=6000)
+
+
+def r_eat(rng, v):
+    """Ăn 'nhồm nhoàm': 3 tiếng nhai có giọng mũi (n-ồ-m / nh-oà-m) + 'chóp' ướt (v2 thêm giòn 'rộp')."""
+    syll = [(0.0, 0.17, (420, 820), 175), (0.2, 0.21, (700, 1150), 165), (0.45, 0.17, (430, 850), 180)]
+    if v == 2:
+        syll = [(0.0, 0.15, (650, 1100), 180), (0.17, 0.15, (420, 820), 170), (0.36, 0.2, (700, 1150), 160)]
+    total = syll[-1][0] + syll[-1][1] + 0.08
+    out = np.zeros(int(SR * total))
+    for at, d, (F1, F2), f0 in syll:
+        x = vox(rng, d,
+                [(0, f0 * 1.04), (d, f0 * 0.9)],
+                [(0, (260, 1700, 2600)), (0.035, (F1, F2, 2500)), (d * 0.7, (F1 * 0.9, F2 * 0.95, 2500)),
+                 (d, (250, 900, 2300))],
+                [(0, 0), (0.02, 0.6), (0.04, 1.0), (d * 0.65, 0.9), (d * 0.85, 0.45), (d, 0)],
+                breathy=0.05)
+        place(out, x, at)
+        sm = norm(fft_filter(noise(0.015, rng), lo=900, hi=3800)) * env_ad(tt(0.015), 0.0008, 0.003)
+        place(out, sm * 0.5, at + 0.025)
+        if v == 2:
+            for _ in range(8):
+                place(out, _grain(rng, rng.uniform(0.003, 0.007), 1200, 4500) * rng.uniform(0.2, 0.45),
+                      at + rng.uniform(0.03, 0.09))
+    return fft_filter(out, lo=120, hi=7000)
+
+
+def r_stomach(rng, v):
+    """Bụng réo 'ọc ọc': 2 tiếng ọc trầm (giọng rè rất thấp + bọt trầm), lớp dải giữa cho loa laptop."""
+    dur = 1.1
+    out = np.zeros(int(SR * dur))
+    second = (0.52, 0.5, 120, 80) if v == 1 else (0.48, 0.55, 110, 165)
+    for at, d, f0a, f0b in ((0.0, 0.42, 95, 140), second):
+        x = vox(rng, d, [(0, f0a), (d * 0.5, (f0a + f0b) / 2 * 1.1), (d, f0b)],
+                [(0, (300, 650, 1400)), (d * 0.5, (420, 800, 1600)), (d, (280, 600, 1300))],
+                [(0, 0), (0.05, 0.7), (d * 0.3, 1), (d * 0.6, 0.6), (d * 0.8, 0.9), (d, 0)],
+                breathy=0.02, nharm=40, fry=0.7, fry_hz=rng.uniform(16, 24), jitter=0.04)
+        place(out, x, at)
+        b = bubbles(rng, d, count=9, fmin=160, fmax=420)
+        place(out, 0.5 * norm(b), at + 0.03)
+    out = np.tanh(2.5 * norm(out)) / np.tanh(2.5)
+    return fft_filter(out, lo=60, hi=2500) + 0.5 * fft_filter(out, lo=250, hi=1200)
+
+
+def r_yawn(rng, v):
+    """Ngáp dài 'hà-ááá-ồm': hít hơi, mở to giọng đi lên rồi tụt dài, khép miệng 'm'."""
+    d = 1.35 if v == 1 else 1.2
+    hi = 290 if v == 1 else 250
+    x = vox(rng, d,
+            [(0, 170), (0.18, hi), (0.45, hi * 0.95), (1.0, 140), (d, 110)],
+            [(0, (700, 1200, 2600)), (0.2, (850, 1300, 2700)), (0.75, (750, 1150, 2600)),
+             (1.0, (450, 850, 2400)), (d, (260, 900, 2300))],
+            [(0, 0), (0.12, 0.35), (0.25, 1.0), (0.7, 0.85), (1.05, 0.55), (d, 0)],
+            breathy=0.35, jitter=0.02)
+    h = norm(fft_filter(noise(0.2, rng), lo=700, hi=4000)) * env_ad(tt(0.2), 0.08, 0.06) * 0.25
+    out = np.zeros(int(SR * (d + 0.1)))
+    place(out, h, 0)
+    place(out, x, 0.08)
+    return fft_filter(out, lo=110, hi=7000)
+
+
+def r_snore(rng, v):
+    """Ngáy 'khò… phù…' 2 nhịp: hít vào rè trầm (~40 Hz) + thở ra 'phù' (v2 có huýt nhẹ). Đầu/cuối lặng -> lặp được."""
+    cyc = 1.35 if v == 1 else 1.5
+    out = np.zeros(int(SR * 2 * cyc))
+    for c in range(2):
+        at = c * cyc
+        d_in = 0.62
+        x = vox(rng, d_in, [(0, 36), (d_in, 44)],
+                [(0, (450, 1000, 2400)), (d_in, (550, 1100, 2500))],
+                [(0, 0), (0.15, 0.7), (0.45, 1.0), (d_in, 0)],
+                breathy=0.6, nharm=150, jitter=0.05)
+        rumble = 0.6 + 0.4 * np.sign(np.sin(2 * np.pi * rng.uniform(26, 34) * tt(d_in)))
+        place(out, x * rumble, at + 0.05)
+        d_out = 0.5
+        to = tt(d_out)
+        exh = norm(fft_filter(noise(d_out, rng), lo=500, hi=2600)) * env_ad(to, 0.06, 0.16) * 0.45
+        if v == 2:
+            f = 1100 * (1 - 0.35 * to / d_out)
+            exh += 0.25 * np.sin(2 * np.pi * np.cumsum(f) / SR) * env_ad(to, 0.05, 0.12)
+        place(out, exh, at + 0.05 + d_in + 0.06)
+    return fft_filter(out, lo=60, hi=6000) + 0.5 * fft_filter(out, lo=250, hi=1500)
+
+
+def r_rooster(rng, v):
+    """Gà gáy 'ò ó o oooo' (v1 gà gần, v2 gà xa có vang + chim sẻ sáng, v3 chỉ chim sáng — dự phòng)."""
+    total = 2.0
+    out = np.zeros(int(SR * total))
+    if v in (1, 2):
+        d = 1.55
+        x = vox(rng, d,
+                [(0, 520), (0.14, 560), (0.17, 690), (0.38, 760), (0.42, 820), (0.9, 880), (1.25, 830), (d, 560)],
+                [(0, (850, 1500, 3000)), (0.2, (950, 1700, 3200)), (0.5, (1000, 1650, 3200)),
+                 (1.2, (900, 1500, 3000)), (d, (700, 1300, 2800))],
+                [(0, 0), (0.02, 0.8), (0.13, 0.7), (0.15, 0.25), (0.18, 0.9), (0.36, 0.8), (0.4, 0.3),
+                 (0.44, 1.0), (1.2, 0.9), (d, 0)],
+                breathy=0.25, nharm=12, jitter=0.03)
+        t = tt(d)
+        x *= 1 + 0.35 * np.sin(2 * np.pi * 55 * t)
+        x *= 1 + 0.04 * np.sin(2 * np.pi * 6 * t)
+        x = np.tanh(2.2 * norm(x)) / np.tanh(2.2)
+        x = fft_filter(x, lo=400, hi=6500)
+        if v == 2:
+            x = reverb(x * 0.7, rt=0.9, mix=0.3, tone=4500, rng=rng)
+        place(out, x, 0.05)
+    if v in (2, 3):
+        for _ in range(7 if v == 2 else 12):
+            at = rng.uniform(0.0, total - 0.35)
+            for k in range(int(rng.integers(2, 5))):
+                dch = rng.uniform(0.035, 0.06)
+                tc = tt(dch)
+                f = rng.uniform(3200, 4800) * (1 + rng.choice([-1, 1]) * 0.25 * tc / dch)
+                ch = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.sin(np.pi * tc / dch) ** 2
+                place(out, ch * rng.uniform(0.15, 0.35), at + k * rng.uniform(0.06, 0.09))
+    return reverb(out, rt=0.6, mix=0.15, tone=7000, rng=rng)
+
+
+def crackle(rng, dur, rate, amp=1.0, lo=600, hi=6000):
+    """Lách tách ngẫu nhiên (lửa, mưa lá): hạt nhiễu cực ngắn theo phân bố Poisson."""
+    out = np.zeros(int(SR * dur))
+    t = 0.0
+    while True:
+        t += rng.exponential(1 / rate)
+        if t > dur - 0.01:
+            break
+        place(out, _grain(rng, rng.uniform(0.0015, 0.004), lo, hi) * rng.uniform(0.2, 1) ** 2 * amp, t)
+    return out
+
+
+def r_cook(rng, v):
+    """Nấu ở bếp rơm: lửa rơm bùng 'phừng' + lách tách + xèo (thức ăn vào chảo)."""
+    dur = 1.5
+    t = tt(dur)
+    flame = norm(fft_filter(noise(dur, rng), lo=90, hi=700)) * env_ad(t, 0.12, 0.6) * smooth_noise(rng, dur, 8, 0.5)
+    cr = crackle(rng, dur, 38) * (np.exp(-t / 1.0) * 0.8 + 0.2)
+    sz_env = np.clip((t - 0.2) / 0.08, 0, 1) * np.exp(-np.maximum(t - 0.45, 0) / 0.45)
+    sizzle = norm(fft_filter(noise(dur, rng), lo=2800, hi=9000)) * sz_env * smooth_noise(rng, dur, 25, 0.4)
+    out = 0.5 * flame + 0.9 * norm(cr) + (0.45 if v == 1 else 0.6) * sizzle
+    return fft_filter(out, lo=80, hi=8000)
+
+
+def r_count_tick(rng, v):
+    """Đếm tiền 'tách' 60–90 ms: v1/v2 xu chạm khẽ (2 cao độ), v3/v4 hạt bàn tính gỗ."""
+    d = 0.09
+    if v <= 2:
+        f0 = 2900 if v == 1 else 3250
+        out = norm(modal(f0, [1, 1.72, 2.36, 3.58], [1, 0.6, 0.4, 0.2], [0.03, 0.02, 0.014, 0.008], d, rng))
+        place(out, _grain(rng, 0.003, 3000, 9000) * 0.5, 0)
+    else:
+        f0 = 1500 if v == 3 else 1750
+        out = norm(modal(f0, [1, 2.57, 4.1], [1, 0.35, 0.12], [0.012, 0.007, 0.004], d, rng))
+        place(out, _grain(rng, 0.003, 1500, 7000) * 0.45, 0)
+        place(out, norm(modal(f0 * 1.08, [1, 2.57], [1, 0.3], [0.008, 0.005], 0.03, rng)) * 0.35, 0.018)
+    return fft_filter(out, lo=400, hi=11000)
+
+
+def r_thunder(rng, v):
+    """Sấm xa 'ì ầm': ầm trầm nhiều đợt chồng nhau, vào mềm (xa); v2 có tiếng 'rạch' đầu, gần hơn."""
+    dur = 2.8 if v == 1 else 2.6
+    t = tt(dur)
+    rum = fft_filter(np.cumsum(noise(dur, rng)) / 100, lo=30, hi=220, order=2)
+    rum = norm(rum)
+    envl = np.zeros(len(t))
+    for c, w, a in ((0.25, 0.35, 1.0), (0.7, 0.5, 0.8), (1.2, 0.5, 0.65), (1.8, 0.6, 0.4)):
+        envl += a * np.exp(-0.5 * ((t - c * (dur / 2.8)) / (w * 0.6)) ** 2)
+    envl *= np.clip(t / 0.15, 0, 1) * (1 - np.clip((t - dur + 0.6) / 0.6, 0, 1))
+    x = rum * envl * smooth_noise(rng, dur, 14, 0.55)
+    x = np.tanh(2.5 * norm(x)) / np.tanh(2.5)
+    # lớp 'ì ầm' dải giữa (cùng đường bao) để loa laptop vẫn nghe ra sấm (dưới ~150 Hz loa gần như mất)
+    mid = norm(fft_filter(noise(dur, rng), lo=150, hi=700)) * envl * smooth_noise(rng, dur, 20, 0.4)
+    mid = np.tanh(2.0 * norm(mid)) / np.tanh(2.0)
+    out = 0.6 * fft_filter(x, lo=35, hi=900) + 1.4 * fft_filter(x, lo=150, hi=700) + 0.35 * mid
+    if v == 2:
+        crack = norm(fft_filter(noise(0.4, rng), lo=400, hi=3500)) * env_ad(tt(0.4), 0.01, 0.07)
+        place(out, crack * 0.35 * np.abs(out).max(), 0.05)
+    return out
+
+
+def _stereo(rng, make):
+    """Hai kênh độc lập (cùng công thức, rng riêng) -> nền stereo rộng."""
+    return np.stack([make(np.random.default_rng(int(rng.integers(1 << 30)))) for _ in range(2)], axis=1)
+
+
+def r_rain(rng, v):
+    """Mưa trên lá + mái rạ (AMB stereo ~22 s, làm loop bằng audio_tools loop): nền xào xạc + giọt trên lá + 'lộp' trên rạ."""
+    dur = 22.0
+
+    def chan(r):
+        t = tt(dur)
+        bed = fft_filter(r.standard_normal(len(t)), lo=500, hi=6500)
+        bed = norm(bed - 0.5 * fft_filter(bed, lo=3500)) * (0.8 + 0.2 * smooth_noise(r, dur, 0.3))
+        leaves = crackle(r, dur, 55, lo=1800, hi=7000)
+        thatch = np.zeros(len(t))
+        tk = 0.0
+        while True:
+            tk += r.exponential(1 / 14)
+            if tk > dur - 0.05:
+                break
+            p = norm(fft_filter(noise(0.04, r), lo=250, hi=1300)) * env_ad(tt(0.04), 0.002, 0.009)
+            place(thatch, p * r.uniform(0.2, 1), tk)
+        return 0.55 * bed + 0.35 * norm(leaves) + 0.3 * norm(thatch)
+    return _stereo(rng, chan)
+
+
+def r_indoor(rng, v):
+    """Nền trong nhà (AMB stereo ~16 s): bếp rơm lách tách khẽ + lửa thì thầm + gió lùa vách; v2 (đêm) thêm dế ngoài sân."""
+    dur = 16.0
+
+    def chan(r):
+        t = tt(dur)
+        fire = norm(fft_filter(r.standard_normal(len(t)), lo=90, hi=500)) * (0.5 + 0.5 * smooth_noise(r, dur, 3))
+        cr = crackle(r, dur, 4.5, lo=700, hi=5000)
+        wind = norm(fft_filter(r.standard_normal(len(t)), lo=250, hi=1100)) * smooth_noise(r, dur, 0.35, 0.15) ** 2
+        out = 0.25 * fire + 0.6 * norm(cr) + 0.35 * wind
+        if v == 2:
+            cri = np.zeros(len(t))
+            f0 = r.uniform(4300, 4800)
+            tk = r.uniform(0, 0.4)
+            while tk < dur - 0.2:
+                for k in range(3):
+                    dp = 0.018
+                    tp = tt(dp)
+                    place(cri, np.sin(2 * np.pi * f0 * tp) * np.sin(np.pi * tp / dp), tk + k * 0.032)
+                tk += r.uniform(0.38, 0.6)
+            out += 0.22 * fft_filter(cri, lo=3000, hi=6500) * (0.6 + 0.4 * smooth_noise(r, dur, 0.5))
+        return out
+    return _stereo(rng, chan)
+
+
+def bamboo_rattle(rng, n=3, start=0.0, spacing=0.035, f=(620, 880)):
+    """Nan tre / liếp tre lạch cạch: vài tiếng gõ rỗng nhỏ."""
+    out = np.zeros(int(SR * (start + n * spacing * 1.3 + 0.12)))
+    for k in range(n):
+        x = modal(rng.uniform(*f), [1, 2.4, 4.4], [1, 0.4, 0.15], [0.03, 0.015, 0.008], 0.1, rng)
+        place(out, norm(x) * rng.uniform(0.5, 1.0), start + k * spacing * rng.uniform(0.7, 1.3))
+    return out
+
+
+def r_door(rng, v):
+    """Cửa nhà {ten}: liếp tre / cửa gỗ cũ 'kẹt' + lạch cạch + bước chân đất nện.
+    v1 vào (kẹt lên giọng rồi 2 bước), v2 ra (bước, kẹt xuống giọng, khép 'cộc')."""
+    out = np.zeros(int(SR * 0.75))
+    if v == 1:
+        place(out, norm(creak(rng, 0.32, 45, 95)) * 0.75, 0.0)
+        place(out, bamboo_rattle(rng, 3) * 0.4, 0.26)
+        place(out, norm(dirt_step(rng)) * 0.85, 0.4)
+        place(out, norm(dirt_step(rng)) * 0.7, 0.58)
+    else:
+        place(out, norm(dirt_step(rng)) * 0.8, 0.0)
+        place(out, norm(creak(rng, 0.3, 90, 40, modes=(380, 900, 1500, 2500))) * 0.7, 0.12)
+        place(out, norm(dirt_step(rng)) * 0.7, 0.2)
+        place(out, norm(wood_block(rng, 330, 0.2)) * 0.55, 0.46)
+        place(out, bamboo_rattle(rng, 2) * 0.3, 0.48)
+    return fft_filter(out, lo=60, hi=7000)
+
+
+def r_chest(rng, v):
+    """Rương gỗ: v1 mở (bản lề kẹt ngắn + nắp tựa 'cộc' nhẹ), v2 đóng (kẹt ngắn + nắp sập 'cộp' chắc)."""
+    out = np.zeros(int(SR * 0.45))
+    hinge = (700, 1500, 2300, 3300)
+    if v == 1:
+        place(out, norm(creak(rng, 0.18, 70, 130, modes=hinge, decay=0.008)) * 0.6, 0.0)
+        place(out, norm(wood_block(rng, 520, 0.15)) * 0.45, 0.2)
+    else:
+        place(out, norm(creak(rng, 0.12, 120, 70, modes=hinge, decay=0.008)) * 0.45, 0.0)
+        th = tt(0.12)
+        body = norm(fft_filter(noise(0.12, rng), lo=70, hi=420, order=3)) * env_ad(th, 0.002, 0.03)
+        place(out, body * 0.9 + norm(wood_block(rng, 280, 0.12)) * 0.6, 0.13)
+    return fft_filter(out, lo=60, hi=8000)
+
+
+def r_fence(rng, v):
+    """Đóng cọc rào 'cộc cộc cộc': vồ gỗ nện cọc tre 3 nhát, nhát sau cao + chắc dần (cọc lún xuống)."""
+    out = np.zeros(int(SR * 0.85))
+    for k, at in enumerate((0.0, 0.26, 0.52)):
+        hit = norm(wood_block(rng, 300 * (1 + 0.08 * k), 0.25)) * 0.9
+        hit += norm(fft_filter(noise(0.25, rng), lo=60, hi=350, order=3)) * env_ad(tt(0.25), 0.002, 0.03) * 0.7
+        place(out, hit * (0.8 + 0.1 * k), at)
+    return fft_filter(out, lo=55, hi=7000) + 0.4 * fft_filter(out, lo=250, hi=1500)
+
+
+def r_basket_drop(rng, v):
+    """Bỏ đồ vào / lấy ra thúng bán 'bịch': 'phịch' trầm mềm + nan tre lạo xạo."""
+    d = 0.17
+    t = tt(d)
+    thud = norm(fft_filter(noise(d, rng), lo=90, hi=500, order=3)) * env_ad(t, 0.003, 0.025)
+    wick = np.zeros(len(t))
+    for _ in range(10 if v == 1 else 14):
+        lo = rng.uniform(1300, 3500)
+        place(wick, _grain(rng, rng.uniform(0.003, 0.008), lo, lo * 2.2) * rng.uniform(0.3, 1), rng.uniform(0.003, 0.07))
+    out = thud + 0.5 * norm(wick)
+    return fft_filter(out, lo=70, hi=7500) + 0.4 * fft_filter(out, lo=250, hi=1500)
+
+
+def r_quest_done(rng, v):
+    """Xong nhiệm vụ: con dấu 'cộp' + chiêng 'bùng' + marimba Đô–Mi–Sol đi lên + 'ting' glockenspiel (v2 chiêng cao hơn)."""
+    out = np.zeros(int(SR * 2.0))
+    th = tt(0.15)
+    stamp = norm(fft_filter(noise(0.15, rng), lo=70, hi=450, order=3)) * env_ad(th, 0.002, 0.03)
+    stamp += 0.6 * norm(wood_block(rng, 260, 0.15))
+    stamp += 0.35 * norm(fft_filter(noise(0.15, rng), lo=900, hi=5000)) * env_ad(th, 0.001, 0.008)
+    place(out, stamp * 0.9, 0)
+    place(out, norm(gong(rng, 196 if v == 1 else 220, 1.8, glide=-0.02)) * 0.55, 0.03)
+    for i, f in enumerate((523.3, 659.3, 784.0)):
+        place(out, marimba(rng, f) * 0.6, 0.32 + i * 0.11)
+    place(out, glock(rng, 1046.5, 1.0) * 0.35, 0.65)
+    place(out, glock(rng, 1568.0, 0.9) * 0.2, 0.7)
+    return reverb(out, rt=0.8, mix=0.16, tone=8000, rng=rng)
+
+
+# ---- UI (gỗ / marimba nhẹ, < 150 ms) ----
+def _cut(x, d, fade=0.012):
+    n = int(SR * d)
+    x = np.concatenate([x, np.zeros(max(0, n - len(x)))])[:n]
+    f = int(SR * fade)
+    x[-f:] *= np.linspace(1, 0, f)
+    return x
+
+
+def r_ui_click(rng, v):
+    """Click nút: gõ gỗ + marimba ngắn (v1 Đô6, v2 Sol5)."""
+    f = 1046.5 if v == 1 else 784.0
+    x = 0.55 * norm(modal(f * 1.18, [1, 2.57, 4.1], [1, 0.3, 0.1], [0.012, 0.006, 0.004], 0.1, rng))
+    x += 0.6 * norm(modal(f, [1, 3.93], [1, 0.15], [0.03, 0.01], 0.1, rng))
+    place(x, _grain(rng, 0.003, 2000, 7000) * 0.3, 0)
+    return _cut(x, 0.09)
+
+
+def r_ui_hover(rng, v):
+    """Rê chuột vào nút: 'tích' rất khẽ, cao (Đô7)."""
+    return _cut(norm(modal(2093.0, [1, 2.76], [1, 0.2], [0.01, 0.005], 0.05, rng)), 0.045, 0.008)
+
+
+def r_ui_open(rng, v):
+    """Mở cửa sổ: giấy điệp 'sột' trượt lên + gõ gỗ nhẹ cuối."""
+    d = 0.14
+    t = tt(d)
+    a = norm(fft_filter(noise(d, rng), lo=1500, hi=4000))
+    b = norm(fft_filter(noise(d, rng), lo=2500, hi=7000))
+    mix = np.clip(t / 0.09, 0, 1)
+    x = 0.6 * ((1 - mix) * a + mix * b) * env_ad(t, 0.05, 0.03)
+    place(x, norm(modal(988.0, [1, 2.57, 4.1], [1, 0.3, 0.1], [0.02, 0.008, 0.004], 0.06, rng)) * 0.55, 0.075)
+    return _cut(x, d)
+
+
+def r_ui_close(rng, v):
+    """Đóng cửa sổ: gõ gỗ trầm hơn + giấy 'sột' trượt xuống, ngắn."""
+    d = 0.12
+    t = tt(d)
+    a = norm(fft_filter(noise(d, rng), lo=2500, hi=6500))
+    b = norm(fft_filter(noise(d, rng), lo=900, hi=2800))
+    mix = np.clip(t / 0.07, 0, 1)
+    x = 0.55 * ((1 - mix) * a + mix * b) * env_ad(t, 0.01, 0.035)
+    place(x, norm(modal(659.3, [1, 2.57, 4.1], [1, 0.3, 0.1], [0.022, 0.009, 0.004], 0.06, rng)) * 0.6, 0.0)
+    return _cut(x, d)
+
+
+def r_ui_error(rng, v):
+    """Lỗi / không được: mõ trầm nhỏ 'cộc' (v1 một tiếng, v2 'cộc-cộc' đi xuống)."""
+    x = np.zeros(int(SR * 0.15))
+    place(x, norm(wood_block(rng, 520, 0.12)) * 0.9, 0)
+    if v == 2:
+        place(x, norm(wood_block(rng, 400, 0.1)) * 0.8, 0.07)
+    return _cut(fft_filter(x, lo=200, hi=6000), 0.15 if v == 2 else 0.12)
+
+
+def r_ui_tick(rng, v):
+    """Đổi ô hotbar: tick gỗ nhỏ, khô."""
+    x = norm(modal(1650.0, [1, 2.57], [1, 0.3], [0.007, 0.004], 0.05, rng))
+    place(x, _grain(rng, 0.002, 2500, 8000) * 0.3, 0)
+    return _cut(x, 0.05, 0.008)
+
+
+def r_ui_pick(rng, v):
+    """Kéo thả món: v1 nhấc 'pụt' đi lên, v2 thả 'bụp' đi xuống."""
+    d = 0.08
+    t = tt(d)
+    f = (420 * (1.6 ** (t / d))) if v == 1 else (640 * (0.6 ** (t / d)))
+    x = np.sin(2 * np.pi * np.cumsum(f) / SR) * env_ad(t, 0.004, 0.025)
+    place(x, _grain(rng, 0.004, 900, 3500) * 0.25, 0)
+    return _cut(x, d)
+
+# ---- Gà gáy "lầy" theo ngày (T-025 vòng 2, góp ý người dùng) ----
+ROOSTER_FORM = ((850, 1500, 3000), (1000, 1650, 3200), (700, 1300, 2800))
+
+
+def crow_syl(rng, d, f_pts, amp_pts, rough=0.3, rough_hz=55.0, breathy=0.25, sub=0.0,
+             form=ROOSTER_FORM, vib=0.0, vib_hz=6.0):
+    """Một âm tiết gà gáy: giọng formant sáng (12 bồi âm) + rè (AM ~55 Hz) + bán điều hòa (sub, giọng khàn vỡ)."""
+    t = tt(d)
+    x = vox(rng, d, f_pts, [(0, form[0]), (d * 0.4, form[1]), (d, form[2])], amp_pts,
+            breathy=breathy, nharm=12, jitter=0.03)
+    if vib:
+        x *= 1 + vib * np.sin(2 * np.pi * vib_hz * t)
+    if sub:
+        ft, fv = zip(*f_pts)
+        f0 = np.interp(t, ft, fv)
+        x *= 1 + sub * np.sin(np.pi * np.cumsum(f0) / SR)  # nửa tần số -> tiếng vỡ đôi, khàn
+    x *= 1 + rough * np.sin(2 * np.pi * rough_hz * t + rng.uniform(0, 6.28))
+    return x
+
+
+def _syl_amp(d, a=0.02, r=0.05, level=1.0):
+    return [(0, 0), (a, level), (max(a, d - r), level * 0.9), (d, 0)]
+
+
+def chicken_cough(rng, strength=1.0):
+    """Gà ho 'khục': hơi bật mạnh (nhiễu dải giữa) + tiếng rè ngắn tụt giọng."""
+    d = 0.11
+    t = tt(d)
+    burst = norm(fft_filter(noise(d, rng), lo=500, hi=4000)) * env_ad(t, 0.002, 0.03)
+    v = crow_syl(rng, 0.07, [(0, 480), (0.07, 300)], _syl_amp(0.07, 0.005, 0.03), rough=0.6, rough_hz=35, breathy=0.6, sub=0.5)
+    out = 0.7 * burst
+    place(out, 0.8 * norm(v), 0.008)
+    return out * strength
+
+
+def choke(rng):
+    """'Ặc': tắc họng — tiếng rè bị bóp, cao độ tụt gấp, tắt cụt."""
+    d = 0.075
+    v = crow_syl(rng, d, [(0, 760), (d, 360)], [(0, 0), (0.004, 1), (d - 0.008, 0.8), (d, 0)],
+                 rough=0.7, rough_hz=30, breathy=0.3, sub=0.7, form=((600, 1200, 2600),) * 3)
+    out = norm(v)
+    place(out, _grain(rng, 0.004, 800, 4000) * 0.5, d - 0.006)  # tiếng 'cạch' họng đóng
+    return out
+
+
+def _crow_normal(rng, scale_t=1.0, scale_f=1.0, rough=0.3, level=1.0):
+    """Câu gáy chuẩn 'ò – ó – o – oooo' (~1.55 s)."""
+    s, k = scale_t, scale_f
+    out = np.zeros(int(SR * 1.6 * s) + SR // 10)
+    parts = [(0.00, 0.13, [(0, 520), (0.13, 560)], 0.75),
+             (0.17, 0.20, [(0, 650), (0.2, 780)], 0.9),
+             (0.40, 0.14, [(0, 760), (0.14, 800)], 0.8)]
+    for at, d, fp, lv in parts:
+        dd = d * s
+        place(out, crow_syl(rng, dd, [(a * s, f * k) for a, f in fp], _syl_amp(dd, level=lv * level), rough=rough), at * s)
+    d4 = 0.95 * s
+    place(out, crow_syl(rng, d4, [(0, 820 * k), (0.3 * s, 900 * k), (0.7 * s, 860 * k), (d4, 560 * k)],
+                        [(0, 0), (0.02, level), (0.7 * s, 0.9 * level), (d4, 0)], rough=rough, vib=0.04), 0.58 * s)
+    return out
+
+
+def _sparrows(rng, total, n):
+    out = np.zeros(int(SR * total))
+    for _ in range(n):
+        at = rng.uniform(0.0, 0.55 * total)  # chim chỉ hót trong lúc gà gáy, không kéo dài file
+        for k in range(int(rng.integers(2, 4))):
+            dch = rng.uniform(0.035, 0.055)
+            tc = tt(dch)
+            f = rng.uniform(3200, 4800) * (1 + rng.choice([-1, 1]) * 0.25 * tc / dch)
+            place(out, np.sin(2 * np.pi * np.cumsum(f) / SR) * np.sin(np.pi * tc / dch) ** 2 * rng.uniform(0.1, 0.22),
+                  at + k * rng.uniform(0.06, 0.09))
+    return out
+
+
+ROOSTER_KINDS = {1: "binh-thuong", 2: "tac-hong", 3: "khan", 4: "vo-giong", 5: "ngai-ngu", 6: "gay-lai"}
+
+
+def r_rooster_fun(rng, v):
+    """Bộ gà gáy theo ngày: v1 bình thường, v2 tắc họng giữa chừng rồi ho, v3 khàn cổ hụt hơi,
+    v4 vỡ giọng vọt cao, v5 ngái ngủ chậm rì rồi ngáp, v6 gáy hỏng phải gáy lại. Vang xa nhẹ + chim sẻ khẽ."""
+    if v == 1:
+        crow = _crow_normal(rng)
+    elif v == 2:
+        crow = np.zeros(int(SR * 2.1))
+        part = _crow_normal(rng)[: int(SR * 0.58)]
+        place(crow, part, 0)
+        d = 0.33  # bắt đầu kéo dài, rướn lên rồi tắc cụt
+        place(crow, crow_syl(rng, d, [(0, 820), (d, 960)], [(0, 0), (0.02, 1), (d - 0.006, 1), (d, 0)], rough=0.35), 0.58)
+        place(crow, choke(rng) * 0.9, 1.05)
+        place(crow, chicken_cough(rng, 0.85), 1.38)
+        place(crow, chicken_cough(rng, 0.7), 1.62)
+        place(crow, chicken_cough(rng, 0.4), 1.84)
+    elif v == 3:
+        k, s = 0.82, 1.1
+        crow = np.zeros(int(SR * 2.3))
+        for at, d, fp, lv in ((0.0, 0.14, [(0, 520), (0.14, 540)], 0.7), (0.19, 0.22, [(0, 620), (0.22, 700)], 0.8),
+                              (0.45, 0.15, [(0, 690), (0.15, 700)], 0.7)):
+            place(crow, crow_syl(rng, d, [(a, f * k) for a, f in fp], _syl_amp(d, level=lv), rough=0.65, rough_hz=38,
+                                 breathy=0.8, sub=0.55), at)
+        d4 = 1.15
+        amp = [(0, 0), (0.03, 0.9), (0.25, 0.8), (0.3, 0.15), (0.34, 0.75), (0.62, 0.6), (0.66, 0.1), (0.7, 0.5),
+               (1.0, 0.3), (d4, 0)]  # hụt hơi: hai chỗ đứt tiếng
+        place(crow, crow_syl(rng, d4, [(0, 700 * k), (0.25, 720 * k), (0.8, 520 * k), (d4, 380 * k)], amp,
+                             rough=0.75, rough_hz=36, breathy=1.0, sub=0.7), 0.64 * s)
+        air = norm(fft_filter(noise(0.3, rng), lo=900, hi=4500)) * env_ad(tt(0.3), 0.04, 0.09) * 0.35
+        place(crow, air, 0.64 * s + d4 - 0.05)  # 'khè' hết hơi
+    elif v == 4:
+        crow = np.zeros(int(SR * 1.9))
+        place(crow, _crow_normal(rng)[: int(SR * 0.58)], 0)
+        d4 = 1.05
+        fp = [(0, 820), (0.14, 880), (0.16, 1700), (0.3, 1800), (0.55, 1650), (0.58, 640), (0.8, 560), (d4, 430)]
+        hi_form = ((1500, 2300, 3600),) * 3
+        a = crow_syl(rng, d4, fp, [(0, 0), (0.02, 1), (0.9, 0.8), (d4, 0)], rough=0.2, vib=0.12, vib_hz=9)
+        b = crow_syl(rng, d4, fp, [(0, 0), (0.02, 1), (0.9, 0.8), (d4, 0)], rough=0.2, form=hi_form, vib=0.12, vib_hz=9)
+        t = tt(d4)
+        w = ((t > 0.155) & (t < 0.575)).astype(float)
+        w = np.convolve(w, np.ones(200) / 200, mode="same")
+        place(crow, norm(a) * (1 - w) + 0.85 * norm(b) * w, 0.58)
+    elif v == 5:
+        crow = np.zeros(int(SR * 2.8))
+        s, k = 1.45, 0.85
+        for at, d, fp, lv in ((0.0, 0.13, [(0, 520), (0.13, 540)], 0.5), (0.17, 0.2, [(0, 620), (0.2, 690)], 0.6),
+                              (0.4, 0.14, [(0, 680), (0.14, 690)], 0.55)):
+            dd = d * s
+            place(crow, crow_syl(rng, dd, [(x * s, f * k) for x, f in fp], _syl_amp(dd, 0.05, 0.08, lv), rough=0.25,
+                                 breathy=0.5), at * s)
+        d4 = 1.5
+        place(crow, crow_syl(rng, d4, [(0, 700 * k), (0.35, 730 * k), (0.95, 560 * k), (d4, 280 * k)],
+                             [(0, 0), (0.06, 0.8), (0.8, 0.75), (1.2, 0.5), (d4, 0)], rough=0.3, breathy=0.7,
+                             form=((850, 1500, 3000), (900, 1400, 2900), (320, 800, 2300))), 0.58 * s)
+    else:
+        crow = np.zeros(int(SR * 2.95))
+        place(crow, crow_syl(rng, 0.13, [(0, 520), (0.13, 560)], _syl_amp(0.13, level=0.75)), 0.0)
+        place(crow, crow_syl(rng, 0.11, [(0, 650), (0.11, 720)], [(0, 0), (0.02, 0.9), (0.105, 0.9), (0.11, 0)]), 0.16)
+        place(crow, choke(rng) * 0.8, 0.3)
+        place(crow, chicken_cough(rng, 0.5), 0.5)
+        place(crow, _crow_normal(rng, scale_t=0.92, level=1.0), 1.0)  # lấy hơi, gáy lại đủ câu
+    crow = np.tanh(2.2 * norm(crow)) / np.tanh(2.2)
+    crow = fft_filter(crow, lo=380, hi=6500)
+    crow = reverb(crow * 0.8, rt=0.8, mix=0.22, tone=5000, rng=rng)
+    out = crow + _sparrows(rng, len(crow) / SR, 3)[: len(crow)] * np.abs(crow).max()
+    return out
+
+
 RECIPES = {
     "sow_seed": (r_sow_seed, "sfx-gieo-hat", "Gieo hạt 'lách tách' + tay vùi đất (v1–v4 khác tính cách, T-003)"),
     "harvest_pop": (r_harvest_pop, "sfx-hai-cay", "Hái cây 'pop' có cao độ + rễ bật + đất rơi (v1–v4, T-003)"),
@@ -609,9 +1305,39 @@ RECIPES = {
     "levelup_bright": (r_levelup_bright, "sfx-len-level-tuoi", "Lên level tươi: marimba + glockenspiel + vỗ tay"),
     "coin_bright": (r_coin_bright, "sfx-nhat-xu-tuoi", "Nhặt xu tươi: xu + 'ting' glockenspiel đi lên"),
     "grumble": (r_grumble, "voice-cau-nhau", "Càu nhàu: 'ú ớ' (v1) / 'hừm' (v2)"),
+    # T-025 Lô 1 Vườn
+    "hoe_finish": (r_hoe_finish, "sfx-cuoc-chot", "Nhát cuốc chốt xong ô: phập đầy + đất vỡ tung (v3 thêm marimba trầm)"),
+    "wither": (r_wither, "sfx-cay-heo", "Cây héo 'phù': hơi xì + nốt tụt mềm + lá rũ"),
+    "clear_wither": (r_clear_wither, "sfx-don-cay-heo", "Dọn cây héo: rắc + lá khô sột soạt + vứt"),
+    "eat": (r_eat, "sfx-an-nhom-nhoam", "Ăn 'nhồm nhoàm' (giọng mũi + chóp; v2 giòn)"),
+    "stomach": (r_stomach, "sfx-bung-reo", "Bụng réo 'ọc ọc'"),
+    "yawn": (r_yawn, "voice-ngap", "Ngáp dài 'hà-ááá-ồm'"),
+    "snore": (r_snore, "voice-ngay", "Ngáy 'khò… phù…' 2 nhịp, lặp được (v2 có huýt)"),
+    "rooster": (r_rooster, "sfx-ga-gay", "Gà gáy 6h (v1 gần, v2 xa + chim, v3 chỉ chim)"),
+    "rooster_fun": (r_rooster_fun, "sfx-ga-gay-kieu", "Gà gáy lầy theo ngày: v1 bình thường, v2 tắc họng, v3 khàn, v4 vỡ giọng, v5 ngái ngủ, v6 gáy lại"),
+    "cook": (r_cook, "sfx-nau-bep", "Nấu bếp rơm: lửa + lách tách + xèo"),
+    "count_tick": (r_count_tick, "sfx-dem-tien", "Đếm tiền 'tách' (v1/v2 xu, v3/v4 bàn tính)"),
+    "thunder": (r_thunder, "sfx-sam-xa", "Sấm xa ì ầm (v2 có tiếng rạch đầu)"),
+    "rain": (r_rain, "amb-mua", "Nền mưa trên lá + mái rạ (stereo ~22 s, chưa loop)"),
+    "indoor": (r_indoor, "amb-trong-nha", "Nền trong nhà: bếp rơm + gió lùa (v2 đêm thêm dế; stereo ~16 s)"),
+    "footstep": (r_footstep, "sfx-buoc", "Bước chân: v1–3 đất nện, v4–6 cỏ"),
+    "door": (r_door, "sfx-cua-nha", "Cửa nhà: v1 vào (kẹt lên + bước), v2 ra (bước + kẹt xuống + khép)"),
+    "chest": (r_chest, "sfx-ruong", "Rương gỗ: v1 mở, v2 đóng"),
+    "fence": (r_fence, "sfx-dong-coc", "Đóng cọc rào 'cộc cộc cộc'"),
+    "basket_drop": (r_basket_drop, "sfx-thung-bich", "Bỏ đồ vào thúng bán 'bịch'"),
+    "quest_done": (r_quest_done, "jng-xong-nhiem-vu", "Xong nhiệm vụ: dấu cộp + chiêng + marimba Đô–Mi–Sol"),
+    "ui_click": (r_ui_click, "ui-click", "UI click: gỗ + marimba (v1 Đô6, v2 Sol5)"),
+    "ui_hover": (r_ui_hover, "ui-hover", "UI hover: tích rất khẽ"),
+    "ui_open": (r_ui_open, "ui-mo", "UI mở cửa sổ: giấy sột + gõ gỗ"),
+    "ui_close": (r_ui_close, "ui-dong", "UI đóng cửa sổ: gõ gỗ + giấy"),
+    "ui_error": (r_ui_error, "ui-loi", "UI lỗi: mõ cộc (v2 cộc-cộc)"),
+    "ui_tick": (r_ui_tick, "ui-doi-o", "UI đổi ô hotbar: tick gỗ"),
+    "ui_pick": (r_ui_pick, "ui-keo-tha", "UI kéo thả: v1 nhấc, v2 thả"),
 }
-# Peak mặc định riêng (dBFS): giọng càu nhàu đi kèm bong bóng chữ, nhỏ hơn SFX gameplay
-PEAKS = {"grumble": -6.0}
+# Peak mặc định riêng (dBFS): giọng đi kèm bong bóng chữ nhỏ hơn SFX gameplay; UI −5; nền (AMB) chuẩn hóa lại bằng loop --rms
+PEAKS = {"grumble": -6.0, "yawn": -6.0, "snore": -6.0,
+         "ui_click": -5.0, "ui_open": -5.0, "ui_close": -5.0, "ui_error": -5.0, "ui_tick": -6.0,
+         "ui_pick": -6.0, "ui_hover": -9.0}
 
 
 def main():
@@ -626,7 +1352,7 @@ def main():
     a = ap.parse_args()
     if a.list or not a.recipe:
         for k, (_, p, d) in RECIPES.items():
-            print(f"{k:9} {p:28} {d}")
+            print(f"{k:14} {p:28} {d}")
         return
     names = list(RECIPES) if a.recipe == "all" else [a.recipe]
     out = Path(a.out)

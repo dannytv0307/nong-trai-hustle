@@ -133,7 +133,9 @@ test('B1 thông số thật: 1 ô ≈ 5.1 s game-time, 6 nhát đều, đứng y
   expect(log.some((e) => e.hs)).toBe(true);
   expect(log[endI].shakes).toBe(0);
   const s = await st(page);
-  expect(s.juice.lastSfxDetune).toBeLessThan(-300);
+  // T-026: nhát chốt dùng file riêng cuoc-chot-1/2 (không hạ giọng file cuốc thường nữa).
+  expect(s.juice.lastSfx).toMatch(/^sfx-cuoc-chot-[12]$/);
+  expect(Math.abs(s.juice.lastSfxDetune)).toBeLessThanOrEqual(30);
   expect(s.juice.lastSfxVolume).toBeGreaterThan(0);
   // dọn UI: không thanh, không số, không nấc dở
   expect(s.till.bars).toEqual([]);

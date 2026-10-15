@@ -84,9 +84,9 @@ Mục tiêu: từ prototype "một ngày ở Vườn" thành game trọn vòng *
 | T-024 | B Vườn thật | 4.2 | Gắn Lô 1: nhà {ten} (bên ngoài), thúng bán, cọc rào, quầy hạt thay sạp hạt hộp, cây nhãn, rào, đường đất | game-dev | M | T-020 | ✅ |
 | T-093 | B Vườn thật | 4.4 | **Cảnh trong nhà {ten}**: bước qua cửa vào phòng riêng (giường, bếp, rương), chuyển cảnh dùng chung, save nhớ trong / ngoài nhà | game-dev | L | T-024 | ✅ |
 | T-096 | B Vườn thật | 4.4 | **Click đâu đi đó + tự tìm đường** (chuột và chạm như nhau — chuẩn bị bản điện thoại, D-038) | game-dev | L | T-093 | ✅ |
-| T-092 | B Vườn thật | 4.2 | Gắn giao diện Lô 1 vào HUD và các cửa sổ đang có | game-dev | M | T-091 | 👀 |
-| T-025 | B Vườn thật | 4.3 | Làm âm thanh **Lô 1** (tiếng vườn còn thiếu, nhạc đêm, cửa nhà) | audio-director | L | audio list Lô 1 | ⬜ |
-| T-026 | B Vườn thật | 4.3 | Gắn âm thanh Lô 1 + tách kênh Nhạc / Hiệu ứng | game-dev | M | T-025 | ⬜ |
+| T-092 | B Vườn thật | 4.2 | Gắn giao diện Lô 1 vào HUD và các cửa sổ đang có | game-dev | M | T-091 | ✅ |
+| T-025 | B Vườn thật | 4.3 | Làm âm thanh **Lô 1** (tiếng vườn còn thiếu, nhạc đêm, cửa nhà) | audio-director | L | audio list Lô 1 | ✅ |
+| T-026 | B Vườn thật | 4.3 | Gắn âm thanh Lô 1 + tách kênh Nhạc / Hiệu ứng | game-dev | M | T-025 | 👀 |
 | T-027 | B Vườn thật | 4.5 | "Khoảnh khắc sướng" khi hái, bán, tổng kết ngày (giả thuyết 2) | game-dev | M | T-022, T-026 | ⬜ |
 | T-041 | B2 Mục tiêu sớm | 4.4 | Save version 2 + bảng phím thử cho chặng 4 | game-dev | M | T-024 | ⬜ |
 | T-042 | B2 Mục tiêu sớm | 4.4 | Level và tiếng tăm (XP, HUD, thẻ mở khóa) | game-dev | L | T-041 | ⬜ |
@@ -863,13 +863,25 @@ Mục tiêu: từ prototype "một ngày ở Vườn" thành game trọn vòng *
 **Mục tiêu:** tiếng đúng lúc, và có sẵn 2 nút âm lượng riêng cho Cài đặt sau này.
 
 **Điều kiện xong:**
-- [ ] Gắn từng tiếng vào đúng sự kiện (GDD §8).
-- [ ] Mọi âm thanh đi qua **một chỗ** (vd `src/systems/audio.ts`) với 2 kênh **Nhạc** và **Hiệu ứng**, âm lượng riêng — để T-085 chỉ cần nối thanh trượt.
-- [ ] Tiếng lặp có lệch cao độ; cùng một tiếng không phát chồng quá `sfxMaxConcurrent` bản.
+- [x] Gắn từng tiếng vào đúng sự kiện (GDD §8).
+- [x] Mọi âm thanh đi qua **một chỗ** (vd `src/systems/audio.ts`) với 2 kênh **Nhạc** và **Hiệu ứng**, âm lượng riêng — để T-085 chỉ cần nối thanh trượt.
+- [x] Tiếng lặp có lệch cao độ; cùng một tiếng không phát chồng quá `sfxMaxConcurrent` bản.
 
 **Thông số / ghi chú:** thêm `musicVolume` 0.8, `sfxVolume` 0.9, `sfxMaxConcurrent` 4 (Giả định, chỉnh khi nghe).
 
 **Bạn thử thế nào:** F9 tới 23h: nghe ngáp. Không ngủ tới 24h: nghe ngáy. Sáng ra: gà gáy.
+
+**Ghi chú khi làm (game-dev, 2026-10-15) — T-026 → 👀 chờ bạn nghe thử:**
+- **Một chỗ phát:** `src/audio/AudioManager.ts` (Phaser, một cái cho cả game — `AudioManager.of(game)`, sống qua "Chơi lại từ đầu" nên nhạc không ngắt) + logic thuần `src/systems/audio.ts` (kênh, cài đặt, lệch cao độ, chọn nhạc / tiếng nền theo giờ + khu, mờ dần, gà theo ngày — `audio.test.ts`). Mỗi sự kiện gọi theo **tên cue** ở `src/config/soundCues.ts` (biến thể, kênh, âm lượng riêng, có lệch cao độ không, khoảng nghỉ tối thiểu); khoá file ở `config/assets.ts` (nạp đủ 50 file Lô 1 + UI; `soundCues.test.ts` kiểm mọi khoá có WAV thật, không còn `ga-gay.wav` cũ).
+- **2 kênh:** Nhạc = nhạc nền + jingle; Hiệu ứng = mọi thứ còn lại (SFX, giọng, tiếng nền `amb-*`, giao diện). Cửa sổ **Tạm dừng** có 2 hàng **Nhạc / Hiệu ứng** với nút gỗ **− / +** (84 px, chạm được), mỗi lần 10 % (`volumeStep`), nút xám ở 0 % / 100 %. Âm lượng lưu **localStorage `bph-settings`** (riêng với save: là cài đặt của máy, "Chơi lại từ đầu" không reset) — T-085 chỉ cần gọi `AudioManager.setChannelVolume`. Mặc định **giữ 0.6 / 0.8** như đang nghe từ bước 2.3 (spec gợi ý 0.8 / 0.9 — muốn to hơn thì đổi `musicVolume` / `sfxVolume` trong gameConfig).
+- **Nhạc theo giờ / khu:** Vườn 6h–19h nhạc Vườn; 19h–6h nhạc đêm (`dem-loop`); trong nhà luôn nhạc đêm, ban ngày nhỏ hơn ×0.7 (`houseDayMusicMultiplier`). Đổi bài = đan chéo 1,5 s (`musicCrossfadeSeconds`). Tiếng nền trong nhà ngày / đêm (dế) hiện / tắt dần 1,5 s. Tạm dừng: nhạc + tiếng nền ×0.35 như cũ. Jingle phát → nhạc nền hạ ×0.35 (`jingleMusicDuckMultiplier`) rồi trả lại.
+- **Gắn tiếng:** cuốc chốt = file riêng `cuoc-chot` (`tillFinishSfxDetune` 0, `tillFinishSfxVolumeMultiplier` 1); đếm tiền tổng kết = `dem-tien` (`summaryTickVolume` 0.35 → 0.7, bỏ +700 cent) + jingle tổng kết khi mở màn tổng kết; dọn cây héo; sáng ra thấy cây héo → "phù" (sau gà gáy); ăn; vừa hết Sức → càu nhàu rồi bụng réo (0,9 s sau); 23h → ngáp (cả khi F9 nhảy qua); thiếp đi ở giường / ngủ gục → ngáy lặp (nghỉ ngẫu nhiên 0,3–0,6 s; thôi ngủ thì bản đang kêu kêu nốt); cửa nhà vào / ra; rương mở / đóng; thúng bán bỏ / lấy "bịch"; rương: thả món vào / nhấc món ra (UI-007 — chưa có kéo thả, gắn vào click chuyển món); mở / đóng cửa sổ (gùi, thùng, sạp, Tạm dừng, hộp "Đi ngủ?", hộp "Chơi lại?") — game TỰ đóng (đi ngủ, chuyển khu) thì im; hover + click mọi nút gỗ / nút X / nút Gùi / nút sạp còn mua được; lỗi "cộc" (thiếu tiền, gùi đầy, hết hạt, chưa cầm cuốc, không có đường, món không bán được, thùng / rương đầy — nghỉ ≥ 0,25 s); đổi ô hotbar (1–9, cuộn, click). Jingle đầu mùa phát sáng ngày đầu mùa (sau gà gáy). **Nạp sẵn chưa gắn:** nấu bếp (bếp đang "nguội", nấu ở T-048), đóng cọc (T-044), xong nhiệm vụ (T-043), mưa + sấm (chưa có thời tiết — `chooseAmbience` nhận `raining`, AudioManager tự phát sấm 1/2 file cách 25–60 s khi mưa).
+- **Gà gáy 6h theo ngày:** gáy lúc màn bắt đầu sáng (sau ngủ / ngủ gục), khi bấm G (dev), và lúc mở game mới Ngày 1 (sau lần bấm đầu — trình duyệt chặn âm thanh tới lúc đó). Kiểu chọn bằng `roosterKindForDay(seed, ngày)`: trọng số 45/15/15/10/10/5, ngày 1 luôn bình thường, trùng hôm trước (trừ bình thường) → kiểu kế tiếp, ngày mưa "khàn" ×3 (chờ thời tiết). Không lệch cao độ. **Save version 3** thêm `seed` (số ngẫu nhiên của lần chơi, tạo lúc game mới); save cũ (v1/v2) nâng lên tự suy seed từ `savedAt` (`@bph/shared` `SAVE_MIGRATIONS[2]`) → F5 cùng ngày cùng kiểu gà.
+- **Lệch cao độ ±4 %** (`sfxPitchJitterPercent`): bước chân, thúng, dọn héo, ăn, đếm tiền, click. Giữ số riêng cũ: cuốc ±100 cent, tưới ±100, gieo ±70, xu ±60, cuốc chốt ±30. Không random: gà, jingle, xong nhiệm vụ, hái (thang cao độ). **Phát chồng:** cùng cue (gồm biến thể) đang kêu đủ `sfxMaxConcurrent` 4 bản thì bỏ lần mới.
+- **Bước chân khi đi (Should — đã bật):** mỗi lần chạm gót, nhỏ ×0.5 (`walkFootstepVolume`), cỏ → `buoc-co`, lối / sân / ruộng / sàn nhà → `buoc-dat`, lệch cao độ ±4 %, chặn chồng 4 bản. Thấy rối tai thì tắt bằng `walkFootstepSfx: false` hoặc giảm `walkFootstepVolume` / tăng `walkFootstepEverySteps`. Qua cửa nhà đã có bước chân trong tiếng cửa. Dấu đích click: không âm.
+- **QA:** `debugState.audio` (khoá, kênh, nhạc / tiếng nền đang phát + âm lượng thật, jingle, ngáy, `recent` các lần phát, `seed`, `roosterToday`, `roosters`, `yawns`, `footsteps`, `volumeHover`), `debugVolumeButtonCenter(id)`. Bố cục Tạm dừng đổi (cao 760, rộng 680) → e2e `time.spec.ts`, `qa-t005` Q8 lấy toạ độ nút "Tiếp tục" qua `debugPauseButtonCenter`; `farm.spec.ts` / `qa-t002b` kiểm tiếng chốt là `sfx-cuoc-chot-*` (chưa chạy lại — D-036).
+- **Kiểm chứng:** `npm run test` (client 469 test xanh: thêm `audio.test.ts`, `soundCues.test.ts`, `settingsLocal.test.ts`, ca save v2→v3 / seed, hàng âm lượng trong `hudLayout.test.ts`), `npm run lint`, `tsc`, `npm run build -w @bph/client` (audio:convert sinh OGG/MP3 cho file mới) đều xanh. Không chụp màn hình / e2e (D-036).
+- **Đề xuất cho audio-director:** cập nhật bảng "Đang mượn tạm" (đếm tiền, cuốc chốt, nhạc đêm đã gắn) và trạng thái Lô 1 → In-game.
 
 ---
 
@@ -1899,6 +1911,12 @@ Mục tiêu: từ prototype "một ngày ở Vườn" thành game trọn vòng *
 
 ## Changelog
 
+- 2026-10-15 — T-026 👀: gắn âm thanh Lô 1 qua một chỗ (`AudioManager` + cue), 2 kênh Nhạc / Hiệu ứng có nút −/+ ở Tạm dừng (lưu `bph-settings`), nhạc ngày ↔ đêm / trong nhà đan chéo, gà gáy theo ngày (save version 3 có `seed`).
+- 2026-10-15 — T-025 ✅ (người dùng nghe vòng 3: gà gáy 6 kiểu từ bản ghi thật + 9 âm CC0 — ổn). Bắt đầu T-026.
+- 2026-10-15 — T-092 ✅ (người dùng thử giao diện mới: ổn). Bắt đầu T-025.
+- 2026-10-15 — T-025 vẫn 👀 (vòng 3, D-039): người dùng thấy gà tổng hợp không giống gà, đồng ý dùng bản ghi CC0 / Public domain → 6 kiểu gà làm lại từ bản ghi gà thật; ăn, ngáp, ngáy, sấm, mưa, nấu bếp, nền trong nhà, cửa nhà, rương cũng chuyển sang bản ghi thật (cùng tên file). Nguồn: `docs/audio/credits.md`. Chờ người dùng nghe.
+- 2026-10-15 — T-025 vẫn 👀 (vòng 2): người dùng nghe Lô 1, chấp nhận các bản đề xuất (Approved); riêng gà gáy góp ý "lầy hơn, mỗi ngày một kiểu" → làm bộ 6 kiểu `sfx/ga-gay-<kiểu>.wav` (bình thường / tắc họng / khàn / vỡ giọng / ngái ngủ / gáy lại) + luật chọn theo ngày cho T-026 (xem audio-list AUD-SFX-109). Chờ người dùng nghe bộ gà.
+- 2026-10-15 — T-025 👀: audio-director làm xong bản nghe thử Lô 1 (nhạc đêm, 2 jingle Lyria — 6 lần gọi = 0,48 USD; 26 công thức SFX / UI / nền tổng hợp, 0 USD), 45 file WAV đã đặt vào `web/client/public/assets/audio/` (bản đề xuất), chờ người dùng nghe chọn. Chi tiết: `docs/audio/audio-list.md`, card `docs/audio/prompts/AUD-LO1-SFX.md`.
 - 2026-10-14 — T-093 ✅, T-096 ✅ (người dùng thử: ổn, gồm bản "đứng sát ô ruộng"). Bắt đầu T-091.
 - 2026-10-14 — T-096 bổ sung (góp ý người dùng "đứng hơi xa ô canh tác"): việc ruộng phải bước tới sát ô (`farmWorkRange` 1.2), rê cả luống bước dọc luống; vẫn 👀.
 - 2026-10-14 — D-038: thêm **T-096 "Click đâu đi đó + tự tìm đường"** (L, đợt B, cần T-093) → 👀 (game-dev): click / chạm ngoài tầm tự đi tới (A* 8 hướng tự viết, làm mượt, dấu đích mờ dần), tới nơi làm luôn (ruộng, thùng bán, quầy hạt, đồ trong nhà, cửa nhà vào / ra), WASD huỷ, chạm = click. Tổng 79 task (4 S + 45 M + 30 L) ≈ 320–429 giờ, mốc ≈ 375 → mốc kế hoạch ~14/04/2027.

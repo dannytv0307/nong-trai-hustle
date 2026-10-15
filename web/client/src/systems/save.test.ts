@@ -1,7 +1,7 @@
 // T-008: save — lưu → đọc ra giống hệt, save hỏng / sai version / thiếu trường, nâng phiên bản, luật game khi nạp,
 // đọc/ghi localStorage (kho giả). Phần kiểm hình dạng nằm ở @bph/shared, phần luật game ở systems/save.ts.
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { GAME_SAVE_VERSION, parseGameSave, serializeGameSave, validateGameSave, type GameSave } from '@bph/shared';
+import { GAME_SAVE_VERSION, hashSeedText, parseGameSave, serializeGameSave, validateGameSave, type GameSave } from '@bph/shared';
 import { gameConfig } from '../config/gameConfig';
 import { clearLocalSave, loadLocalSave, SAVE_BACKUP_KEY, SAVE_KEY, writeLocalSave, type SaveStorage } from '../net/saveLocal';
 import { cropById } from './crops';
@@ -331,6 +331,36 @@ describe('T-093: khu trong nhà + rương trong save (version 2)', () => {
     expect(applied.area).toBe('garden');
     expect(applied.position).toEqual({ x: 1234.56, y: 987.65 });
     expect(w.chest!.slots.every((s) => s === null)).toBe(true);
+  });
+
+  it('T-026: save version 2 (chưa có seed) nâng lên version 3: seed suy ra từ savedAt — nạp lại bao nhiêu lần cũng cùng seed', () => {
+    const v2 = JSON.parse(serializeGameSave(captureSave(withChest(), NOW))) as Record<string, unknown>;
+    v2.version = 2;
+    delete v2.seed;
+    const a = validateGameSave(v2);
+    const b = validateGameSave(JSON.parse(JSON.stringify(v2)));
+    expect(a.ok && b.ok).toBe(true);
+    if (!a.ok || !b.ok) return;
+    expect(a.fromVersion).toBe(2);
+    expect(a.save.version).toBe(GAME_SAVE_VERSION);
+    expect(a.save.seed).toBe(hashSeedText(NOW.toISOString()));
+    expect(b.save.seed).toBe(a.save.seed);
+    expect(applySave(a.save, withChest(), HOUSE_RULES).seed).toBe(a.save.seed);
+  });
+
+  it('T-026: seed lưu → JSON → nạp ra y nguyên; seed sai kiểu → hỏng', () => {
+    const w = withChest();
+    w.seed = 0xdeadbeef;
+    const parsed = parseGameSave(serializeGameSave(captureSave(w, NOW)));
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.save.seed).toBe(0xdeadbeef);
+    expect(applySave(parsed.save, withChest(), HOUSE_RULES).seed).toBe(0xdeadbeef);
+    for (const bad of [-1, 1.5, '7', null, 2 ** 32]) {
+      const s = JSON.parse(serializeGameSave(captureSave(w, NOW))) as Record<string, unknown>;
+      s.seed = bad;
+      expect(validateGameSave(s).ok, String(bad)).toBe(false);
+    }
   });
 
   it('version 2 thiếu rương → hỏng (không nạp nửa vời)', () => {

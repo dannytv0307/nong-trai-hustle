@@ -8,6 +8,7 @@ import { gameConfig } from '../config/gameConfig';
 import { cssColor, palette } from '../config/palette';
 import { textStyles } from '../config/theme';
 import { InputController } from '../input/InputController';
+import { AudioManager } from '../audio/AudioManager';
 import { getHealth } from '../net/api';
 import { facingFromDirection, moveVelocity, type Facing } from '../systems/movement';
 import { formatClock, realSecondsToGameHour } from '../systems/time';
@@ -34,6 +35,7 @@ export class SandboxScene extends Phaser.Scene {
   // Trạng thái công khai cho QA đọc qua window.__game.scene.getScene('Sandbox')
   musicStarted = false;
   coinSfxCount = 0;
+  private audio!: AudioManager;
   serverStatus: ServerStatus = 'checking';
 
   constructor() {
@@ -146,25 +148,17 @@ export class SandboxScene extends Phaser.Scene {
     this.add.image(px, py, 'portrait-hero-smirk').setDisplaySize(280, 280).setDepth(ui);
   }
 
-  /** Chính sách autoplay: trình duyệt chỉ cho phát tiếng sau tương tác đầu tiên của người chơi. */
+  /**
+   * Chính sách autoplay: trình duyệt chỉ cho phát tiếng sau tương tác đầu tiên của người chơi. T-026: mọi tiếng qua
+   * AudioManager — nó tự chờ mở khoá; update() báo "muốn nghe nhạc Vườn" mỗi frame.
+   */
   private setupAudio(): void {
-    this.input.once(Phaser.Input.Events.POINTER_DOWN, () => {
-      if (this.sound.locked) this.sound.once(Phaser.Sound.Events.UNLOCKED, () => this.startMusic());
-      else this.startMusic();
-    });
-  }
-
-  private startMusic(): void {
-    if (this.musicStarted) return;
-    this.sound.play('music-vuon', { loop: true, volume: gameConfig.musicVolume });
-    this.musicStarted = true;
+    this.audio = AudioManager.of(this.game);
   }
 
   private playCoin(): void {
     // 2 biến thể ngẫu nhiên để tiếng lặp lại không nhàm (audio-list AUD-SFX-002).
-    const key = Phaser.Math.Between(1, 2) === 1 ? 'sfx-nhat-xu-1' : 'sfx-nhat-xu-2';
-    this.sound.play(key, { volume: gameConfig.sfxVolume });
-    this.coinSfxCount++;
+    if (this.audio.play('coin')) this.coinSfxCount++;
   }
 
   private async checkServer(): Promise<void> {
@@ -191,6 +185,8 @@ export class SandboxScene extends Phaser.Scene {
    */
   override update(_time: number, delta: number): void {
     const dt = delta / 1000;
+    this.audio.update(dt, { music: { key: 'music-vuon', volume: 1 }, ambience: null, bedMultiplier: 1, snoring: false, raining: false });
+    this.musicStarted = this.audio.musicVolumeNow() !== null;
 
     // Đồng hồ ngày
     this.dayElapsedSeconds += dt;

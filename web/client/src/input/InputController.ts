@@ -60,6 +60,8 @@ export class InputController {
   private readonly wheelAcc = createWheelAccumulator();
   /** Lần bấm chuột trái gần nhất có giữ Shift không (T-006). */
   private primaryShift = false;
+  /** T-026: số lần bấm chuột trái từ đầu (không "tiêu thụ") — âm thanh biết vừa có cú bấm để phát tiếng click nút. */
+  private primaryPresses = 0;
 
   constructor(scene: Phaser.Scene) {
     const kb = scene.input.keyboard;
@@ -94,7 +96,10 @@ export class InputController {
       this.buf.pointerDown(p.leftButtonDown(), p.rightButtonDown());
       // T-006: Shift+click (chuyển cả chồng / mua 5) — đọc Shift NGAY LÚC BẤM từ sự kiện chuột, không đọc phím Shift
       // lúc xử lý (người chơi có thể đã nhả Shift trước frame kế).
-      if (p.leftButtonDown()) this.primaryShift = (p.event as MouseEvent | undefined)?.shiftKey === true;
+      if (p.leftButtonDown()) {
+        this.primaryShift = (p.event as MouseEvent | undefined)?.shiftKey === true;
+        this.primaryPresses++;
+      }
     });
     scene.input.on(
       Phaser.Input.Events.POINTER_WHEEL,
@@ -123,6 +128,11 @@ export class InputController {
   /** Chuột trái vừa được bấm kể từ lần hỏi trước (true một lần mỗi lần bấm). Gọi một lần mỗi frame. */
   consumePrimaryPress(): boolean {
     return this.buf.consumePrimary();
+  }
+
+  /** Số lần bấm chuột trái từ lúc tạo (chỉ đọc, không tiêu thụ lần bấm — T-026 tiếng click nút). */
+  get primaryPressCount(): number {
+    return this.primaryPresses;
   }
 
   /** Lần bấm chuột trái gần nhất có giữ Shift không (Shift+click: chuyển cả chồng, mua nhiều — T-006). */

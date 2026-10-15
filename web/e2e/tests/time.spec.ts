@@ -433,7 +433,8 @@ test.describe('bản dev', () => {
     // Nút "Tiếp tục": rê vào thì sáng (hover), click thì chơi tiếp.
     await press(page, 'Escape');
     expect((await st(page)).pause.menuOpen).toBe(true);
-    const btn = await gameToPage(page, { x: 960, y: 375 + 170 + 42 }); // giữa nút (pauseResumeButtonRect)
+    // T-026: cửa sổ Tạm dừng cao thêm (2 hàng âm lượng) → lấy tâm nút từ game thay vì toạ độ cố định.
+    const btn = await gameToPage(page, await call<{ x: number; y: number }>(page, 'debugPauseButtonCenter', 'resume'));
     await page.mouse.move(btn.x, btn.y);
     await expect.poll(async () => (await st(page)).hud!.pauseButtonHover, { timeout: 5_000 }).toBe(true);
     await page.mouse.down();

@@ -70,6 +70,7 @@ vocals, singing, speech, choir, sad, melancholic, nostalgic, slow, ballad, dark,
 
 Công thức đã dùng (`--seed 1`): `levelup_bright` v2, `coin_bright` v1+v2, `hoe` v1+v2, `water` v1+v2, `frown` v2, `damn` v2, `oidoioi` v1, `grumble` v1+v2.
 Bước 3.3: `hoe_soil` v1+v2 (cuốc bản 2). Chờ duyệt (T-003): `sow_seed` v1+v4 (gieo hạt, nhẹ hơn cuốc ~5 dB), `harvest_pop` v1+v3 (hái cây, nốt gốc C5; game detune theo thang ngũ cung Đô 0/+200/+400/+700/+900/+1200 cent khi hái liên tiếp).
+T-025 (Lô 1, chờ duyệt): 26 công thức mới — `hoe_finish`, `wither`, `clear_wither`, `eat`, `stomach`, `yawn`, `snore`, `rooster`, `cook`, `count_tick`, `thunder`, `rain`, `indoor`, `footstep`, `door`, `chest`, `fence`, `basket_drop`, `quest_done`, `ui_*` (xem [AUD-LO1-SFX](prompts/AUD-LO1-SFX.md)). Từ T-025 chuẩn hóa SFX theo **độ to cảm nhận** (To A) chứ không chỉ peak — mức từng nhóm ghi trong card.
 
 ```json
 {"seed": 1, "gameplay_peak_db": -1, "voice_peak_db": -6, "ui_peak_db": -5,
@@ -120,3 +121,4 @@ Tên file: chữ thường, gạch nối. Khi `web/client/` chưa có thì file 
 - 2026-10-09 — Tạo khung audio bible, chọn công cụ Vertex AI Lyria + tổng hợp SFX.
 - 2026-10-09 — Bước 2.3: thử A/B/C (dân tộc / lo-fi / xiếc). Người dùng nghe A thấy hoài cổ, thiếu vui → vòng 2 V1/V2/V3.
 - 2026-10-09 — **Khóa style (D-018)**: V1 "Ukulele vui nhún", prefix + negative nguyên văn, palette, Đô trưởng 110–128 BPM, mood phụ cùng palette, SFX profile tươi + nhóm gõ dân tộc cho meme. Thêm `gen_folk_sfx.py`, `gen_music.py -n` gọi nhiều lần, `loop --limit`.
+- 2026-10-15 — T-025: thêm công thức Lô 1 + UI vào §6; ghi nhận Lyria bỏ qua "short jingle with a clear ending" và tempo trong prompt (jingle phải cắt theo lưới phách + fade).

@@ -7,8 +7,10 @@
  * Phiên bản định dạng save hiện tại. Đổi cấu trúc → tăng số này + thêm một bước trong SAVE_MIGRATIONS.
  * - 1 (T-008): bản đầu.
  * - 2 (T-093): thêm `chest` (rương trong nhà {ten}); `player.area` có thêm giá trị 'house' (cảnh trong nhà).
+ * - 3 (T-026): thêm `seed` — số ngẫu nhiên cố định của MỘT lần chơi (chọn kiểu gà gáy theo ngày…): F5 / nạp lại cùng ngày
+ *   ra cùng kết quả.
  */
-export const GAME_SAVE_VERSION = 2;
+export const GAME_SAVE_VERSION = 3;
 
 export type SaveFacing = 'up' | 'down' | 'left' | 'right';
 export type SaveSoil = 'untilled' | 'tilled';
@@ -74,8 +76,18 @@ export interface GameSaveV2 extends Omit<GameSaveV1, 'version'> {
   chest: { slots: (SaveStack | null)[] };
 }
 
+/** Version 3 (T-026): như version 2 + `seed`. */
+export interface GameSaveV3 extends Omit<GameSaveV2, 'version'> {
+  version: 3;
+  /**
+   * Hạt giống ngẫu nhiên của lần chơi này (số nguyên 0 … 2³²−1), tạo một lần lúc bắt đầu game mới. Thứ gì "ngẫu nhiên nhưng
+   * phải giống nhau mỗi lần nạp" (kiểu gà gáy mỗi sáng…) tính từ seed + số ngày. Save cũ nâng lên → seed suy ra từ `savedAt`.
+   */
+  seed: number;
+}
+
 /** Save ở định dạng hiện tại. */
-export type GameSave = GameSaveV2;
+export type GameSave = GameSaveV3;
 
 export type SaveParseResult =
   | { ok: true; save: GameSave; /** Phiên bản gốc trước khi nâng cấp (= GAME_SAVE_VERSION nếu không cần nâng). */ fromVersion: number }
@@ -84,10 +96,27 @@ export type SaveParseResult =
 /**
  * Các bước nâng cấp save cũ: khóa n = hàm biến save phiên bản n thành phiên bản n + 1 (object thô, chưa kiểm).
  * 1 → 2 (T-093): thêm rương trống; khu cũ ('garden') giữ nguyên — người chơi vẫn đứng ở Vườn như lúc lưu.
+ * 2 → 3 (T-026): thêm `seed` suy ra từ `savedAt` (xác định — nạp lại bản cũ nhiều lần vẫn ra cùng seed).
  */
 export const SAVE_MIGRATIONS: Readonly<Record<number, (old: Record<string, unknown>) => Record<string, unknown>>> = {
   1: (old) => ({ ...old, version: 2, chest: { slots: [] } }),
+  2: (old) => ({ ...old, version: 3, seed: hashSeedText(typeof old.savedAt === 'string' ? old.savedAt : '') }),
 };
+
+/** Số nguyên hợp lệ làm seed (0 … 2³²−1). */
+export function isSaveSeed(x: unknown): x is number {
+  return typeof x === 'number' && Number.isInteger(x) && x >= 0 && x <= 0xffffffff;
+}
+
+/** Băm chuỗi → seed (FNV-1a 32 bit). Dùng khi nâng save cũ chưa có seed. */
+export function hashSeedText(text: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
+}
 
 /** Ghi save ra chuỗi JSON (để lưu localStorage / gửi server). */
 export function serializeGameSave(save: GameSave): string {
@@ -164,7 +193,7 @@ function checkPlot(p: unknown): boolean {
   );
 }
 
-/** Trả về mô tả trường sai đầu tiên, hoặc null nếu đúng hình dạng phiên bản hiện tại (2). */
+/** Trả về mô tả trường sai đầu tiên, hoặc null nếu đúng hình dạng phiên bản hiện tại (3). */
 function checkCurrent(s: Record<string, unknown>): string | null {
   if (s.version !== GAME_SAVE_VERSION) return 'version';
   if (!isStr(s.savedAt)) return 'savedAt';
@@ -187,5 +216,6 @@ function checkCurrent(s: Record<string, unknown>): string | null {
   if (!isObj(box) || !checkSlots(box.slots)) return 'sellBox';
   const chest = s.chest;
   if (!isObj(chest) || !checkSlots(chest.slots)) return 'chest';
+  if (!isSaveSeed(s.seed)) return 'seed';
   return null;
 }

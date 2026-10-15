@@ -90,9 +90,12 @@ export const gameConfig = {
   summaryLineSlidePx: 140,
   /** Tổng kết: số tiền bán được đếm từ 0 lên trong bấy nhiêu giây. */
   summaryCountSeconds: 1.2,
-  /** Tiếng "tách tách" khi đếm tiền (tạm dùng tiếng nhặt xu, nhỏ + cao): cách nhau tối thiểu (giây), âm lượng × hệ số. */
+  /**
+   * Tiếng "tách tách" khi đếm tiền (T-026: file riêng `dem-tien-1/2`, AUD-SFX-118 — thôi mượn tiếng nhặt xu nâng cao độ):
+   * cách nhau tối thiểu (giây), âm lượng × hệ số (file đã nhỏ sẵn, To A −17).
+   */
   summaryTickSeconds: 0.11,
-  summaryTickVolume: 0.35,
+  summaryTickVolume: 0.7,
 
   // ---- 3.2 Sức và ăn uống ----
   staminaMax: 100,
@@ -206,10 +209,10 @@ export const gameConfig = {
   tillDoneBarkCooldownSeconds: 20,
   /** Thanh tiến độ của ô cuốc dở khi KHÔNG đang cuốc: độ đục (GDD §8 "mờ còn khoảng 50%"). */
   tillProgressIdleAlpha: 0.5,
-  /** Nhát cuối: lệch cao độ tiếng chốt (cent, âm = trầm hơn). Tạm dùng file "bộp" tới khi audio có tiếng riêng. */
-  tillFinishSfxDetune: -400,
-  /** Nhát cuối: tiếng chốt to hơn nhát thường bấy nhiêu lần (vẫn bị chặn ở 1). */
-  tillFinishSfxVolumeMultiplier: 1.25,
+  /** Nhát cuối: lệch cao độ tiếng chốt (cent). T-026: đã có file chốt riêng `cuoc-chot-1/2` (AUD-SFX-103) → 0. */
+  tillFinishSfxDetune: 0,
+  /** Nhát cuối: tiếng chốt to hơn nhát thường bấy nhiêu lần (vẫn bị chặn ở 1). T-026: file chốt đã to sẵn → 1. */
+  tillFinishSfxVolumeMultiplier: 1,
   /** Nhát cuối: ô "nảy" phóng to thêm bấy nhiêu (0.12 = 12%) trong `tillFinishBounceSeconds`. */
   tillFinishBounceScale: 0.12,
   tillFinishBounceSeconds: 0.22,
@@ -479,11 +482,61 @@ export const gameConfig = {
   /** Tên tối đa bao nhiêu ký tự. */
   playerNameMaxLength: 10,
 
-  // ---- Âm thanh (Cài đặt mặc định, GDD §11) ----
-  /** Âm lượng nhạc nền mặc định (0–1). */
+  // ---- Âm thanh (Cài đặt mặc định, GDD §11; T-026 hai kênh Nhạc / Hiệu ứng) ----
+  // Âm lượng riêng từng tiếng (cue) nằm ở config/soundCues.ts; ở đây là âm lượng kênh + nhịp chuyển nhạc + luật gà gáy.
+  /**
+   * Âm lượng kênh NHẠC mặc định (0–1) — nhạc nền + jingle. Spec T-026 gợi ý 0.8; giữ 0.6 như đang nghe từ bước 2.3 (người
+   * dùng đã quen mức này, e2e Q10 kiểm 0.6 → 0.21 khi Tạm dừng). Người chơi chỉnh ở cửa sổ Tạm dừng (lưu máy).
+   */
   musicVolume: 0.6,
-  /** Âm lượng SFX mặc định (0–1). */
+  /** Âm lượng kênh HIỆU ỨNG mặc định (0–1) — SFX, giọng, tiếng nền (amb-*), giao diện. Spec gợi ý 0.9; giữ 0.8 như cũ. */
   sfxVolume: 0.8,
+  /** Nút −/+ âm lượng ở cửa sổ Tạm dừng: mỗi lần bấm đổi bấy nhiêu. */
+  volumeStep: 0.1,
+  /** Cùng một tiếng (gồm các biến thể) không phát chồng quá bấy nhiêu bản; quá thì bỏ lần phát mới (Giả định). */
+  sfxMaxConcurrent: 4,
+  /** Tiếng lặp nhiều (bước chân, thúng, dọn héo, ăn, đếm tiền, click) lệch cao độ ngẫu nhiên ± bấy nhiêu % (audio bible §8). */
+  sfxPitchJitterPercent: 4,
+  /** Đổi nhạc nền (ngày ↔ đêm, Vườn ↔ trong nhà): hai bài đan chéo (crossfade) trong bấy nhiêu giây. */
+  musicCrossfadeSeconds: 1.5,
+  /** Tiếng nền lặp (mưa, trong nhà) hiện / tắt dần trong bấy nhiêu giây. */
+  ambienceFadeSeconds: 1.5,
+  /** Từ giờ này nhạc đêm (AUD-MUS-005); sáng `dayStartHour` (6h) về nhạc ngày. */
+  nightMusicStartHour: 19,
+  /** Trong nhà ban ngày: nhạc đêm nhỏ hơn còn bấy nhiêu (audio list AUD-MUS-005 "cả ban ngày, nhỏ hơn"). */
+  houseDayMusicMultiplier: 0.7,
+  /** Jingle (tổng kết ngày, đầu mùa) đang phát → nhạc nền nhỏ lại còn bấy nhiêu (như Tạm dừng), hạ / trả trong bao lâu (giây). */
+  jingleMusicDuckMultiplier: 0.35,
+  jingleDuckFadeSeconds: 0.3,
+  /** Ngáy (AUD-SFX-108, file 3,8 s) lặp lại sau một khoảng nghỉ ngẫu nhiên trong [min, max] giây. */
+  snoreGapSeconds: [0.3, 0.6] as readonly [number, number],
+  /** Trời mưa (chưa có thời tiết — hook sẵn): sấm xa ì ầm cách nhau ngẫu nhiên trong [min, max] giây. */
+  thunderGapSeconds: [25, 60] as readonly [number, number],
+  /** Vừa hết Sức: bụng réo (AUD-SFX-106) phát sau tiếng càu nhàu bấy nhiêu giây (không đè lên nhau). */
+  stomachGrowlDelaySeconds: 0.9,
+  /**
+   * Sáng ra: gà gáy ngay lúc màn bắt đầu sáng; sau bấy nhiêu giây (gà đã gáy xong) mới "phù" cây héo (nếu đêm qua có cây
+   * héo) và jingle đầu mùa (nếu sang mùa mới).
+   */
+  morningWitherSfxDelaySeconds: 3,
+  morningSeasonJingleDelaySeconds: 3.6,
+  /** Game mới (Ngày 1, mở game lúc đồng hồ còn trước giờ này) → gà gáy kiểu bình thường chào buổi sáng đầu tiên. */
+  newGameRoosterBeforeHour: 6.5,
+  /**
+   * Bước chân khi đi bộ (Should, AUD-SFX-111): bật / tắt, âm lượng × hệ số (nhỏ — chỉ gợi nhịp chân), phát mỗi bấy nhiêu lần
+   * chạm gót. Qua cửa nhà đã có tiếng cửa kèm bước chân riêng (cua-nha-vao/ra).
+   */
+  walkFootstepSfx: true,
+  walkFootstepVolume: 0.5,
+  walkFootstepEverySteps: 1,
+  /**
+   * Gà gáy 6h (AUD-SFX-109): trọng số 6 kiểu (audio list "Luật chọn tiếng gà theo ngày"); ngày 1 luôn bình thường; không lặp
+   * cùng kiểu 2 ngày liền (trừ bình thường); ngày mưa trọng số "khàn" × hệ số (gà cảm).
+   */
+  roosterWeights: { 'binh-thuong': 45, 'tac-hong': 15, khan: 15, 'vo-giong': 10, 'ngai-ngu': 10, 'gay-lai': 5 } as const,
+  roosterFirstDayKind: 'binh-thuong' as const,
+  roosterRainyFavorite: 'khan' as const,
+  roosterRainyFavoriteMultiplier: 3,
 
   // ---- Mạng ----
   /** Quá thời gian này (ms) mà server chưa trả lời thì coi như mất kết nối. */

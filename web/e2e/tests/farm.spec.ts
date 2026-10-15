@@ -338,8 +338,10 @@ test('THÔNG SỐ THẬT: click 1 lần rồi buông → tự bổ 6 nhát × 0.
   expect(s.till.bouncing).toBe(true);
   expect(s.till.bars[0]).toMatchObject({ x: 13, y: 14, flash: true });
   expect(s.juice.dustActive).toBeGreaterThan(9); // bụi × 2 (9 hạt mỗi nhát thường)
-  expect(s.juice.lastSfxDetune).toBeLessThan(-300); // tiếng chốt trầm hơn
-  expect(s.juice.lastSfxVolume).toBeGreaterThan(0.8); // và to hơn
+  // T-026: tiếng chốt là file riêng cuoc-chot-1/2 (AUD-SFX-103) — to sẵn, không hạ giọng / nhân âm lượng nữa.
+  expect(s.juice.lastSfx).toMatch(/^sfx-cuoc-chot-[12]$/);
+  expect(Math.abs(s.juice.lastSfxDetune)).toBeLessThanOrEqual(30);
+  expect(s.juice.lastSfxVolume).toBeGreaterThan(0);
   await page.screenshot({ path: join(SCREENSHOT_DIR, 't002b-finish.png') });
   await setPaused(page, false);
 

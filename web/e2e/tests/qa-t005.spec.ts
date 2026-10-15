@@ -416,16 +416,20 @@ test('Q7 Tạm dừng do ẩn tab giữa lúc cuốc + bụi + mồ hôi + bong 
 
 test('Q8 click "Tiếp tục" nằm đúng trên ô ruộng: không xuyên xuống (click nhanh và giữ chuột)', async ({ page }) => {
   test.setTimeout(90_000);
-  // tìm chỗ đứng để ô (13,14) (chưa cuốc) nằm dưới nút Tiếp tục (x 810–1110, y 545–629)
+  // tìm chỗ đứng để ô (13,14) (chưa cuốc) nằm dưới nút Tiếp tục (T-026: lấy toạ độ nút từ game — cửa sổ Tạm dừng đã cao thêm)
+  const rb = await call<{ x: number; y: number }>(page, 'debugPauseButtonCenter', 'resume');
   let found = false;
   for (const [tx, ty] of [
     [12, 14],
     [12, 13],
     [13, 13],
+    [12, 15],
+    [13, 15],
+    [12, 16],
   ]) {
     await teleportAndSettle(page, tx, ty);
     const c = await call<{ x: number; y: number }>(page, 'debugTileToScreen', 13, 14);
-    if (c.x > 830 && c.x < 1090 && c.y > 549 && c.y < 625) {
+    if (Math.abs(c.x - rb.x) < 130 && Math.abs(c.y - rb.y) < 38) {
       found = true;
       console.log('Q8 đứng', tx, ty, 'ô 13,14 ở', c);
       break;

@@ -36,26 +36,29 @@
 
 | ID | Tên | Loại | Dùng ở đâu | Độ dài · loop | Biến thể | Cách làm | Ưu tiên | Chi phí (USD) | Trạng thái |
 |---|---|---|---|---|---|---|---|---|---|
-| AUD-MUS-005 | Nhạc đêm / trong nhà (mood phụ: Đô trưởng 88–96 BPM, ukulele gảy thưa, marimba mềm, sáo trúc thong thả) | MUS | Xóm 19h–6h (chuyển mờ từ nhạc ngày lúc 19h), màn đi ngủ, **cảnh trong nhà** (cả ban ngày, nhỏ hơn) | ~30 s · loop | 1 | Lyria | Must | 0,16–0,48 | Planned |
-| AUD-JNG-003 | Ngày mới / tổng kết ngày (jingle ấm, ngắn, có kết) | JNG | Mở màn tổng kết ngày (§7); nhạc nền nhỏ lại khi phát | 3–6 s · không | 1 | Lyria (cắt + fade) | Must | 0,16–0,48 | Planned |
-| AUD-JNG-006 | "Mùa mưa tới rồi!" / "Mùa nắng tới rồi!" | JNG | Băng chữ ngày đầu mùa (§3.1) | 2–4 s · không | 1 | Lyria (cắt) | Should | 0,16–0,48 | Planned |
-| AUD-JNG-002 | Xong nhiệm vụ: con dấu "cộp" + chiêng "bùng" + marimba 3 nốt đi lên | JNG | Con dấu đỏ "XONG" (§8), từ nhiệm vụ 1 "Ruộng đầu tay" | 1,5–2 s · không | 1 | folk (chiêng + gỗ đã có) — đổi từ Lyria sang tổng hợp | Must | 0 | Planned |
-| AUD-SFX-103 | Cuốc nhát chốt (xong ô): "phập" đầy + đất vỡ tung | SFX | Nhát cuối mỗi ô (§3.3a) — **thay bản mượn** | 0,5 s | 2 | folk (`hoe_finish`, phát triển từ `hoe_soil`) | Must | 0 | Planned |
-| AUD-SFX-104 | Cây héo "phù" + dọn cây héo (lá khô sột soạt) | SFX | Click dọn ô héo; sáng thấy ô héo (§8) | 0,5 s | 2 | folk | Must | 0 | Planned |
-| AUD-SFX-105 | Ăn "nhồm nhoàm" | SFX | Chuột phải ăn (§3.2) | 0,6–0,8 s | 2 | folk (giọng formant + nhai) (r) | Must | 0 | Planned |
-| AUD-SFX-106 | Bụng réo "ọc ọc" | SFX | Vừa hết Sức → "đuối" (§8) | 0,8–1,2 s | 1 | folk | Must | 0 | Planned |
-| AUD-SFX-107 | Ngáp dài | SFX (giọng) | 23h, đồng hồ nhấp nháy (§8) | 1–1,5 s | 1 | folk (r), peak −6 | Must | 0 | Planned |
-| AUD-SFX-108 | Ngáy "khò… khò…" | SFX (giọng) | Ngủ gục 24h, ngủ giường; ông Khướt dùng lại (Lô 2) | 2–3 s · lặp được | 1 | folk (r), peak −6 | Must | 0 | Planned |
-| AUD-SFX-109 | Gà gáy 6h sáng | SFX | Trời hửng mỗi sáng (§8) | 1,5–2 s | 1 | folk (r) — nếu quá "điện tử" thì thay bằng gà "cục tác" + chim sáng | Must | 0 | Planned |
-| AUD-SFX-110 | Nấu ở bếp: lửa rơm lách tách + xèo | SFX | Click nấu món (§3.2) | 1,5 s | 1 | folk | Must | 0 | Planned |
-| AUD-SFX-118 | Đếm tiền "tách tách" (xu chạm nhẹ / bàn tính) | SFX | Số tiền đếm lên ở tổng kết ngày (§8) — **thay bản mượn** | 60–90 ms | 2 | folk | Must | 0 | Planned |
-| AUD-AMB-001 | Mưa rơi trên lá + mái rạ | AMB | Cả ngày mưa (§3.1, §8), nằm dưới nhạc | 15–20 s · loop (stereo) | 1 | folk (nhiễu lọc) | Must | 0 | Planned |
-| AUD-SFX-121 | Sấm xa ì ầm | SFX | Ngẫu nhiên trong ngày mưa, lúc trời đổ mưa | 2–3 s | 2 | folk | Must | 0 | Planned |
-| AUD-SFX-111 | Bước chân trên đất / cỏ | SFX | Khi đi (nhỏ) và khi qua cổng (§8) | 0,1–0,15 s | 3 mỗi nền (6 file) | folk | Should (riêng bản 1 nền chung khi qua cổng: Must) | 0 | Planned |
-| AUD-SFX-112 | Đóng cọc rào "cộc cộc" | SFX | Mua thêm 3 ô ruộng (§3.4) | 0,8 s | 1 | folk | Should | 0 | Planned |
-| AUD-SFX-115 | Bước qua cửa nhà {ten}: liếp tre / cửa gỗ cũ "kẹt" + bước chân đất nện | SFX | Vào / ra cảnh trong nhà (chuyển cảnh qua cửa) | 0,5–0,7 s | 2 (vào / ra) | folk | Must | 0 | Planned |
-| AUD-AMB-011 | Nền trong nhà: bếp rơm lách tách khẽ, gió lùa vách, (đêm) dế ngoài sân vọng vào | AMB | Cảnh trong nhà, dưới AUD-MUS-005 | 10–15 s · loop | 1 | folk | Should | 0 | Planned |
-| AUD-SFX-113 | Bỏ đồ vào / lấy ra thùng bán "bịch" | SFX | Cửa sổ thùng bán (§3.9) | 0,15 s | 2 | folk | Should | 0 | Planned |
+| AUD-MUS-005 | Nhạc đêm / trong nhà (mood phụ: Đô trưởng 88–96 BPM, ukulele gảy thưa, marimba mềm, sáo trúc thong thả) | MUS | Xóm 19h–6h (chuyển mờ từ nhạc ngày lúc 19h), màn đi ngủ, **cảnh trong nhà** (cả ban ngày, nhỏ hơn) | ~30 s · loop | 1 | Lyria | Must | 0,16 | Approved (người dùng nghe 2026-10-15) · `music/dem-loop.wav` (seed 5051; dự phòng 5052) |
+| AUD-JNG-003 | Ngày mới / tổng kết ngày (jingle ấm, ngắn, có kết) | JNG | Mở màn tổng kết ngày (§7); nhạc nền nhỏ lại khi phát | 3–6 s · không | 1 | Lyria (cắt + fade) | Must | 0,16 | Approved (người dùng nghe 2026-10-15) · `music/tong-ket-ngay.wav` 5.6 s (seed 3031; dự phòng 3032) |
+| AUD-JNG-006 | "Mùa mưa tới rồi!" / "Mùa nắng tới rồi!" | JNG | Băng chữ ngày đầu mùa (§3.1) | 2–4 s · không | 1 | Lyria (cắt) | Should | 0,16 | Approved (người dùng nghe 2026-10-15) · `music/dau-mua.wav` 4.0 s (seed 6061; dự phòng 6062) |
+| AUD-JNG-002 | Xong nhiệm vụ: con dấu "cộp" + chiêng "bùng" + marimba 3 nốt đi lên | JNG | Con dấu đỏ "XONG" (§8), từ nhiệm vụ 1 "Ruộng đầu tay" | 1,5–2 s · không | 1 | folk (chiêng + gỗ đã có) — đổi từ Lyria sang tổng hợp | Must | 0 | Approved (người dùng nghe 2026-10-15) · `sfx/xong-nhiem-vu.wav` 2.0 s |
+| AUD-SFX-103 | Cuốc nhát chốt (xong ô): "phập" đầy + đất vỡ tung | SFX | Nhát cuối mỗi ô (§3.3a) — **thay bản mượn** | 0,5 s | 2 | folk (`hoe_finish`, phát triển từ `hoe_soil`) | Must | 0 | Approved (người dùng nghe 2026-10-15) · `sfx/cuoc-chot-1/2.wav` |
+| AUD-SFX-104 | Cây héo "phù" + dọn cây héo (lá khô sột soạt) | SFX | Click dọn ô héo; sáng thấy ô héo (§8) | 0,5 s | 2 | folk | Must | 0 | Approved (người dùng nghe 2026-10-15) · `sfx/cay-heo.wav` (phù) + `sfx/don-cay-heo-1/2.wav` (dọn) |
+| AUD-SFX-105 | Ăn "nhồm nhoàm" | SFX | Chuột phải ăn (§3.2) | 0,6–0,8 s | 2 | CC0 / Public domain + hậu kỳ (`make_cc0_lot1.py`) | Must | 0 | Approved (người dùng nghe 2026-10-15), bản ghi CC0/PD · `sfx/an-nhom-nhoam-1/2.wav` — nguồn: Chewing gum mouth open (ezwa) + Crunching munching grinding (stephan), Public domain, xem [credits](credits.md); bản tổng hợp cũ: `raw/AUD-SFX-105/tong-hop-cu/` |
+| AUD-SFX-106 | Bụng réo "ọc ọc" | SFX | Vừa hết Sức → "đuối" (§8) | 0,8–1,2 s | 1 | folk | Must | 0 | Approved (người dùng nghe 2026-10-15) · `sfx/bung-reo.wav` |
+| AUD-SFX-107 | Ngáp dài | SFX (giọng) | 23h, đồng hồ nhấp nháy (§8) | 1–1,5 s | 1 | CC0 / Public domain + hậu kỳ (`make_cc0_lot1.py`) | Must | 0 | Approved (người dùng nghe 2026-10-15), bản ghi CC0/PD · `sfx/voice-ngap.wav` — nguồn: Yawning twice (ezwa), Public domain; tổng hợp cũ ở `raw/AUD-SFX-107/tong-hop-cu/` |
+| AUD-SFX-108 | Ngáy "khò… khò…" | SFX (giọng) | Ngủ gục 24h, ngủ giường; ông Khướt dùng lại (Lô 2) | 2–3 s · lặp được | 1 | CC0 / Public domain + hậu kỳ (`make_cc0_lot1.py`) | Must | 0 | Approved (người dùng nghe 2026-10-15), bản ghi CC0/PD · `sfx/voice-ngay.wav` 3.8 s, 2 tiếng ngáy, lặp được — nguồn: Joseph Sardin - Ronflements, CC0; tổng hợp cũ ở `raw/AUD-SFX-108/tong-hop-cu/` |
+| AUD-SFX-109 | Gà gáy 6h — **bộ 6 kiểu "lầy" theo ngày** (góp ý người dùng 2026-10-15): bình thường, tắc họng + ho, khàn cổ hụt hơi, vỡ giọng vọt cao, ngái ngủ rồi ngáp, gáy hỏng phải gáy lại | SFX | Trời hửng mỗi sáng (§8); mỗi ngày chọn 1 kiểu (luật bên dưới) | 1,9–2,8 s | 6 | CC0/PD thật + hậu kỳ (`make_rooster_real.py`) | Must | 0 | Approved (người dùng nghe 2026-10-15), gà thật 6 kiểu · 6 file `sfx/ga-gay-<kiểu>.wav` làm từ Medium rooster crowing (alys, pdsounds.org, Public domain — xem [credits](credits.md)) bằng `tools/make_rooster_real.py`; bản tổng hợp vòng 2 ở `raw/T-025/rooster_fun/game-v2-tong-hop/` |
+| AUD-SFX-110 | Nấu ở bếp: lửa rơm lách tách + xèo | SFX | Click nấu món (§3.2) | 1,5 s | 1 | CC0 / Public domain + hậu kỳ (`make_cc0_lot1.py`) | Must | 0 | Approved (người dùng nghe 2026-10-15), bản ghi CC0/PD · `sfx/nau-bep.wav` — lửa thật: Dry grass burning in open fireplace (ezwa), Public domain + lớp xèo tổng hợp khẽ; tổng hợp cũ ở `raw/AUD-SFX-110/tong-hop-cu/` |
+| AUD-SFX-118 | Đếm tiền "tách tách" (xu chạm nhẹ / bàn tính) | SFX | Số tiền đếm lên ở tổng kết ngày (§8) — **thay bản mượn** | 60–90 ms | 2 | folk | Must | 0 | Approved (người dùng nghe 2026-10-15) · `sfx/dem-tien-1/2.wav` (xu; dự phòng bàn tính) |
+| AUD-AMB-001 | Mưa rơi trên lá + mái rạ | AMB | Cả ngày mưa (§3.1, §8), nằm dưới nhạc | 15–20 s · loop (stereo) | 1 | CC0 / Public domain + hậu kỳ (`make_cc0_lot1.py`) | Must | 0 | Approved (người dùng nghe 2026-10-15), bản ghi CC0/PD · `sfx/amb-mua.wav` 10.6 s loop, RMS −30 — nguồn: Rain on a veranda and thunder (ezwa, đoạn 0–13 s), Public domain; tổng hợp cũ ở `raw/AUD-AMB-001/tong-hop-cu/` |
+| AUD-SFX-121 | Sấm xa ì ầm | SFX | Ngẫu nhiên trong ngày mưa, lúc trời đổ mưa | 2–3 s | 2 | CC0 / Public domain + hậu kỳ (`make_cc0_lot1.py`) | Must | 0 | Approved (người dùng nghe 2026-10-15), bản ghi CC0/PD · `sfx/sam-xa-1/2.wav` 5.0 / 5.4 s (có mưa nền lẫn) — nguồn: Rain and thunder (User:Caesar) / Thunder and rain on a veranda (ezwa), Public domain; tổng hợp cũ ở `raw/AUD-SFX-121/tong-hop-cu/` |
+| AUD-SFX-111 | Bước chân trên đất / cỏ | SFX | Khi đi (nhỏ) và khi qua cổng (§8) | 0,1–0,15 s | 3 mỗi nền (6 file) | folk | Should (riêng bản 1 nền chung khi qua cổng: Must) | 0 | Approved (người dùng nghe 2026-10-15) · `sfx/buoc-dat-1..3.wav`, `sfx/buoc-co-1..3.wav` |
+| AUD-SFX-112 | Đóng cọc rào "cộc cộc" | SFX | Mua thêm 3 ô ruộng (§3.4) | 0,8 s | 1 | folk | Should | 0 | Approved (người dùng nghe 2026-10-15) · `sfx/dong-coc.wav` |
+| AUD-SFX-115 | Bước qua cửa nhà {ten}: liếp tre / cửa gỗ cũ "kẹt" + bước chân đất nện | SFX | Vào / ra cảnh trong nhà (chuyển cảnh qua cửa) | 0,5–0,7 s | 2 (vào / ra) | CC0 / Public domain + hậu kỳ (`make_cc0_lot1.py`) | Must | 0 | Approved (người dùng nghe 2026-10-15), bản ghi CC0/PD · `sfx/cua-nha-vao.wav`, `cua-nha-ra.wav` — kẹt + sập thật: Squeaky door (leonmire), Public domain + bước chân tổng hợp `buoc-dat`; tổng hợp cũ ở `raw/AUD-SFX-115/tong-hop-cu/` |
+| AUD-SFX-116 | Rương gỗ mở / đóng (bản lề kẹt ngắn + nắp "cộc" / sập "cộp") — thêm ở T-025 cho rương trong nhà (T-093) | SFX | Mở / đóng cửa sổ rương | 0,25–0,35 s | 2 (mở / đóng) | CC0 / Public domain + hậu kỳ (`make_cc0_lot1.py`) | Should | 0 | Approved (người dùng nghe 2026-10-15), bản ghi CC0/PD · `sfx/ruong-mo.wav`, `ruong-dong.wav` — Squeaky door (leonmire, PD) phát nhanh ×1.3; tổng hợp cũ ở `raw/AUD-SFX-116/tong-hop-cu/` |
+| AUD-AMB-011 | Nền trong nhà: bếp rơm lách tách khẽ, gió lùa vách, (đêm) dế ngoài sân vọng vào | AMB | Cảnh trong nhà, dưới AUD-MUS-005 | 10–15 s · loop | 1 | CC0 / Public domain + hậu kỳ (`make_cc0_lot1.py`) | Should | 0 | Approved (người dùng nghe 2026-10-15), bản ghi CC0/PD · `sfx/amb-trong-nha.wav` + `amb-trong-nha-dem.wav` 13.7 s loop, RMS −32 — lửa thật (Dry grass burning…, ezwa, PD) + lớp gió / dế tổng hợp cũ (không tìm được dế CC0); tổng hợp cũ ở `raw/AUD-AMB-011/tong-hop-cu/` |
+| AUD-SFX-113 | Bỏ đồ vào / lấy ra thùng bán "bịch" | SFX | Cửa sổ thùng bán (§3.9) | 0,15 s | 2 | folk | Should | 0 | Approved (người dùng nghe 2026-10-15) · `sfx/thung-bich-1/2.wav` |
+
+> **Luật chọn tiếng gà theo ngày (đề xuất cho T-026, AUD-SFX-109):** trọng số `binh-thuong` 45% · `tac-hong` 15% · `khan` 15% · `vo-giong` 10% · `ngai-ngu` 10% · `gay-lai` 5%. **Không lặp cùng kiểu 2 ngày liền** (trừ `binh-thuong` — được lặp, để "bình thường" vẫn là chuẩn). Chọn **xác định theo seed ngày** (vd. hash(`saveSeed`, số ngày) → số ngẫu nhiên; nếu trùng kiểu hôm trước thì lấy kiểu kế tiếp trong bảng) để F5 / nạp lại save cùng ngày vẫn ra cùng kiểu. **Ngày 1** luôn `binh-thuong` (người chơi mới nghe bản chuẩn trước khi gặp bản hỏng). Ngày mưa có thể ưu tiên `khan` (gà "cảm"). Âm lượng như nhau (To A −13), không random cao độ (giữ chất từng kiểu), có thể lệch ±2%.
 
 ### Lô 2 — Xóm làng + NPC
 
@@ -152,19 +155,19 @@
 | ID | Tên | Loại | Dùng ở đâu | Độ dài · loop | Biến thể | Cách làm | Ưu tiên | Chi phí (USD) | Trạng thái |
 |---|---|---|---|---|---|---|---|---|---|
 | AUD-MUS-006 | Nhạc Menu (+ intro 4 khung, màn đặt tên) — Đô trưởng 110–116, tươi, "chào mừng tới làng Lầy" | MUS | Menu, intro (§5, §11) | ~30 s · loop | 1 | Lyria | Must | 0,16–0,48 | Planned |
-| AUD-UI-001 | Click nút (gõ gỗ / marimba nhẹ) | UI | Mọi nút | 60–100 ms | 2 | sfx (triangle, lowpass 5000) | Must | 0 | Planned |
-| AUD-UI-003 | Mở cửa sổ (giấy dó "sột" + gỗ) | UI | Túi đồ, thùng bán, cửa hàng, nhiệm vụ, tạm dừng | 120–150 ms | 1 | sfx / folk | Must | 0 | Planned |
-| AUD-UI-004 | Đóng cửa sổ | UI | như trên, Esc | 100–150 ms | 1 | sfx / folk | Must | 0 | Planned |
-| AUD-UI-005 | Lỗi / không được (mõ trầm nhỏ "cộc") | UI | Nút xám, thiếu tiền, gùi đầy, hết hạt, ngoài tầm | ≤ 150 ms | 1 | folk | Must | 0 | Planned |
-| AUD-UI-006 | Đổi ô hotbar (tick nhẹ) | UI | Phím 1–9, cuộn chuột | 40–60 ms | 1 | sfx | Must | 0 | Planned |
-| AUD-UI-002 | Hover nút (rất khẽ) | UI | Rê chuột vào nút | 30–50 ms | 1 | sfx | Should | 0 | Planned |
-| AUD-UI-007 | Nhấc / thả món khi kéo thả | UI | Túi đồ, rương | 60–100 ms | 2 | sfx | Should | 0 | Planned |
+| AUD-UI-001 | Click nút (gõ gỗ / marimba nhẹ) | UI | Mọi nút | 60–100 ms | 2 | sfx (triangle, lowpass 5000) | Must | 0 | Approved (người dùng nghe 2026-10-15) · `ui/click-1/2.wav` |
+| AUD-UI-003 | Mở cửa sổ (giấy dó "sột" + gỗ) | UI | Túi đồ, thùng bán, cửa hàng, nhiệm vụ, tạm dừng | 120–150 ms | 1 | sfx / folk | Must | 0 | Approved (người dùng nghe 2026-10-15) · `ui/mo-cua-so.wav` |
+| AUD-UI-004 | Đóng cửa sổ | UI | như trên, Esc | 100–150 ms | 1 | sfx / folk | Must | 0 | Approved (người dùng nghe 2026-10-15) · `ui/dong-cua-so.wav` |
+| AUD-UI-005 | Lỗi / không được (mõ trầm nhỏ "cộc") | UI | Nút xám, thiếu tiền, gùi đầy, hết hạt, ngoài tầm | ≤ 150 ms | 1 | folk | Must | 0 | Approved (người dùng nghe 2026-10-15) · `ui/loi.wav` |
+| AUD-UI-006 | Đổi ô hotbar (tick nhẹ) | UI | Phím 1–9, cuộn chuột | 40–60 ms | 1 | sfx | Must | 0 | Approved (người dùng nghe 2026-10-15) · `ui/doi-o.wav` |
+| AUD-UI-002 | Hover nút (rất khẽ) | UI | Rê chuột vào nút | 30–50 ms | 1 | sfx | Should | 0 | Approved (người dùng nghe 2026-10-15) · `ui/hover.wav` |
+| AUD-UI-007 | Nhấc / thả món khi kéo thả | UI | Túi đồ, rương | 60–100 ms | 2 | sfx | Should | 0 | Approved (người dùng nghe 2026-10-15) · `ui/nhac-mon.wav`, `ui/tha-mon.wav` |
 | AUD-UI-008 | Lật khung intro (giấy) | UI | Intro, cảnh cưới | ≤ 150 ms | 1 | folk | Should | 0 | Planned |
 | AUD-UI-009 | Thẻ meme trượt vào "xoẹt" | UI | Thẻ góc meme (§11) | ≤ 150 ms | 1 | folk | Should | 0 | Planned |
 | AUD-UI-010 | Thông báo nhỏ "Đã lưu" | UI | Toast lưu game | ≤ 150 ms | 1 | sfx | Could | 0 | Planned |
 | AUD-MUS-009 | Nhạc Xóm ngày mưa (bản mềm, ít gõ) | MUS | Ngày mưa ở Xóm (thay MUS-001) | ~30 s · loop | 1 | Lyria | Could | 0,16–0,48 | Planned |
 
-> UI cơ bản (UI-001, 003, 004, 005, 006) miễn phí, làm khoảng 1 giờ: có thể **kéo lên làm cùng Lô 1** vì prototype đã có cửa sổ thùng bán, sạp hạt, tạm dừng. Lô 4 còn là đợt **cân mix cuối**: đo lại toàn bộ (peak/RMS), cùng `game-dev` chỉnh âm lượng từng nhóm trong `gameConfig`.
+> **T-025 đã kéo UI-001…007 lên làm cùng Lô 1** (giao diện mới T-092 có nút 4 trạng thái hover/nhấn, rương kéo thả). UI cơ bản (UI-001, 003, 004, 005, 006) miễn phí, làm khoảng 1 giờ: có thể **kéo lên làm cùng Lô 1** vì prototype đã có cửa sổ thùng bán, sạp hạt, tạm dừng. Lô 4 còn là đợt **cân mix cuối**: đo lại toàn bộ (peak/RMS), cùng `game-dev` chỉnh âm lượng từng nhóm trong `gameConfig`.
 
 ### Tổng hợp
 
@@ -196,15 +199,19 @@
 
 | Chỗ trong game | Đang dùng | Thay bằng | Ghi chú |
 |---|---|---|---|
-| Đếm tiền "tách tách" ở tổng kết ngày (`GardenScene.tickSummarySound`) | `nhat-xu-1/2` nâng +700 cent, âm lượng ×0,35 | AUD-SFX-118 | Lô 1, Must |
-| Nhát cuốc chốt khi xong ô (`tillFinishSfxDetune` −400, âm lượng ×1,25) | `cuoc-dat-1/2` hạ cao độ | AUD-SFX-103 | Lô 1, Must (GDD §3.3a: "tiếng chốt riêng") |
+| Đếm tiền "tách tách" ở tổng kết ngày (`GardenScene.tickSummarySound`) | `nhat-xu-1/2` nâng +700 cent, âm lượng ×0,35 | AUD-SFX-118 | Lô 1, Must — file có rồi (`dem-tien-1/2`), chờ T-026 gắn |
+| Nhát cuốc chốt khi xong ô (`tillFinishSfxDetune` −400, âm lượng ×1,25) | `cuoc-dat-1/2` hạ cao độ | AUD-SFX-103 | Lô 1, Must (GDD §3.3a: "tiếng chốt riêng") — file có rồi (`cuoc-chot-1/2`), chờ T-026 |
 | Mua hạt ở sạp (`COIN_SFX` khi mua) | `nhat-xu-1/2` (tiếng *nhận* tiền) | AUD-SFX-202 "trả tiền" | Lô 2, Should — nghĩa ngược: mất tiền mà nghe như được tiền |
-| Nhạc ban đêm | `vuon-loop` chạy suốt 6h–24h | AUD-MUS-005 | Lô 1, Must |
+| Nhạc ban đêm | `vuon-loop` chạy suốt 6h–24h | AUD-MUS-005 | Lô 1, Must — file có rồi (`dem-loop`), chờ T-026 |
 | Bố vợ "Hừm!" (GDD §8) | AUD-SFX-005 chỉ có mõ + đàn bầu | thêm AUD-VOX-016 phát cùng | Lô 3, Must |
 | Mượn **có chủ ý** (giữ): lên bậc ngoại hình = AUD-SFX-001 cao 1 nấc; đỉnh nóc = AUD-SFX-001 + trống; ông Khướt ngáy = AUD-SFX-108 hạ cao độ; Xóm + hồ làng = nhạc Vườn (+ nền hồ); con nhỏ cười = giọng trẻ trâu nâng cao độ | — | — | Theo GDD / D-021 |
 
 ## Changelog
 
+- 2026-10-15 — T-025: người dùng nghe vòng 3 "oke ổn rồi" → toàn bộ mục T-025 (gà 6 kiểu từ bản ghi thật, 9 âm CC0/PD, các âm giữ tổng hợp, UI, nhạc, jingle) Approved.
+- 2026-10-15 — T-025 vòng 3 (D-039, người dùng đồng ý dùng CC0): gà gáy làm lại từ bản ghi thật (6 kiểu); thay bằng bản ghi CC0 / Public domain: ăn, ngáp, ngáy, sấm, mưa, nấu bếp, nền trong nhà (lớp lửa), cửa nhà, rương → Processed — chờ nghe. Giữ tổng hợp: bụng réo, dế (không tìm được CC0), bước chân, lá khô, thúng, cọc rào, cuốc, tưới, UI, jingle. Nguồn: [credits.md](credits.md).
+- 2026-10-15 — T-025 vòng 2: người dùng nghe Lô 1, chấp nhận các bản đề xuất (→ Approved; ăn / ngáp / ngáy tạm chấp nhận), riêng gà gáy muốn "lầy" hơn và đổi theo ngày → AUD-SFX-109 thành bộ 6 kiểu (`rooster_fun`, 0 USD) + luật chọn theo ngày; bỏ `sfx/ga-gay.wav`.
+- 2026-10-15 — **T-025 (Lô 1)**: làm toàn bộ 20 mục Lô 1 (15 Must + 5 Should) + UI-001…007 kéo từ Lô 4 + mục mới AUD-SFX-116 (rương). Lyria 6 lần gọi = **0,48 USD** (MUS-005, JNG-003, JNG-006 mỗi bài 2 seed); còn lại 26 công thức tổng hợp mới trong `gen_folk_sfx.py` (0 USD). 45 file WAV (bản đề xuất) đã đặt vào `web/client/public/assets/audio/{music,sfx,ui}/`, trạng thái Processed — chờ người dùng nghe; dự phòng ở `audio-source/raw/T-025/`, `raw/AUD-MUS-005/`, `raw/AUD-JNG-00{3,6}/`. Card: [AUD-LO1-SFX](prompts/AUD-LO1-SFX.md), [AUD-MUS-005](prompts/AUD-MUS-005.md), [AUD-JNG-003](prompts/AUD-JNG-003.md), [AUD-JNG-006](prompts/AUD-JNG-006.md).
 - 2026-10-09 — Tạo danh sách.
 - 2026-10-09 — Bước 2.3 (D-018): AUD-MUS-001 + AUD-SFX-001…008 Approved (file tạm trong `audio-source/raw/`, chuyển ở bước 3.1); thêm danh sách Planned.
 - 2026-10-10 — Bước 3.3 (T-002): người dùng góp ý "bộp" chưa giống cuốc → làm lại AUD-SFX-003 bằng công thức mới `hoe_soil` (4 ứng viên, chọn v1 + v2), trạng thái Processed — chờ người dùng nghe duyệt rồi mới ghi đè file game.

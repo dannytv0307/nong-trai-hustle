@@ -29,6 +29,13 @@ $PY tools/audio_tools.py loop <in.wav> <out.wav> --crossfade 2 --rms -18        
 
 - **Lyria** chỉ làm nhạc không lời (không làm SFX, không lời hát), mỗi clip ~32 giây; tốn tiền thật mỗi lần gọi — gen 2 bản/lần, tối đa ~3 vòng cho một track.
 - **SFX** tạo bằng tổng hợp âm (miễn phí, chính xác, chạy lại được). Lưu tham số cuối vào prompt card để tái tạo.
+- **Âm thanh "thật" → ưu tiên bản ghi CC0** (người dùng chốt 2026-10-15, D-039): tiếng động vật (gà, chó, trâu, mèo, chim, dế, ếch…), giọng/miệng người (ăn, ngáp, ngáy, ho, cười, hắt hơi), thiên nhiên và đồ vật thật (mưa, sấm, gió, nước, lửa, cửa gỗ, bước chân) — tổng hợp thường nghe "điện tử". Cách làm:
+  1. Tìm bản ghi giấy phép **CC0 / Public Domain** — chỉ CC0 (không CC-BY, CC-BY-NC, "royalty-free" mơ hồ, không trả phí, không đăng nhập/đăng ký). Nguồn: Wikimedia Commons (tải thẳng được), Freesound lọc *Creative Commons 0* (nếu tải được không cần đăng nhập), nguồn CC0 khác có ghi rõ giấy phép.
+  2. Lưu bản gốc + ghi chú trang nguồn ở `audio-source/raw/<ID>/cc0/`.
+  3. Hậu kỳ thành biến thể theo yêu cầu (cắt, ghép, đổi cao độ, kéo dài, làm rè, thêm vang, chuẩn To A) bằng `audio_tools.py` / numpy-scipy; được trộn thêm lớp tổng hợp nếu hợp.
+  4. **Ghi nguồn bắt buộc**: URL, tác giả, giấy phép vào `docs/audio/credits.md` và cột/ghi chú nguồn trong `audio-list.md`.
+  - Tổng hợp vẫn dùng cho âm "game": UI, click, ting, coin, whoosh, jingle-ngắn, âm trừu tượng. Không tìm được CC0 phù hợp → tổng hợp và báo rõ.
+  - Khi đang làm lại một lô, rà các âm "thật" đã tổng hợp trước đó (vd. ăn/ngáp/ngáy/sấm/mưa) và đề xuất thay bằng CC0 nếu nghe giả.
 - Kết quả thô ở `audio-source/raw/<name>/`. File cuối: `web/client/public/assets/audio/<music|sfx|ui>/<ten-ngan>.wav` (WAV — `game-dev` chuyển sang OGG/MP3 khi build web). Nếu `web/client/` chưa có thì để ở `audio-source/raw/<ID>/final.wav`.
 
 ## Hệ thống nhất quán (trong Audio Bible)

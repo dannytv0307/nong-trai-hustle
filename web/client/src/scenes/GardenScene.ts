@@ -183,6 +183,10 @@ import {
   pauseResumeButtonRect,
   restartConfirmButtonAt,
   restartConfirmButtonRect,
+  volumeButtonAt,
+  volumeButtonChannel,
+  volumeButtonRect,
+  type VolumeButtonId,
   sellPanelRect,
   sellSlotAt,
   sellSlotRect,
@@ -267,6 +271,21 @@ import {
   type WalkAnimParams,
 } from '../systems/walkAnim';
 import { physicsDebugFromSearch } from '../utils/sceneSelect';
+import { AudioManager, type AudioDebugState, type Soundscape } from '../audio/AudioManager';
+import { roosterKey } from '../config/soundCues';
+import {
+  chooseAmbience,
+  chooseMusic,
+  crossedHour,
+  footstepSurface,
+  newSeed,
+  roosterKindForDay,
+  volumeLabel,
+  type AudioChannel,
+  type RoosterKind,
+  type RoosterRules,
+  type SoundscapeRules,
+} from '../systems/audio';
 import { applySave, captureSave, type SaveRules, type SaveWorld } from '../systems/save';
 import { clearLocalSave, loadLocalSave, SAVE_KEY, writeLocalSave } from '../net/saveLocal';
 import type { GameSave } from '@bph/shared';
@@ -300,15 +319,23 @@ const CROP_BASE = 0.78;
 const DROP_POOL = gameConfig.waterDropCount * 3;
 /** Pool hình "cây bật lên" khi hái — đủ cho cả hàng chờ việc nhanh. */
 const POP_POOL = gameConfig.actionQueueMax + 2;
-/** Tiếng tưới — chọn ngẫu nhiên một trong hai (GDD §8 "róc rách"). */
-const WATER_SFX = ['sfx-tuoi-nuoc-1', 'sfx-tuoi-nuoc-2'] as const;
-/** Tiếng gieo "lách tách" (AUD-SFX-101) và hái "pop" (AUD-SFX-102) — chọn ngẫu nhiên một trong hai. */
-const PLANT_SFX = ['sfx-gieo-hat-1', 'sfx-gieo-hat-2'] as const;
-const HARVEST_SFX = ['sfx-hai-cay-1', 'sfx-hai-cay-2'] as const;
+// Âm thanh (T-026): mọi tiếng phát qua AudioManager theo tên cue (config/soundCues.ts) — tưới, gieo, hái, càu nhàu, xu…
 /** Giữ bao nhiêu lần hái gần nhất trong debugState (để test kiểm thang cao độ). */
 const HARVEST_SFX_LOG = 12;
-/** Tiếng càu nhàu khi chửi thề (GDD §3.12: "hừ / ú ớ", không đọc câu chửi) — chọn ngẫu nhiên một trong hai. */
-const CURSE_SFX = ['sfx-voice-cau-nhau-1', 'sfx-voice-cau-nhau-2'] as const;
+/** T-026: luật chọn nhạc nền / tiếng nền theo giờ + khu. */
+const SOUNDSCAPE_RULES: SoundscapeRules = {
+  nightStartHour: gameConfig.nightMusicStartHour,
+  dayStartHour: gameConfig.dayStartHour,
+  houseDayMusicMultiplier: gameConfig.houseDayMusicMultiplier,
+};
+/** T-026: luật chọn kiểu gà gáy mỗi sáng (audio list AUD-SFX-109). */
+const ROOSTER_RULES: RoosterRules = {
+  weights: gameConfig.roosterWeights,
+  firstDayKind: gameConfig.roosterFirstDayKind,
+  repeatableKind: gameConfig.roosterFirstDayKind,
+  rainyFavorite: gameConfig.roosterRainyFavorite,
+  rainyFavoriteMultiplier: gameConfig.roosterRainyFavoriteMultiplier,
+};
 /** Sức tốn của từng việc trên ô (GDD §3.2). */
 const JOB_COSTS: JobStaminaCosts = {
   till: gameConfig.staminaCostTill,
@@ -352,8 +379,6 @@ const DEPTH_CANOPY = 4000;
 const CANOPY_LEAVES = { x: 13, y: 33, w: 198, h: 130 } as const;
 /** Hộp thân người để xét tán che (px): nửa bề ngang, chiều cao từ chân (theo khung đi 64×96). */
 const HERO_BODY_BOX = { halfW: 20, h: 88 } as const;
-/** Tiếng nhặt xu khi mua (AUD-SFX nhat-xu) — chọn ngẫu nhiên một trong hai. */
-const COIN_SFX = ['sfx-nhat-xu-1', 'sfx-nhat-xu-2'] as const;
 /** Khóa viền "ô" cho vật tương tác (khác mọi khóa ô thường = ty × cols + tx). */
 const OBJECT_HIGHLIGHT_KEY = 1_000_000;
 
@@ -454,8 +479,6 @@ export interface TillTuning {
   strikeSeconds: number;
   queueMax: number;
 }
-/** Tiếng "bộp" khi cuốc — chọn ngẫu nhiên một trong hai (GDD §8). */
-const TILL_SFX = ['sfx-cuoc-dat-1', 'sfx-cuoc-dat-2'] as const;
 
 /** Trạng thái cho QA/Playwright đọc qua window.__game.scene.getScene('Garden').debugState. */
 export interface GardenDebugState {
@@ -811,6 +834,18 @@ export interface GardenDebugState {
     lastSfxVolume: number;
     dustActive: number;
     heroScale: { x: number; y: number };
+  };
+  /**
+   * T-026: âm thanh — trạng thái AudioManager (kênh, nhạc / tiếng nền đang phát, jingle, vài lần phát gần nhất), seed lần
+   * chơi, kiểu gà gáy hôm nay + các lần gà gáy, số lần ngáp, số tiếng bước chân, nút âm lượng dưới con trỏ (Tạm dừng).
+   */
+  audio: AudioDebugState & {
+    seed: number;
+    roosterToday: RoosterKind;
+    roosters: { day: number; kind: RoosterKind }[];
+    yawns: number;
+    footsteps: number;
+    volumeHover: string | null;
   };
 }
 
@@ -1193,6 +1228,25 @@ export class GardenScene extends Phaser.Scene {
   private farmStuck = 0;
   private clickStats = { starts: 0, arrivals: 0, actionsDone: 0, cancels: 0, noPath: 0, replans: 0, lastExpanded: 0, lastPlanMs: 0, lastAction: '' };
 
+  // ---- Âm thanh (T-026) ----
+  /** Chỗ phát mọi âm thanh (dùng chung cả game, sống qua "Chơi lại từ đầu"). */
+  private audio!: AudioManager;
+  /** Seed ngẫu nhiên của lần chơi này (save version 3): kiểu gà gáy mỗi sáng tính từ seed + số ngày. */
+  private worldSeed = newSeed(Math.random());
+  /** Giờ game lần xét âm thanh trước (biết lúc vừa qua 23h → ngáp, kể cả nhảy giờ bằng F9). */
+  private audioPrevHour = 0;
+  /** Game mới (Ngày 1, mới 6h): chờ âm thanh mở khoá (lần bấm đầu) rồi cho gà gáy chào buổi sáng đầu tiên. */
+  private pendingNewGameRooster = false;
+  private readonly roosterLog: { day: number; kind: RoosterKind }[] = [];
+  private yawnCount = 0;
+  private footstepCount = 0;
+  private walkContacts = 0;
+  /** Nút / nút X dưới con trỏ ở frame trước — đổi sang nút khác: tiếng hover; bấm chuột lúc đang trên nút: tiếng click. */
+  private lastUiHover: string | null = null;
+  private seenPrimaryPresses = 0;
+  /** Nút −/+ âm lượng dưới con trỏ trong cửa sổ Tạm dừng (HUD tô sáng; null = không). */
+  pauseVolumeHover: VolumeButtonId | null = null;
+
   gardenReady = false;
 
   constructor() {
@@ -1205,6 +1259,7 @@ export class GardenScene extends Phaser.Scene {
 
   create(): void {
     this.controls = new InputController(this);
+    this.audio = AudioManager.of(this.game);
     // T-008: nạp save TRƯỚC khi dựng ruộng / nhân vật — buildGround vẽ ô đã cuốc theo trạng thái ruộng, buildPlayer đặt
     // nhân vật ở toạ độ trong save. Không có save (hoặc save hỏng) → giữ trạng thái Ngày 1 như cũ.
     this.loadFromStorage();
@@ -1247,7 +1302,11 @@ export class GardenScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       if (this.scene.isActive('GardenHud')) this.scene.stop('GardenHud');
     });
-    this.startMusic();
+    // T-026: nhạc nền / tiếng nền do tickAudio chọn mỗi frame (chờ âm thanh mở khoá). Game mới lúc sáng sớm → gà gáy chào.
+    this.audioPrevHour = this.clockHour;
+    this.seenPrimaryPresses = this.controls.primaryPressCount;
+    this.pendingNewGameRooster = this.loadStatus !== 'ok' && this.dayClock.day === 1 && this.clockHour < gameConfig.newGameRoosterBeforeHour;
+    this.tickAudio(0);
 
     this.gardenReady = true;
     this.registry.set('gardenReady', true);
@@ -1624,6 +1683,23 @@ export class GardenScene extends Phaser.Scene {
     const index = Number(frame.textureFrame);
     const event = onWalkFrame(this.walk, index, this.facing, WALK_PARAMS);
     if (event === 'dust') this.kickDust(this.feetBody.center.x, this.feetBody.bottom, this.lastDirX);
+    if (event !== 'none') this.footstep();
+  }
+
+  /**
+   * T-026: chạm gót → tiếng bước nhỏ (Should, `walkFootstepSfx`): trên cỏ tiếng cỏ, còn lại (lối, sân, ruộng, sàn nhà) tiếng
+   * đất. Chỉ khi đang thật sự đi (anim bước chạy) — đứng / bị tường chặn thì không có khung chạm gót nên không kêu.
+   */
+  private footstep(): void {
+    if (!gameConfig.walkFootstepSfx || this.nightPhase !== 'none') return;
+    this.walkContacts++;
+    if (this.walkContacts % Math.max(1, gameConfig.walkFootstepEverySteps) !== 0) return;
+    let kind: GroundKind | null = null;
+    if (this.area === 'garden') {
+      const t = tileOf(this.feetBody.center.x, this.feetBody.center.y, T);
+      kind = this.groundKinds[t.y]?.[t.x] ?? null;
+    }
+    if (this.audio.play(footstepSurface(kind) === 'grass' ? 'stepGrass' : 'stepDirt')) this.footstepCount++;
   }
 
   private buildDustPool(): void {
@@ -1671,6 +1747,14 @@ export class GardenScene extends Phaser.Scene {
    * Ta chỉ ĐẶT vận tốc cho hộp chân; Arcade Physics tự di chuyển + chặn va chạm ở bước vật lý.
    */
   override update(_time: number, delta: number): void {
+    this.updateFrame(delta);
+    // T-026: âm thanh chạy mọi frame (kể cả Tạm dừng / chuỗi đêm / chuyển khu): nhạc theo giờ + khu, ngáp, gà, hover / click.
+    // Giờ thật giữa hai frame, chặn trên như đồng hồ ngày (máy đơ / vừa quay lại tab không làm nhạc nhảy cóc).
+    this.tickAudio(Math.min(this.game.loop.rawDelta / 1000, gameConfig.dayClockMaxStepSeconds));
+  }
+
+  /** Một frame của thế giới (các nhánh Tạm dừng / chuỗi đêm / chuyển khu return sớm). */
+  private updateFrame(delta: number): void {
     const dt = delta / 1000;
     // T-005: đang Tạm dừng → chỉ nghe Esc / nút "Tiếp tục", bỏ mọi phím khác; thế giới không tiến (return sớm, không
     // gọi bất cứ hàm update nào bên dưới → việc, bụi, bong bóng, chữ bay, đồng hồ đều đứng yên đúng chỗ).
@@ -2053,6 +2137,7 @@ export class GardenScene extends Phaser.Scene {
         if (pressed) {
           this.noHoePrompts++;
           this.showBubble(bubbles.noHoe);
+          this.audio.play('uiError');
         }
         return;
       }
@@ -2093,13 +2178,19 @@ export class GardenScene extends Phaser.Scene {
    */
   private canDoJob(t: TileXY, kind: TileJob, speak: boolean): boolean {
     if (kind === 'plant' && pickSeedSlot(this.inventory) < 0) {
-      if (speak) this.showBubble(bubbles.noSeeds);
+      if (speak) {
+        this.showBubble(bubbles.noSeeds);
+        this.audio.play('uiError');
+      }
       return false;
     }
     if (kind === 'harvest') {
       const crop = plotAt(this.farm, t.x, t.y)?.crop;
       if (crop && !canAdd(this.inventory, cropItemId(crop.cropId), 1)) {
-        if (speak) this.showBubble(bubbles.bagFull);
+        if (speak) {
+          this.showBubble(bubbles.bagFull);
+          this.audio.play('uiError');
+        }
         return false;
       }
     }
@@ -2144,15 +2235,18 @@ export class GardenScene extends Phaser.Scene {
     if (slot !== null) this.selectHotbar(slot);
     const wheel = c.consumeWheelSteps();
     if (wheel !== 0) {
+      const before = this.inventory.selected;
       scrollSelect(this.inventory, wheel);
       this.inventoryRevision++;
+      if (this.inventory.selected !== before) this.audio.play('uiSlot');
     }
     if (c.consumePressed('devNextDay') && gameConfig.devCheatsEnabled && !windowOpen) {
       // T-007: G gọi CHUNG hàm qua đêm với lúc ngủ (ruộng + bán thùng + ngày mới + Sức đầy) nhưng "im lặng": không màn
       // tối, không tổng kết, không dời nhân vật về giường — để thử nhanh.
-      this.applyOvernight('devG');
+      const summary = this.applyOvernight('devG');
       this.saveNow('devNextDay'); // T-008: sang ngày bằng G cũng lưu luôn (như sau "Ngày mới")
       this.showBubble(bubbles.devNextDay);
+      this.greetMorning(summary); // T-026: sáng ra bằng G cũng có gà gáy (thử nhanh các kiểu gà theo ngày)
     }
     // T-004: chuột phải = ăn món ở ô hotbar đang chọn. Không đụng tới việc đang làm (đang cuốc vẫn cuốc tiếp).
     // Luôn "tiêu thụ" lần bấm mỗi frame để lần bấm lúc mở gùi không lọt sang sau.
@@ -2216,9 +2310,11 @@ export class GardenScene extends Phaser.Scene {
   /** Mở cửa sổ thùng bán / sạp hạt: đồng hồ dừng (lý do sellBox / seedStall), nhân vật đứng, lần giữ chuột dở bị chặn. */
   private openShop(kind: ShopWindow): void {
     if (this.shopWindow === kind) return;
-    if (this.shopWindow) this.closeShop();
-    if (this.bagOpen) this.setBagOpen(false);
+    if (this.shopWindow) this.closeShop(false);
+    if (this.bagOpen) this.setBagOpen(false, false);
     this.shopWindow = kind;
+    // T-026: rương kêu bản lề gỗ (AUD-SFX-116); thùng bán / sạp hạt: giấy "sột" như mọi cửa sổ.
+    this.audio.play(kind === 'chest' ? 'chestOpen' : 'uiOpen');
     this.pauseReasons.set(kind, true);
     this.shopOpens[kind]++;
     this.shopHover = null;
@@ -2230,10 +2326,11 @@ export class GardenScene extends Phaser.Scene {
     this.hideHighlight();
   }
 
-  private closeShop(): void {
+  private closeShop(sound = true): void {
     const kind = this.shopWindow;
     if (!kind) return;
     this.shopWindow = null;
+    if (sound) this.audio.play(kind === 'chest' ? 'chestClose' : 'uiClose');
     this.pauseReasons.set(kind, false);
     this.shopHover = null;
     this.stallHover = -1;
@@ -2290,6 +2387,7 @@ export class GardenScene extends Phaser.Scene {
     if (!chest && side === 'bag' && !canSellItem(stack.id)) {
       const why = isSeedItem(stack.id) ? 'Hạt giống không bán được' : isToolItem(stack.id) ? 'Nông cụ không bán được' : 'Món này không bán được';
       this.setShopNotice(why, true);
+      this.audio.play('uiError');
       return;
     }
     const r = moveFromSlot(from, index, to, all ? stack.count : 1);
@@ -2300,8 +2398,12 @@ export class GardenScene extends Phaser.Scene {
       } else {
         this.setShopNotice(chest ? 'Rương đầy rồi!' : 'Thùng đầy rồi!', true);
       }
+      this.audio.play('uiError');
       return;
     }
+    // T-026: thúng bán "bịch" (AUD-SFX-113) cả bỏ vào lẫn lấy ra; rương: thả món vào / nhấc món ra (AUD-UI-007).
+    if (chest) this.audio.play(side === 'bag' ? 'uiDrop' : 'uiPick');
+    else this.audio.play('basket');
     if (chest) this.chestTransfers++;
     else this.transfers++;
     this.inventoryRevision++;
@@ -2324,17 +2426,17 @@ export class GardenScene extends Phaser.Scene {
       } else if (result.reason === 'noMoney') {
         this.setShopNotice('Không đủ tiền', true);
       }
+      this.audio.play('uiError');
       return;
     }
     this.inventoryRevision++;
     this.onMoneyChanged(-result.cost);
     this.purchases.push({ cropId: result.cropId, count: result.count, cost: result.cost });
     this.setShopNotice(`Đã mua ${result.count} ${item.label.toLowerCase()} (−${result.cost} quan)`, false);
-    const key = COIN_SFX[Math.floor(Math.random() * COIN_SFX.length)];
-    if (this.cache.audio.exists(key)) {
-      this.sound.play(key, { volume: gameConfig.sfxVolume, detune: (Math.random() * 2 - 1) * 60 });
-      this.lastCoinSfx = key;
-      this.lastSfx = key;
+    const coinSfx = this.audio.play('coin');
+    if (coinSfx) {
+      this.lastCoinSfx = coinSfx.key;
+      this.lastSfx = coinSfx.key;
     }
     // Icon hạt bay vào ô hotbar nhận (nếu ở hotbar) — dùng chung hiệu ứng hái; xuất phát từ nút vừa bấm.
     const b = stallButtonRect(i, this.seedStallItems.length);
@@ -2404,6 +2506,7 @@ export class GardenScene extends Phaser.Scene {
     this.inventoryRevision++;
     const change = restore(this.stamina, amount);
     this.eatCount++;
+    this.audio.play('eat');
     this.spawnFloat(change.delta);
     this.events.emit('item-eaten', { slot });
   }
@@ -2417,7 +2520,11 @@ export class GardenScene extends Phaser.Scene {
   private spendStamina(cost: number, float: boolean): StaminaChange {
     const change = consume(this.stamina, cost);
     if (float && change.delta < 0) this.spawnFloat(change.delta);
-    if (change.becameExhausted) this.curseExhausted();
+    if (change.becameExhausted) {
+      this.curseExhausted();
+      // T-026: bụng réo "ọc ọc" (AUD-SFX-106) ngay sau tiếng càu nhàu.
+      this.time.delayedCall(gameConfig.stomachGrowlDelaySeconds * 1000, () => this.audio.play('stomach'));
+    }
     return change;
   }
 
@@ -2445,11 +2552,10 @@ export class GardenScene extends Phaser.Scene {
     const line = lines[Math.floor(Math.random() * lines.length)];
     this.showBubble(line, 'grumble');
     this.curseCount++;
-    const key = CURSE_SFX[Math.floor(Math.random() * CURSE_SFX.length)];
-    if (this.cache.audio.exists(key)) {
-      this.sound.play(key, { volume: gameConfig.sfxVolume });
-      this.lastCurseSfx = key;
-      this.lastSfx = key;
+    const curseSfx = this.audio.play('curse');
+    if (curseSfx) {
+      this.lastCurseSfx = curseSfx.key;
+      this.lastSfx = curseSfx.key;
     }
   }
 
@@ -2555,13 +2661,20 @@ export class GardenScene extends Phaser.Scene {
   }
 
   private selectHotbar(index: number): void {
-    if (selectSlot(this.inventory, index)) this.inventoryRevision++;
+    if (selectSlot(this.inventory, index)) {
+      this.inventoryRevision++;
+      this.audio.play('uiSlot');
+    }
   }
 
-  /** Mở / đóng cửa sổ gùi. Mở thì ẩn viền ô và chặn lần giữ chuột đang dở (đóng lại phải bấm lại). */
-  private setBagOpen(open: boolean): void {
+  /**
+   * Mở / đóng cửa sổ gùi. Mở thì ẩn viền ô và chặn lần giữ chuột đang dở (đóng lại phải bấm lại). `sound` = false khi game
+   * tự đóng (đi ngủ, chuyển khu, mở cửa sổ khác) — chỉ người chơi mở / đóng mới có tiếng giấy.
+   */
+  private setBagOpen(open: boolean, sound = true): void {
     if (this.bagOpen === open) return;
     this.bagOpen = open;
+    if (sound) this.audio.play(open ? 'uiOpen' : 'uiClose');
     this.pauseReasons.set('bag', open); // mở gùi thì đồng hồ dừng (GDD §3.1)
     this.bagHoverSlot = -1;
     this.dragKind = null;
@@ -2631,17 +2744,19 @@ export class GardenScene extends Phaser.Scene {
       this.showBubble(bubbles.tooEarlyToSleep);
       return;
     }
-    if (this.bagOpen) this.setBagOpen(false);
-    this.closeShop();
+    if (this.bagOpen) this.setBagOpen(false, false);
+    this.closeShop(false);
     this.sleepPromptOpens++;
     this.sleepPromptHover = null;
     this.enterNight('sleepPrompt');
+    this.audio.play('uiOpen');
   }
 
   /** "Không" (Esc / nút Không): đóng hộp hỏi, chơi tiếp (đồng hồ chạy lại). */
   private declineSleep(): void {
     this.sleepPromptHover = null;
     this.enterNight('none');
+    this.audio.play('uiClose');
   }
 
   /** "Có" (Enter / nút Có): việc dở trên ô dừng, màn tối dần rồi qua đêm. */
@@ -2660,8 +2775,8 @@ export class GardenScene extends Phaser.Scene {
   private startPassOut(): void {
     if (this.nightPhase !== 'none' && this.nightPhase !== 'sleepPrompt') return;
     this.stopWorkForNight();
-    if (this.bagOpen) this.setBagOpen(false);
-    this.closeShop();
+    if (this.bagOpen) this.setBagOpen(false, false);
+    this.closeShop(false);
     this.bubbleT = 0;
     this.bubbleKind = null;
     this.bubbleShakeX = 0;
@@ -2710,6 +2825,8 @@ export class GardenScene extends Phaser.Scene {
     this.summaryTickAt = Number.NEGATIVE_INFINITY;
     this.nightFade = 1;
     this.enterNight('summary');
+    // T-026: jingle "ngày mới / tổng kết" (AUD-JNG-003) — nhạc nền nhỏ lại tới khi jingle xong.
+    this.audio.play('jingleDaySummary');
   }
 
   /** Enter / click "Ngày mới": lần 1 lúc các dòng còn trượt → hiện hết ngay; lần sau → thức dậy sang ngày mới. */
@@ -2718,16 +2835,14 @@ export class GardenScene extends Phaser.Scene {
     if (acceptPress(this.summaryReveal, REVEAL_TIMING) === 'close') this.startWaking();
   }
 
-  /** Số tiền đang đếm lên → tiếng "tách" (tạm dùng tiếng nhặt xu, nhỏ + cao), cách nhau tối thiểu summaryTickSeconds. */
+  /** Số tiền đang đếm lên → tiếng "tách" (AUD-SFX-118 `dem-tien-1/2`, lệch cao độ ±4%), cách nhau tối thiểu summaryTickSeconds. */
   private tickSummarySound(): void {
     const earned = this.lastSummary?.sale.earned ?? 0;
     const shown = moneyShown(this.summaryReveal, earned, REVEAL_TIMING);
     if (shown === this.summaryMoneyPrev) return;
     this.summaryMoneyPrev = shown;
     if (this.summaryReveal.skipped || this.nightT - this.summaryTickAt < gameConfig.summaryTickSeconds) return;
-    const key = COIN_SFX[this.summaryTicks % COIN_SFX.length];
-    if (!this.cache.audio.exists(key)) return;
-    this.sound.play(key, { volume: gameConfig.sfxVolume * gameConfig.summaryTickVolume, detune: 700 });
+    if (!this.audio.play('countTick')) return;
     this.summaryTickAt = this.nightT;
     this.summaryTicks++;
   }
@@ -2741,6 +2856,8 @@ export class GardenScene extends Phaser.Scene {
     this.placeHero(HOUSE.wakeSpot.x, HOUSE.wakeSpot.y, 'down');
     this.applyAreaView();
     this.enterNight('waking');
+    // T-026: màn bắt đầu sáng → gà gáy (kiểu theo ngày), rồi "phù" cây héo / jingle đầu mùa nếu có.
+    if (this.lastSummary) this.greetMorning(this.lastSummary);
   }
 
   /**
@@ -3020,6 +3137,7 @@ export class GardenScene extends Phaser.Scene {
     const slot = pickSeedSlot(this.inventory);
     if (slot < 0) {
       this.showBubble(bubbles.noSeeds);
+      this.audio.play('uiError');
       return;
     }
     const seedId = this.inventory.slots[slot]!.id;
@@ -3030,12 +3148,10 @@ export class GardenScene extends Phaser.Scene {
     this.inventoryRevision++;
     this.farmCounts.plants++;
     this.spendStamina(gameConfig.staminaCostPlant, false);
-    const plantKey = PLANT_SFX[Math.floor(Math.random() * PLANT_SFX.length)];
-    if (this.cache.audio.exists(plantKey)) {
-      const detune = (Math.random() * 2 - 1) * gameConfig.plantSfxDetuneCents;
-      this.sound.play(plantKey, { volume: gameConfig.sfxVolume, detune });
-      this.lastPlantSfx = { key: plantKey, detune };
-      this.lastSfx = plantKey;
+    const plantSfx = this.audio.play('plant');
+    if (plantSfx) {
+      this.lastPlantSfx = { key: plantSfx.key, detune: plantSfx.detune };
+      this.lastSfx = plantSfx.key;
     }
     // Juice: vài hạt rơi xuống luống (GDD §8 "hạt rơi") + tiếng "lách tách" ở trên.
     const cx = t.x * T + T / 2;
@@ -3068,11 +3184,10 @@ export class GardenScene extends Phaser.Scene {
         gameConfig.waterDropLifeSeconds,
       );
     }
-    const key = WATER_SFX[Math.floor(Math.random() * WATER_SFX.length)];
-    if (this.cache.audio.exists(key)) {
-      this.sound.play(key, { volume: gameConfig.sfxVolume, detune: (Math.random() * 2 - 1) * 100 });
-      this.lastWaterSfx = key;
-      this.lastSfx = key;
+    const waterSfx = this.audio.play('water');
+    if (waterSfx) {
+      this.lastWaterSfx = waterSfx.key;
+      this.lastSfx = waterSfx.key;
     }
   }
 
@@ -3087,6 +3202,7 @@ export class GardenScene extends Phaser.Scene {
     const itemId = cropItemId(crop.cropId);
     if (!canAdd(this.inventory, itemId, 1)) {
       this.showBubble(bubbles.bagFull);
+      this.audio.play('uiError');
       return;
     }
     const cropId = harvestPlot(this.farm, t.x, t.y, growDaysOf, gameConfig.harvestResetsSoil);
@@ -3097,12 +3213,11 @@ export class GardenScene extends Phaser.Scene {
     this.spendStamina(gameConfig.staminaCostHarvest, false);
     // Tiếng "pop": không random cao độ — hái liên tiếp thì lên dần theo thang ngũ cung, ngừng lâu thì về nấc đầu.
     const detune = nextLadderStep(this.harvestLadder, gameConfig.harvestPitchLadderCents, gameConfig.harvestPitchResetSeconds);
-    const harvestKey = HARVEST_SFX[Math.floor(Math.random() * HARVEST_SFX.length)];
-    if (this.cache.audio.exists(harvestKey)) {
-      this.sound.play(harvestKey, { volume: gameConfig.sfxVolume, detune });
-      this.harvestSfxLog.push({ key: harvestKey, detune });
+    const harvestSfx = this.audio.play('harvest', { detune });
+    if (harvestSfx) {
+      this.harvestSfxLog.push({ key: harvestSfx.key, detune });
       if (this.harvestSfxLog.length > HARVEST_SFX_LOG) this.harvestSfxLog.shift();
-      this.lastSfx = harvestKey;
+      this.lastSfx = harvestSfx.key;
     }
     if (plot.soil === 'untilled') this.showUntilled(plot);
     this.spawnPop(t, cropId);
@@ -3132,6 +3247,7 @@ export class GardenScene extends Phaser.Scene {
     // Dọn cây héo tốn như hái (GDD §3.2).
     this.spendStamina(gameConfig.staminaCostHarvest, false);
     this.showUntilled(plot);
+    this.audio.play('clearWithered');
     this.spawnTillDust(t.x * T + T / 2, t.y * T + T / 2, Math.ceil(gameConfig.tillDustCount / 2), gameConfig.tillDustSpeed * T * 0.8);
   }
 
@@ -3484,16 +3600,13 @@ export class GardenScene extends Phaser.Scene {
       if (i >= 0) this.plotFlash[i] = gameConfig.tillFinishFlashSeconds;
     }
 
-    const key = TILL_SFX[Math.floor(Math.random() * TILL_SFX.length)];
-    if (this.cache.audio.exists(key)) {
-      // Nhát thường: lệch cao độ ±1 nửa cung (±100 cent) cho cuốc liền nhiều nhát không nghe "máy móc".
-      // Nhát cuối: tạm dùng cùng file nhưng trầm + to hơn làm "tiếng chốt" (chờ audio có tiếng riêng).
-      const detune = finish ? gameConfig.tillFinishSfxDetune + (Math.random() - 0.5) * 60 : (Math.random() * 2 - 1) * 100;
-      const volume = finish ? Math.min(1, gameConfig.sfxVolume * gameConfig.tillFinishSfxVolumeMultiplier) : gameConfig.sfxVolume;
-      this.sound.play(key, { volume, detune });
-      this.lastSfx = key;
-      this.lastSfxDetune = detune;
-      this.lastSfxVolume = volume;
+    // Nhát thường: "phập" lệch cao độ ±1 nửa cung cho cuốc liền nhiều nhát không nghe "máy móc". Nhát cuối (T-026): tiếng chốt
+    // riêng `cuoc-chot-1/2` (AUD-SFX-103) — thôi mượn file "phập" hạ giọng.
+    const tillSfx = this.audio.play(finish ? 'tillFinish' : 'till', finish ? { detuneOffset: gameConfig.tillFinishSfxDetune } : {});
+    if (tillSfx) {
+      this.lastSfx = tillSfx.key;
+      this.lastSfxDetune = tillSfx.detune;
+      this.lastSfxVolume = tillSfx.volume;
     }
   }
 
@@ -3759,18 +3872,95 @@ export class GardenScene extends Phaser.Scene {
     return HERO_FRAME.height * Math.abs(this.hero.scaleY);
   }
 
+  // ---------------------------------------------------------------- âm thanh (T-026)
+
   /**
-   * Nhạc nền Vườn, lặp. Trình duyệt chỉ cho phát tiếng sau lần bấm phím/chuột đầu tiên → nếu âm thanh
-   * còn khóa thì chờ UNLOCKED (Phaser tự mở khóa ở lần bấm đầu, kể cả phím WASD). Không phát chồng
-   * khi vào lại Vườn.
+   * Âm thanh mỗi frame: báo AudioManager "đang muốn nghe gì" (nhạc ngày / đêm theo giờ + khu, tiếng nền trong nhà, giảm khi
+   * Tạm dừng, ngáy khi đang ngủ), ngáp lúc vừa qua 23h, gà gáy chào sáng game mới, hover / click nút giao diện.
+   * Trình duyệt chặn âm thanh tới lần bấm phím / chuột đầu tiên — AudioManager tự chờ; nhạc vào ngay sau lần bấm đó.
    */
-  private startMusic(): void {
-    const play = (): void => {
-      if (this.sound.get('music-vuon')?.isPlaying) return;
-      this.sound.play('music-vuon', { loop: true, volume: this.musicTargetVolume() });
+  private tickAudio(dt: number): void {
+    if (!this.audio) return;
+    const hour = this.clockHour;
+    const state = { hour, area: this.area, raining: false }; // thời tiết chưa có (mưa → amb-mua + sấm khi có, GDD §3.1)
+    const scape: Soundscape = {
+      music: chooseMusic(state, SOUNDSCAPE_RULES),
+      ambience: chooseAmbience(state, SOUNDSCAPE_RULES),
+      bedMultiplier: this.pauseMenuOpen ? gameConfig.pauseMusicVolumeMultiplier : 1,
+      snoring: this.zzzActive,
+      raining: state.raining,
     };
-    if (this.sound.locked) this.sound.once(Phaser.Sound.Events.UNLOCKED, play);
-    else play();
+    this.audio.update(dt, scape);
+
+    // Ngáp dài lúc đồng hồ vừa qua 23h (đồng hồ bắt đầu nháy đỏ) — chỉ khi đang chơi (không lúc ngủ / tổng kết).
+    if (this.nightPhase === 'none' && crossedHour(this.audioPrevHour, hour, gameConfig.passOutWarnHour)) {
+      if (this.audio.play('yawn')) this.yawnCount++;
+    }
+    this.audioPrevHour = hour;
+
+    // Game mới: gà gáy kiểu "bình thường" (Ngày 1) khi âm thanh vừa mở khoá — nếu trời còn sớm.
+    if (this.pendingNewGameRooster && !this.audio.locked) {
+      this.pendingNewGameRooster = false;
+      if (this.dayClock.day === 1 && hour < gameConfig.newGameRoosterBeforeHour) this.crowRooster();
+    }
+
+    // Giao diện: con trỏ sang nút khác → "tích" khẽ; bấm chuột lúc con trỏ trên nút (frame trước) → "cộc" gỗ.
+    const hoverNow = this.uiHoverId();
+    const presses = this.controls.primaryPressCount;
+    if (presses !== this.seenPrimaryPresses) {
+      this.seenPrimaryPresses = presses;
+      if ((this.lastUiHover ?? hoverNow) !== null) this.audio.play('uiClick');
+    } else if (hoverNow !== null && hoverNow !== this.lastUiHover) {
+      this.audio.play('uiHover');
+    }
+    this.lastUiHover = hoverNow;
+  }
+
+  /**
+   * Nút giao diện dưới con trỏ lúc này (null = không trên nút nào): nút gỗ trong các cửa sổ, nút X, nút Gùi, nút sạp hạt CÒN
+   * MUA ĐƯỢC (nút xám không kêu hover; bấm nút xám → tiếng lỗi ở buyFromStall).
+   */
+  private uiHoverId(): string | null {
+    if (this.pauseMenuOpen) {
+      if (this.restartConfirmOpen) return this.restartConfirmHover ?? (this.windowCloseHover ? 'close' : null);
+      if (this.pauseVolumeHover) return this.pauseVolumeHover;
+      if (this.pauseHoverResume) return 'resume';
+      if (this.pauseHoverRestart) return 'restart';
+      return this.windowCloseHover ? 'close' : null;
+    }
+    if (this.nightPhase === 'sleepPrompt') return this.sleepPromptHover ?? (this.windowCloseHover ? 'close' : null);
+    if (this.nightPhase === 'summary') return this.summaryHoverButton ? 'summary' : this.windowCloseHover ? 'close' : null;
+    if (this.nightPhase !== 'none') return null;
+    if (this.shopWindow === 'seedStall' && this.stallHover >= 0) {
+      const item = this.seedStallItems[this.stallHover];
+      if (item && hasMoney(this.wallet, seedPriceOf(item.cropId) ?? 0)) return `stall-${this.stallHover}`;
+    }
+    if (this.windowCloseHover && this.windowOpen) return 'close';
+    if (this.bagButtonHover) return 'bag';
+    return null;
+  }
+
+  /** Kiểu gà gáy sáng nay — xác định theo (seed lần chơi, số ngày): F5 cùng ngày → cùng kiểu (audio list AUD-SFX-109). */
+  get roosterToday(): RoosterKind {
+    return roosterKindForDay(this.worldSeed, this.dayClock.day, ROOSTER_RULES);
+  }
+
+  /** Gà gáy chào sáng (không lệch cao độ — giữ chất từng kiểu). */
+  private crowRooster(): void {
+    const kind = this.roosterToday;
+    if (!this.audio.playKey(roosterKey(kind))) return;
+    this.roosterLog.push({ day: this.dayClock.day, kind });
+    if (this.roosterLog.length > 8) this.roosterLog.shift();
+  }
+
+  /**
+   * Sáng ra (sau ngủ / ngủ gục — lúc màn bắt đầu sáng — hoặc phím G): gà gáy; đợi gà gáy xong thì "phù" nếu đêm qua có cây
+   * héo, jingle "Mùa … tới rồi!" nếu sang mùa mới.
+   */
+  private greetMorning(summary: OvernightSummary): void {
+    this.crowRooster();
+    if (summary.witheredTonight > 0) this.time.delayedCall(gameConfig.morningWitherSfxDelaySeconds * 1000, () => this.audio.play('wither'));
+    if (summary.seasonChanged) this.time.delayedCall(gameConfig.morningSeasonJingleDelaySeconds * 1000, () => this.audio.play('jingleNewSeason'));
   }
 
   /**
@@ -3877,6 +4067,7 @@ export class GardenScene extends Phaser.Scene {
     this.hideHighlight();
     this.controls.clearPending();
     this.applyMusicVolume();
+    this.audio.play('uiOpen');
   }
 
   /** Đóng Tạm dừng, chơi tiếp đúng chỗ cũ. Bỏ mọi phím/chuột bấm trong lúc dừng; lần giữ chuột đang dở không xuống ruộng. */
@@ -3886,6 +4077,7 @@ export class GardenScene extends Phaser.Scene {
     this.pauseCause = null;
     this.pauseHoverResume = false;
     this.pauseHoverRestart = false;
+    this.pauseVolumeHover = null;
     this.closeRestartConfirm();
     this.pauseReasons.set('pauseMenu', false);
     this.physics.world.resume();
@@ -3894,6 +4086,7 @@ export class GardenScene extends Phaser.Scene {
     this.dragBlocked = true; // vừa bấm nút "Tiếp tục" mà chuột còn giữ → không tính là click xuống ruộng
     this.controls.clearPending();
     this.applyMusicVolume();
+    this.audio.play('uiClose');
   }
 
   /**
@@ -3909,6 +4102,7 @@ export class GardenScene extends Phaser.Scene {
     const clicked = c.consumePrimaryPress();
     c.clearPending();
     if (this.restartConfirmOpen) {
+      this.pauseVolumeHover = null;
       this.restartConfirmHover = inside ? restartConfirmButtonAt(sp.x, sp.y) : null;
       // T-092: nút đóng (X) của hộp xác nhận = "Không".
       this.windowCloseHover = inside && rectContains(windowCloseRect(restartConfirmRect()), sp.x, sp.y);
@@ -3919,27 +4113,47 @@ export class GardenScene extends Phaser.Scene {
     }
     this.pauseHoverResume = inside && rectContains(pauseResumeButtonRect(), sp.x, sp.y);
     this.pauseHoverRestart = inside && rectContains(pauseRestartButtonRect(), sp.x, sp.y);
+    // T-026: 2 hàng âm lượng Nhạc / Hiệu ứng (nút − / +).
+    this.pauseVolumeHover = inside ? volumeButtonAt(sp.x, sp.y) : null;
     // T-092: nút đóng (X) của Tạm dừng = "Tiếp tục".
     this.windowCloseHover = inside && rectContains(windowCloseRect(pausePanelRect()), sp.x, sp.y);
     const esc = escPressed && resolveEsc(this) === 'closePause';
-    if (clicked && this.pauseHoverRestart) this.openRestartConfirm();
+    if (clicked && this.pauseVolumeHover) this.pressVolumeButton(this.pauseVolumeHover);
+    else if (clicked && this.pauseHoverRestart) this.openRestartConfirm();
     else if (esc || (clicked && (this.pauseHoverResume || this.windowCloseHover))) this.closePauseMenu();
   }
 
-  /** Âm lượng nhạc nền nên có lúc này: nhỏ lại khi Tạm dừng (pauseMusicVolumeMultiplier). */
-  private musicTargetVolume(): number {
-    return gameConfig.musicVolume * (this.pauseMenuOpen ? gameConfig.pauseMusicVolumeMultiplier : 1);
-  }
-
+  /**
+   * Áp NGAY âm lượng nhạc nền (Tạm dừng → nhỏ còn pauseMusicVolumeMultiplier, chơi tiếp → về cũ) — gọi được từ sự kiện
+   * trình duyệt (mất focus) ngoài vòng lặp game.
+   */
   private applyMusicVolume(): void {
-    const m = this.sound.get('music-vuon') as (Phaser.Sound.BaseSound & { setVolume?: (v: number) => unknown }) | null;
-    m?.setVolume?.(this.musicTargetVolume());
+    this.tickAudio(0);
   }
 
   /** Âm lượng nhạc nền đang đặt (null = chưa phát). */
   private musicVolumeNow(): number | null {
-    const m = this.sound.get('music-vuon') as (Phaser.Sound.BaseSound & { volume?: number }) | null;
-    return m && typeof m.volume === 'number' ? m.volume : null;
+    return this.audio?.musicVolumeNow() ?? null;
+  }
+
+  /**
+   * Bấm nút −/+ âm lượng trong cửa sổ Tạm dừng: lưu máy ngay, nhạc to / nhỏ ngay. Tiếng "cộc" của chính cú bấm (tickAudio,
+   * sau bước này) phát ở mức Hiệu ứng MỚI — nghe thử luôn.
+   */
+  private pressVolumeButton(id: VolumeButtonId): void {
+    const { channel, dir } = volumeButtonChannel(id);
+    this.audio.stepChannel(channel, dir);
+    this.tickAudio(0);
+  }
+
+  /** Âm lượng kênh (0–1) — HUD vẽ "80%". */
+  volumeOf(channel: AudioChannel): number {
+    return this.audio?.volumeOf(channel) ?? 0;
+  }
+
+  /** Chữ âm lượng kênh ("80%"). */
+  volumeText(channel: AudioChannel): string {
+    return volumeLabel(this.volumeOf(channel));
   }
 
   // ---------------------------------------------------------------- tự lưu, nạp save, chơi lại (T-008)
@@ -3962,6 +4176,7 @@ export class GardenScene extends Phaser.Scene {
       inventory: this.inventory,
       sellBox: this.sellBox,
       chest: this.chest,
+      seed: this.worldSeed,
     };
   }
 
@@ -3973,6 +4188,7 @@ export class GardenScene extends Phaser.Scene {
     if (r.status !== 'ok') return;
     const applied = applySave(r.save, this.saveWorld(), SAVE_RULES);
     this.loadAddedItems = applied.addedItems;
+    this.worldSeed = applied.seed;
     this.playerName = applied.playerName;
     this.loadedFoot = applied.position;
     this.loadedArea = isAreaId(applied.area) ? applied.area : 'garden';
@@ -4044,12 +4260,14 @@ export class GardenScene extends Phaser.Scene {
 
   private openRestartConfirm(): void {
     this.restartConfirmOpen = true;
+    this.audio.play('uiOpen');
     this.restartConfirmHover = null;
     this.pauseHoverResume = false;
     this.pauseHoverRestart = false;
   }
 
   private closeRestartConfirm(): void {
+    if (this.restartConfirmOpen) this.audio?.play('uiClose');
     this.restartConfirmOpen = false;
     this.restartConfirmHover = null;
   }
@@ -4216,11 +4434,14 @@ export class GardenScene extends Phaser.Scene {
    */
   private beginAreaChange(to: AreaId, spawn: { x: number; y: number }, facing: Facing): void {
     if (!startAreaTransition(this.areaTransition, to, spawn, facing)) return;
+    // T-026: cửa nhà kẹt + bước chân (AUD-SFX-115) — vào / ra là 2 tiếng khác nhau.
+    if (to === 'house') this.audio.play('doorIn');
+    else if (this.area === 'house') this.audio.play('doorOut');
     this.stopWorkForNight();
     cancelClickMove(this.clickMove);
     this.hideClickMarker();
-    if (this.bagOpen) this.setBagOpen(false);
-    this.closeShop();
+    if (this.bagOpen) this.setBagOpen(false, false);
+    this.closeShop(false);
     this.pauseReasons.set('areaFade', true);
     this.feetBody.setVelocity(0, 0);
     if (this.hero.anims.isPlaying) this.hero.anims.stop();
@@ -4385,6 +4606,7 @@ export class GardenScene extends Phaser.Scene {
     if (!res.ok) {
       this.clickStats.noPath++;
       this.showBubble(bubbles.noPath);
+      this.audio.play('uiError');
       return false;
     }
     if (markerAt) this.showClickMarker(markerAt.x, markerAt.y);
@@ -4507,6 +4729,7 @@ export class GardenScene extends Phaser.Scene {
     if (!res.ok) {
       this.clickStats.noPath++;
       this.showBubble(bubbles.noPath);
+      this.audio.play('uiError');
       dropHead();
       return;
     }
@@ -4550,6 +4773,7 @@ export class GardenScene extends Phaser.Scene {
           if (!canTillWithSelected(this.inventory)) {
             this.noHoePrompts++;
             this.showBubble(bubbles.noHoe);
+            this.audio.play('uiError');
             return;
           }
           if (!isBusy(this.action) && !this.hasStaminaFor('till', true)) return;
@@ -4882,7 +5106,22 @@ export class GardenScene extends Phaser.Scene {
         dustActive: this.tillDustLife.filter((l) => l > 0).length,
         heroScale: { x: this.hero?.scaleX ?? 1, y: this.hero?.scaleY ?? 1 },
       },
+      audio: {
+        ...this.audio.debugState(),
+        seed: this.worldSeed,
+        roosterToday: this.roosterToday,
+        roosters: this.roosterLog.map((r) => ({ ...r })),
+        yawns: this.yawnCount,
+        footsteps: this.footstepCount,
+        volumeHover: this.pauseVolumeHover,
+      },
     };
+  }
+
+  /** T-026: toạ độ màn của nút âm lượng trong cửa sổ Tạm dừng (QA bấm thử). */
+  debugVolumeButtonCenter(id: VolumeButtonId): { x: number; y: number } {
+    const r = volumeButtonRect(id);
+    return { x: r.x + r.w / 2, y: r.y + r.h / 2 };
   }
 
   /** Toạ độ trên khung game (px, hệ 1920×1080) của tâm ô (tx, ty) — cho e2e rê chuột đúng ô. */

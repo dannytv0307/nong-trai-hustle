@@ -172,23 +172,86 @@ export const actionSpritesheets: Record<string, string> = Object.fromEntries(
 );
 
 /** Âm thanh: ghi đường dẫn không đuôi; Preload tự thêm .ogg (ưu tiên) và .mp3 (Safari). */
+const sfx = (names: readonly string[]): Record<string, string> => Object.fromEntries(names.map((n) => [`sfx-${n}`, `${AUDIO}/sfx/${n}`]));
+
+/**
+ * Mọi âm thanh nạp sẵn (T-026: thêm Lô 1 — audio list). Khoá: nhạc `music-*`, jingle `jng-*`, tiếng nền lặp `amb-*`, SFX
+ * `sfx-<tên file>`, giao diện `ui-<tên file>` (cache âm thanh tách khỏi cache ảnh nên trùng tiền tố `ui-` với ảnh giao diện
+ * không sao). Phát qua audio/AudioManager.ts theo tên "cue" ở config/soundCues.ts.
+ */
 export const audio: Record<string, string> = {
   'music-vuon': `${AUDIO}/music/vuon-loop`,
-  'sfx-len-level': `${AUDIO}/sfx/len-level`,
-  'sfx-nhat-xu-1': `${AUDIO}/sfx/nhat-xu-1`,
-  'sfx-nhat-xu-2': `${AUDIO}/sfx/nhat-xu-2`,
-  'sfx-cuoc-dat-1': `${AUDIO}/sfx/cuoc-dat-1`,
-  'sfx-cuoc-dat-2': `${AUDIO}/sfx/cuoc-dat-2`,
-  'sfx-tuoi-nuoc-1': `${AUDIO}/sfx/tuoi-nuoc-1`,
-  'sfx-tuoi-nuoc-2': `${AUDIO}/sfx/tuoi-nuoc-2`,
-  // Gieo hạt "lách tách" (AUD-SFX-101), hái cây "pop" nốt gốc C5 để detune lên dần (AUD-SFX-102)
-  'sfx-gieo-hat-1': `${AUDIO}/sfx/gieo-hat-1`,
-  'sfx-gieo-hat-2': `${AUDIO}/sfx/gieo-hat-2`,
-  'sfx-hai-cay-1': `${AUDIO}/sfx/hai-cay-1`,
-  'sfx-hai-cay-2': `${AUDIO}/sfx/hai-cay-2`,
-  'sfx-bo-vo-nhan': `${AUDIO}/sfx/bo-vo-nhan`,
-  'sfx-meme-zoom-trong': `${AUDIO}/sfx/meme-zoom-trong`,
-  'sfx-meme-oi-doi-oi': `${AUDIO}/sfx/meme-oi-doi-oi`,
-  'sfx-voice-cau-nhau-1': `${AUDIO}/sfx/voice-cau-nhau-1`,
-  'sfx-voice-cau-nhau-2': `${AUDIO}/sfx/voice-cau-nhau-2`,
+  // Nhạc đêm / trong nhà (AUD-MUS-005), jingle tổng kết ngày (AUD-JNG-003), đầu mùa (AUD-JNG-006).
+  'music-dem': `${AUDIO}/music/dem-loop`,
+  'jng-tong-ket-ngay': `${AUDIO}/music/tong-ket-ngay`,
+  'jng-dau-mua': `${AUDIO}/music/dau-mua`,
+  // Tiếng nền lặp (kênh Hiệu ứng): mưa (AUD-AMB-001), trong nhà ngày / đêm (AUD-AMB-011).
+  'amb-mua': `${AUDIO}/sfx/amb-mua`,
+  'amb-trong-nha': `${AUDIO}/sfx/amb-trong-nha`,
+  'amb-trong-nha-dem': `${AUDIO}/sfx/amb-trong-nha-dem`,
+  ...sfx([
+    'len-level',
+    'nhat-xu-1',
+    'nhat-xu-2',
+    'cuoc-dat-1',
+    'cuoc-dat-2',
+    'tuoi-nuoc-1',
+    'tuoi-nuoc-2',
+    // Gieo hạt "lách tách" (AUD-SFX-101), hái cây "pop" nốt gốc C5 để detune lên dần (AUD-SFX-102)
+    'gieo-hat-1',
+    'gieo-hat-2',
+    'hai-cay-1',
+    'hai-cay-2',
+    'bo-vo-nhan',
+    'meme-zoom-trong',
+    'meme-oi-doi-oi',
+    'voice-cau-nhau-1',
+    'voice-cau-nhau-2',
+    // T-026 — Lô 1 Vườn (audio list).
+    'cuoc-chot-1',
+    'cuoc-chot-2',
+    'cay-heo',
+    'don-cay-heo-1',
+    'don-cay-heo-2',
+    'an-nhom-nhoam-1',
+    'an-nhom-nhoam-2',
+    'bung-reo',
+    'voice-ngap',
+    'voice-ngay',
+    'ga-gay-binh-thuong',
+    'ga-gay-tac-hong',
+    'ga-gay-khan',
+    'ga-gay-vo-giong',
+    'ga-gay-ngai-ngu',
+    'ga-gay-gay-lai',
+    'nau-bep',
+    'dem-tien-1',
+    'dem-tien-2',
+    'sam-xa-1',
+    'sam-xa-2',
+    'buoc-dat-1',
+    'buoc-dat-2',
+    'buoc-dat-3',
+    'buoc-co-1',
+    'buoc-co-2',
+    'buoc-co-3',
+    'cua-nha-vao',
+    'cua-nha-ra',
+    'ruong-mo',
+    'ruong-dong',
+    'dong-coc',
+    'thung-bich-1',
+    'thung-bich-2',
+    'xong-nhiem-vu',
+  ]),
+  // Giao diện (AUD-UI-001…007).
+  'ui-click-1': `${AUDIO}/ui/click-1`,
+  'ui-click-2': `${AUDIO}/ui/click-2`,
+  'ui-hover': `${AUDIO}/ui/hover`,
+  'ui-mo-cua-so': `${AUDIO}/ui/mo-cua-so`,
+  'ui-dong-cua-so': `${AUDIO}/ui/dong-cua-so`,
+  'ui-loi': `${AUDIO}/ui/loi`,
+  'ui-doi-o': `${AUDIO}/ui/doi-o`,
+  'ui-nhac-mon': `${AUDIO}/ui/nhac-mon`,
+  'ui-tha-mon': `${AUDIO}/ui/tha-mon`,
 };

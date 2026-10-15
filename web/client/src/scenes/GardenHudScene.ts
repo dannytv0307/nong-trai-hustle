@@ -13,6 +13,7 @@
 // T-092: giao diện Lô 1 (ảnh thật, T-091): ống tre Sức, bảng gỗ tiền / đồng hồ, ô + nút 9-slice, mọi cửa sổ là giấy điệp
 // chữ mực có nút đóng (X), tooltip món + tên khu trên khung giấy nhỏ. Khung / nút / cửa sổ dựng qua `ui/uiKit.ts` (dùng
 // chung cho cửa sổ làm sau: thoại, cửa hàng, Kỳ kèo); thiếu ảnh → vẽ tạm bằng code.
+// T-026: cửa sổ Tạm dừng có 2 hàng âm lượng Nhạc / Hiệu ứng (nút − / + gỗ, số %). Bấm / hover do GardenScene xử lý.
 import Phaser from 'phaser';
 import { gameConfig } from '../config/gameConfig';
 import { cssColor, palette } from '../config/palette';
@@ -51,6 +52,11 @@ import {
   restartConfirmRect,
   sleepButtonRect,
   sleepPromptRect,
+  VOLUME_BUTTONS,
+  volumeButtonRect,
+  volumeRowY,
+  volumeValueCenter,
+  type VolumeButtonId,
   summaryButtonRect,
   summaryDetailY,
   summaryLineY,
@@ -300,6 +306,9 @@ export class GardenHudScene extends Phaser.Scene {
   private restartChrome!: PaperWindow;
   private restartYes!: UiButton;
   private restartNo!: UiButton;
+  /** T-026: nút −/+ âm lượng (theo VOLUME_BUTTONS) + chữ "80%" mỗi kênh. */
+  private readonly volumeButtons = new Map<VolumeButtonId, UiButton>();
+  private readonly volumeTexts: Record<'music' | 'sfx', Phaser.GameObjects.Text | null> = { music: null, sfx: null };
   private hintMain!: Phaser.GameObjects.Text;
   private hintSide!: Phaser.GameObjects.Text;
   // ---- Tiền, thùng bán, sạp hạt (T-006) ----
@@ -501,6 +510,23 @@ export class GardenHudScene extends Phaser.Scene {
     this.pauseResume = new UiButton(this, pauseResumeButtonRect(), 'Tiếp tục', { ...paperText.button, fontSize: '34px' });
     this.pauseRestart = new UiButton(this, pauseRestartButtonRect(), 'Chơi lại từ đầu', { ...paperText.button, fontSize: '28px' });
     this.pauseSavedText = this.add.text(cx, p.y + PAUSE_WINDOW.savedLineY, '', { ...paperText.note, fontStyle: 'bold' }).setOrigin(0.5);
+    // T-026: 2 hàng âm lượng — đường kẻ mực mảnh, chữ tên kênh, nút −, "80%", nút +.
+    const volumeParts: Phaser.GameObjects.GameObject[] = [
+      this.add.rectangle(p.x + PAUSE_WINDOW.volumeLabelX, p.y + PAUSE_WINDOW.volumeRuleY, p.w - PAUSE_WINDOW.volumeLabelX * 2, 3, palette.ink, 0.25).setOrigin(0, 0.5),
+    ];
+    for (const channel of ['music', 'sfx'] as const) {
+      const rowMid = volumeRowY(channel) + PAUSE_WINDOW.volumeButton / 2;
+      volumeParts.push(this.add.text(p.x + PAUSE_WINDOW.volumeLabelX, rowMid, channel === 'music' ? 'Nhạc' : 'Hiệu ứng', paperText.body).setOrigin(0, 0.5));
+      const c = volumeValueCenter(channel);
+      const t = this.add.text(c.x, c.y, '', { ...paperText.button, fontSize: '30px' }).setOrigin(0.5);
+      this.volumeTexts[channel] = t;
+      volumeParts.push(t);
+    }
+    for (const id of VOLUME_BUTTONS) {
+      const b = new UiButton(this, volumeButtonRect(id), id.endsWith('up') ? '+' : '−', { ...paperText.button, fontSize: '40px' });
+      this.volumeButtons.set(id, b);
+      volumeParts.push(...b.parts);
+    }
     this.pauseWindow = this.add
       .container(0, 0, [
         ...this.pauseChrome.parts,
@@ -509,6 +535,7 @@ export class GardenHudScene extends Phaser.Scene {
         this.pauseSavedText,
         ...this.pauseResume.parts,
         ...this.pauseRestart.parts,
+        ...volumeParts,
         this.add.text(cx, p.y + PAUSE_WINDOW.escY, 'Esc: chơi tiếp', paperText.note).setOrigin(0.5),
       ])
       .setDepth(90)
@@ -552,6 +579,18 @@ export class GardenHudScene extends Phaser.Scene {
     if (this.pauseSavedText.text !== saved) this.pauseSavedText.setText(saved);
     this.pauseResume.setState(buttonState(true, !confirm && garden.pauseHoverResume, down));
     this.pauseRestart.setState(buttonState(true, !confirm && garden.pauseHoverRestart, down));
+    // T-026: nút −/+ xám khi đã chạm 0% / 100%.
+    for (const [id, b] of this.volumeButtons) {
+      const channel = id.startsWith('music') ? 'music' : 'sfx';
+      const v = garden.volumeOf(channel);
+      const enabled = id.endsWith('up') ? v < 1 : v > 0;
+      b.setState(buttonState(enabled, !confirm && garden.pauseVolumeHover === id, down));
+    }
+    for (const channel of ['music', 'sfx'] as const) {
+      const t = this.volumeTexts[channel];
+      const text = garden.volumeText(channel);
+      if (t && t.text !== text) t.setText(text);
+    }
     setCloseHover(this.pauseChrome.close, !confirm && garden.windowCloseHover, WINDOW_CHROME.closeSize);
     if (!confirm) return;
     this.restartYes.setState(buttonState(true, garden.restartConfirmHover === 'yes', down));

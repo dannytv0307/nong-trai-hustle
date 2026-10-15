@@ -28,6 +28,8 @@ export interface SaveWorld {
   sellBox: Inventory;
   /** T-093: rương trong nhà (thiếu = coi như không có rương — test cũ, lưu ra rương trống). */
   chest?: Inventory;
+  /** T-026: seed ngẫu nhiên của lần chơi (kiểu gà gáy theo ngày…). Thiếu = 0 (test cũ). */
+  seed?: number;
 }
 
 /** Luật game dùng khi nạp (lấy từ gameConfig / dữ liệu). */
@@ -62,6 +64,8 @@ export interface AppliedSave {
   facing: Facing;
   /** Món bắt buộc vừa được thêm vì save chưa có (vd cuốc với save trước T-009) — để QA / log. */
   addedItems: string[];
+  /** T-026: seed của lần chơi (save cũ đã được @bph/shared suy ra khi nâng version). */
+  seed: number;
 }
 
 const copyStack = (s: ItemStack | null): SaveStack | null => (s ? { id: s.id, count: s.count } : null);
@@ -88,6 +92,7 @@ export function captureSave(w: SaveWorld, now: Date): GameSave {
     inventory: { slots: w.inventory.slots.map(copyStack), selected: w.inventory.selected, lastSeedId: w.inventory.lastSeedId },
     sellBox: { slots: w.sellBox.slots.map(copyStack) },
     chest: { slots: w.chest ? w.chest.slots.map(copyStack) : [] },
+    seed: (w.seed ?? 0) >>> 0,
   };
 }
 
@@ -137,6 +142,7 @@ export function applySave(save: GameSave, w: SaveWorld, rules: SaveRules): Appli
     position: inside ? { x: p.x, y: p.y } : null,
     facing: p.facing,
     addedItems,
+    seed: save.seed >>> 0,
   };
 }
 

@@ -273,3 +273,47 @@ describe('hudLayout — T-092 giao diện Lô 1', () => {
     expect(plank.x).toBeGreaterThan(c.x);
   });
 });
+
+describe('hudLayout — T-026 hàng âm lượng trong cửa sổ Tạm dừng', () => {
+  const overlap = (a: { x: number; y: number; w: number; h: number }, b: typeof a) =>
+    a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+
+  it('4 nút −/+ nằm trong khung, dưới nút Chơi lại, trên dòng Esc, không chồng nhau, đủ to để chạm (≥ 84 px)', async () => {
+    const m = await import('./hudLayout');
+    const p = m.pausePanelRect();
+    const restart = m.pauseRestartButtonRect();
+    const rects = m.VOLUME_BUTTONS.map((id) => m.volumeButtonRect(id));
+    expect(p.y).toBeGreaterThanOrEqual(0);
+    expect(p.y + p.h).toBeLessThanOrEqual(H);
+    for (const r of rects) {
+      expect(r.w).toBeGreaterThanOrEqual(84);
+      expect(r.h).toBeGreaterThanOrEqual(84);
+      expect(r.x).toBeGreaterThan(p.x);
+      expect(r.x + r.w).toBeLessThan(p.x + p.w);
+      expect(r.y).toBeGreaterThan(restart.y + restart.h);
+      expect(r.y + r.h).toBeLessThan(p.y + m.PAUSE_WINDOW.escY - 12);
+      expect(overlap(r, m.windowCloseRect(p))).toBe(false);
+    }
+    for (let i = 0; i < rects.length; i++) for (let j = i + 1; j < rects.length; j++) expect(overlap(rects[i], rects[j])).toBe(false);
+  });
+
+  it('bấm trúng nút nào ra đúng kênh + hướng; chữ % nằm giữa nút − và +', async () => {
+    const m = await import('./hudLayout');
+    for (const id of m.VOLUME_BUTTONS) {
+      const r = m.volumeButtonRect(id);
+      expect(m.volumeButtonAt(r.x + 2, r.y + 2)).toBe(id);
+    }
+    expect(m.volumeButtonChannel('music-up')).toEqual({ channel: 'music', dir: 1 });
+    expect(m.volumeButtonChannel('sfx-down')).toEqual({ channel: 'sfx', dir: -1 });
+    const p = m.pausePanelRect();
+    expect(m.volumeButtonAt(p.x + 2, p.y + 2)).toBeNull();
+    for (const ch of ['music', 'sfx'] as const) {
+      const c = m.volumeValueCenter(ch);
+      const minus = m.volumeButtonRect(`${ch}-down`);
+      const plus = m.volumeButtonRect(`${ch}-up`);
+      expect(c.x).toBeGreaterThan(minus.x + minus.w);
+      expect(c.x).toBeLessThan(plus.x);
+    }
+    expect(m.volumeRowY('sfx')).toBeGreaterThan(m.volumeRowY('music'));
+  });
+});
