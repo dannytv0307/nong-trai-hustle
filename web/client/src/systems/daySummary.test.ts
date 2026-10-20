@@ -6,6 +6,8 @@ import {
   createReveal,
   lineProgress,
   moneyShown,
+  RECORD_TEXT,
+  recordProgress,
   saleDetailText,
   summaryLines,
   summarySubtitle,
@@ -32,6 +34,7 @@ const base = (over: Partial<OvernightSummary> = {}): OvernightSummary => ({
 });
 
 const TIMING: RevealTiming = { lineInterval: 0.5, lineSlide: 0.3, countSeconds: 1 };
+const REC_TIMING: RevealTiming = { ...TIMING, recordPopSeconds: 0.4 };
 
 describe('summaryLines', () => {
   it('ngủ bình thường: chỉ dòng tiền + cây chín', () => {
@@ -91,6 +94,37 @@ describe('hiện dần + Enter', () => {
     expect(lineProgress(r, 3, TIMING)).toBe(1);
     expect(moneyShown(r, 52, TIMING)).toBe(52);
     expect(acceptPress(r, TIMING)).toBe('close');
+  });
+
+  it('T-027: không kỷ lục → chữ Kỷ lục không bao giờ hiện, nhịp hiện hết như cũ', () => {
+    const r = createReveal(2);
+    tickReveal(r, 5);
+    expect(recordProgress(r, REC_TIMING)).toBe(0);
+    expect(RECORD_TEXT).toBe('Kỷ lục mới!');
+  });
+
+  it('T-027: kỷ lục → chữ đóng dấu SAU khi tiền đếm xong, trong recordPopSeconds; hiện hết chờ cả dấu', () => {
+    const r = createReveal(2, true);
+    tickReveal(r, 0.9);
+    expect(recordProgress(r, REC_TIMING)).toBe(0); // tiền còn đang đếm (1 giây)
+    tickReveal(r, 0.2); // t = 1.1
+    expect(recordProgress(r, REC_TIMING)).toBeCloseTo(0.25);
+    expect(allRevealed(r, REC_TIMING)).toBe(false);
+    tickReveal(r, 0.35); // t = 1.45
+    expect(recordProgress(r, REC_TIMING)).toBe(1);
+    expect(allRevealed(r, REC_TIMING)).toBe(true);
+  });
+
+  it('T-027: Enter lần 1 → dấu Kỷ lục hiện luôn; recordPopSeconds 0 → bật ngay lúc đếm xong', () => {
+    const r = createReveal(2, true);
+    tickReveal(r, 0.1);
+    expect(acceptPress(r, REC_TIMING)).toBe('revealAll');
+    expect(recordProgress(r, REC_TIMING)).toBe(1);
+    const q = createReveal(1, true);
+    tickReveal(q, 0.99);
+    expect(recordProgress(q, TIMING)).toBe(0);
+    tickReveal(q, 0.02);
+    expect(recordProgress(q, TIMING)).toBe(1);
   });
 
   it('chờ hết các dòng rồi Enter → sang ngày luôn (một lần bấm)', () => {

@@ -13,7 +13,10 @@ import {
   isOverHud,
   keyHintMainBottom,
   keyHintSideMaxWidth,
+  MONEY_PANEL,
   moneyPanelRect,
+  moneyTextArea,
+  moneyTextScale,
   SELL_WINDOW,
   sellGridsBottom,
   sellPanelRect,
@@ -147,6 +150,33 @@ describe('hudLayout — tiền, thùng bán, sạp hạt (T-006)', () => {
     expect(overlap(m, hotbarRect())).toBe(false);
   });
 
+  it('T-027: vùng chữ tiền nằm sau icon xu, trong bảng gỗ', () => {
+    const m = moneyPanelRect();
+    const a = moneyTextArea();
+    expect(a.x).toBeGreaterThanOrEqual(m.x + MONEY_PANEL.icon);
+    expect(a.w).toBeGreaterThan(140);
+    expect(a.x + a.w).toBeLessThanOrEqual(m.x + m.w);
+  });
+
+  it('T-027: chữ tiền nảy nhưng không lòi khỏi vùng chữ (số ≥ 4 chữ số nảy ít hơn / co lại)', () => {
+    const bump = 1 + gameConfig.moneyBumpScale;
+    const maxW = moneyTextArea().w;
+    // Số ngắn ("60 quan" ~ 110 px): nảy đủ.
+    expect(moneyTextScale(bump, 110, maxW)).toBe(bump);
+    // Không nảy → giữ 1 khi vừa.
+    expect(moneyTextScale(1, 110, maxW)).toBe(1);
+    // Số dài: mọi độ rộng chữ, mọi pha nảy → bề rộng hiện ra không vượt vùng chữ.
+    for (const w of [140, 150, 158, 180, 240]) {
+      for (const k of [1, 1.1, bump]) {
+        const s = moneyTextScale(k, w, maxW);
+        expect(s).toBeLessThanOrEqual(k);
+        expect(w * s).toBeLessThanOrEqual(maxW + 1e-9);
+      }
+    }
+    // Đo chưa được (chữ rỗng) → giữ nguyên độ nảy.
+    expect(moneyTextScale(bump, 0, maxW)).toBe(bump);
+  });
+
   it('cửa sổ thùng bán: 2 lưới 18 ô nằm trong khung, khung trong màn, không đè hotbar; sellSlotAt đúng ô', () => {
     const p = sellPanelRect(18, 18);
     expect(p.x).toBeGreaterThan(0);
@@ -211,6 +241,26 @@ describe('hudLayout — hỏi đi ngủ, tổng kết ngày (T-007)', () => {
     for (let i = 1; i < 6; i++) expect(summaryLineY(i)).toBeGreaterThan(summaryLineY(i - 1));
     expect(summaryLineY(5) + 24).toBeLessThan(b.y);
     expect(b.y + b.h).toBeLessThanOrEqual(p.y + p.h);
+  });
+
+  it('T-027: chữ "Kỷ lục mới!" ngang dòng tiền, sát mép phải vùng chữ, không đè dòng tiền dài nhất; xu cất / đáp đúng chỗ', async () => {
+    const m = await import('./hudLayout');
+    const p = m.summaryPanelRect();
+    const a = m.summaryRecordAnchor();
+    expect(a.y).toBe(m.summaryLineY(0));
+    expect(a.x).toBe(p.x + p.w - m.SUMMARY_WINDOW.pad);
+    // Dòng tiền chữ 44px đậm: "Bán được: 99999 quan" ≈ 20 ký tự × ~26px ≈ 520px; "Kỷ lục mới!" 40px ≈ 11 × 24 ≈ 270px.
+    const moneyRight = p.x + m.SUMMARY_WINDOW.pad + 520;
+    expect(a.x - 270).toBeGreaterThan(moneyRight);
+    const o = m.summaryCoinOrigin();
+    expect(o.y).toBe(m.summaryLineY(0));
+    expect(o.x).toBeGreaterThan(p.x);
+    expect(o.x).toBeLessThan(a.x - 270);
+    const c = m.moneyCoinCenter();
+    const mp = m.moneyPanelRect();
+    expect(c.x).toBeGreaterThan(mp.x);
+    expect(c.x).toBeLessThan(mp.x + mp.w);
+    expect(c.y).toBe(mp.y + mp.h / 2);
   });
 });
 

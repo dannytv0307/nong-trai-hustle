@@ -37,6 +37,8 @@ import {
   keyHintMainBottom,
   MONEY_PANEL,
   moneyPanelRect,
+  moneyTextArea,
+  moneyTextScale,
   SELL_WINDOW,
   sellGridOrigin,
   sellGridsBottom,
@@ -61,6 +63,7 @@ import {
   summaryDetailY,
   summaryLineY,
   summaryPanelRect,
+  summaryRecordAnchor,
   SUMMARY_WINDOW,
   staminaBarRect,
   staminaPanelRect,
@@ -70,7 +73,9 @@ import {
   type Rect,
 } from '../ui/hudLayout';
 import { blinkOn, dayLabel, formatClock, isPassOutWarning, seasonOf, skyPhase } from '../systems/time';
-import { lineProgress, moneyLineText, moneyShown, summarySubtitle, summaryTitle } from '../systems/daySummary';
+import { lineProgress, moneyLineText, moneyShown, RECORD_TEXT, recordProgress, summarySubtitle, summaryTitle, type RevealTiming } from '../systems/daySummary';
+import { bumpScale, coinProgress, flightPoint, hasIncomingCoins, trailFade, trailProgress, type Point } from '../systems/juice';
+import { ensureGlowTexture, FX_GLOW, FX_GLOW_SIZE } from '../ui/fxTextures';
 import { drawItemIcon, itemIconTexture, showsItemCount } from '../ui/itemArt';
 import { itemTooltipText } from '../ui/itemText';
 import { addUiIcon, buildPaperWindow, setCloseHover, setUiIcon, UiButton, UiFrame, type PaperWindow } from '../ui/uiKit';
@@ -165,6 +170,17 @@ export interface HudDebugState {
   /** T-092: tên khu đang hiện ('' = không) + có nút đóng (X) đang sáng. */
   areaBanner: string;
   closeHover: boolean;
+  /**
+   * T-027: số chấm vệt sáng đang hiện sau icon bay; số đồng xu đang hiện trên màn; tỷ lệ "nảy" của số tiền (1 = yên); ô tiền
+   * đang được đưa lên trên lớp tối (xu bay về lúc sáng ra); chữ "Kỷ lục mới!" đang hiện ('' = không) + độ đục + cỡ.
+   */
+  trailVisible: number;
+  coinsVisible: number;
+  moneyScale: number;
+  moneySpotlight: boolean;
+  summaryRecord: string;
+  summaryRecordAlpha: number;
+  summaryRecordScale: number;
 }
 
 /** Texture viền màn tối (vẽ một lần, độ phân giải thấp rồi phóng — gradient mượt nên không vỡ). */
@@ -197,6 +213,15 @@ interface Flyer {
   fromY: number;
   /** Ô hotbar đích (≥ 0) hoặc -1 = nút gùi. */
   target: number;
+  /** T-027: quầng sáng ngay sau icon + các chấm vệt sáng lùi dần trên đường bay (pool, tạo một lần). */
+  glow: Phaser.GameObjects.Image;
+  trail: Phaser.GameObjects.Image[];
+}
+
+/** T-027: một đồng xu bay (ảnh icon xu hoặc hình vẽ dự phòng) + tỷ lệ gốc để ra cỡ coinFlySizePx. */
+interface CoinSprite {
+  obj: Phaser.GameObjects.Image | Phaser.GameObjects.Graphics;
+  base: number;
 }
 
 /** Cửa sổ 2 lưới gùi ⇄ thùng bán / rương (T-093): các phần cần cập nhật mỗi frame. */
@@ -252,6 +277,21 @@ const FLY_ARC = 140;
 /** Nút gùi: cỡ icon cái gùi, cỡ icon khóa trong ô khóa (px). */
 const BAG_ICON = 60;
 const LOCK_ICON = 46;
+/** T-027: pool đồng xu bay (đủ vài mẻ chồng nhau: mua liền tay nhiều lần). */
+const COIN_POOL = gameConfig.coinFlyCount * 4;
+/** T-027: bề rộng tối đa chữ số tiền (px) — tính một lần, update() mỗi frame không tạo object mới. */
+const MONEY_TEXT_MAX_W = moneyTextArea().w;
+/**
+ * T-027: lớp vẽ — xu bay nổi trên mọi cửa sổ (sạp 50) và màn tổng kết (85), dưới Tạm dừng (90). Lúc xu bay về khi màn còn
+ * tối (sáng ra), ô tiền + chữ "+N quan" được đưa lên trên lớp tối (80) để thấy xu rơi vào.
+ */
+const DEPTH_COIN = 86;
+const DEPTH_MONEY_SPOTLIGHT = 84;
+const DEPTH_MONEY_FLOAT = 60;
+/** Ô tiền khi đang mở sạp hạt: trên nền tối + khung cửa sổ (50), dưới chữ bay (60). */
+const DEPTH_MONEY_OVER_SHOP = 55;
+/** Icon bay (hái) vẽ ở lớp 100; vệt sáng ngay dưới. */
+const DEPTH_FLYER = 100;
 
 export class GardenHudScene extends Phaser.Scene {
   private garden!: GardenScene;
@@ -316,6 +356,22 @@ export class GardenHudScene extends Phaser.Scene {
   private moneyFloat!: Phaser.GameObjects.Text;
   private moneyFloatT = 0;
   private moneyDrawn = -1;
+  // ---- T-027: ô tiền nảy theo xu, xu bay, chữ Kỷ lục ----
+  /** Ô tiền (bảng gỗ + icon xu + số) gom một container để đưa lên trên lớp tối khi cần. */
+  private moneyPanel!: Phaser.GameObjects.Container;
+  private moneyIcon!: Phaser.GameObjects.Image | Phaser.GameObjects.Graphics;
+  private moneyIconBase = 1;
+  /** Số tiền đang vẽ (khác ví khi xu còn bay); -1 = chưa vẽ. */
+  private moneyShownDrawn = -1;
+  private coinsLandedSeen = 0;
+  private moneyBumpT = 0;
+  private moneySpotlight = false;
+  private readonly coinSprites: CoinSprite[] = [];
+  /** Điểm tạm cho đường bay (dùng lại mỗi frame, không tạo object mới). */
+  private readonly flightPt: Point = { x: 0, y: 0 };
+  private readonly flyFrom: Point = { x: 0, y: 0 };
+  private readonly flyTo: Point = { x: 0, y: 0 };
+  private summaryRecordText!: Phaser.GameObjects.Text;
   private sellView!: TransferView;
   /** T-093: cửa sổ rương (cùng bố cục với thùng bán) + tên khu khi vừa vào. */
   private chestView!: TransferView;
@@ -367,6 +423,11 @@ export class GardenHudScene extends Phaser.Scene {
     this.blinkT = 0;
     this.moneyDrawn = -1;
     this.moneyFloatT = 0;
+    this.moneyShownDrawn = -1;
+    this.coinsLandedSeen = this.garden.coins.landedIn;
+    this.moneyBumpT = 0;
+    this.moneySpotlight = false;
+    this.coinSprites.length = 0;
     this.stallButtons.length = 0;
     this.stallDrawnSig = '';
     this.zzz.length = 0;
@@ -411,16 +472,26 @@ export class GardenHudScene extends Phaser.Scene {
     this.buildPauseWindow();
     this.buildNight();
 
+    // T-027: quầng sáng (gradient vẽ bằng code một lần) cho vệt sáng sau icon bay — chế độ hoà màu ADD cho "sáng" thật.
+    ensureGlowTexture(this);
+    const glowImage = () => this.add.image(0, 0, FX_GLOW).setBlendMode(Phaser.BlendModes.ADD).setVisible(false).setDepth(DEPTH_FLYER - 1);
     for (let i = 0; i < FLY_POOL; i++) {
       this.flyers.push({
-        g: this.add.graphics().setVisible(false).setDepth(100),
-        img: this.add.image(0, 0, '__DEFAULT').setVisible(false).setDepth(100),
+        g: this.add.graphics().setVisible(false).setDepth(DEPTH_FLYER),
+        img: this.add.image(0, 0, '__DEFAULT').setVisible(false).setDepth(DEPTH_FLYER),
         imgBase: 0,
         t: 0,
         fromX: 0,
         fromY: 0,
         target: -1,
+        glow: glowImage(),
+        trail: Array.from({ length: gameConfig.harvestTrailCount }, glowImage),
       });
+    }
+    // T-027: pool đồng xu bay (icon xu thật; thiếu ảnh → hình vẽ dự phòng của uiKit).
+    for (let i = 0; i < COIN_POOL; i++) {
+      const obj = addUiIcon(this, 'icon-coin', 0, 0, gameConfig.coinFlySizePx).setDepth(DEPTH_COIN).setVisible(false);
+      this.coinSprites.push({ obj, base: obj instanceof Phaser.GameObjects.Image ? obj.scaleX : 1 });
     }
 
     const onGained = (e: ItemGainedEvent) => this.spawnFlyer(e);
@@ -650,6 +721,16 @@ export class GardenHudScene extends Phaser.Scene {
       this.summaryLineTexts.push(t);
       parts.push(t);
     }
+    // T-027: "Kỷ lục mới!" — chữ vàng viền mực, nghiêng như con dấu, cuối dòng tiền (summaryRecordAnchor = mép phải).
+    const rec = summaryRecordAnchor();
+    this.summaryRecordText = this.add
+      .text(0, rec.y, RECORD_TEXT, { fontFamily: uiFontFamily, fontSize: '40px', fontStyle: 'bold', color: cssColor('gold'), stroke: cssColor('ink'), strokeThickness: 7 })
+      .setOrigin(0.5)
+      .setAngle(-6)
+      .setVisible(false);
+    // Tâm chữ lùi nửa bề ngang từ mép phải → khi nảy to thì toả đều hai bên, không lấn dòng tiền nhiều.
+    this.summaryRecordText.setX(rec.x - this.summaryRecordText.width / 2);
+    parts.push(this.summaryRecordText);
     this.summaryButton = new UiButton(this, summaryButtonRect(), 'Ngày mới (Enter)');
     parts.push(...this.summaryButton.parts);
     this.summaryWindow = this.add.container(0, 0, parts).setDepth(85).setVisible(false);
@@ -728,11 +809,23 @@ export class GardenHudScene extends Phaser.Scene {
       });
     }
     const reveal = garden.summaryReveal;
-    const timing = {
+    const timing: RevealTiming = {
       lineInterval: gameConfig.summaryLineIntervalSeconds,
       lineSlide: gameConfig.summaryLineSlideSeconds,
       countSeconds: gameConfig.summaryCountSeconds,
+      recordPopSeconds: gameConfig.summaryRecordPopSeconds,
     };
+    // T-027: chữ Kỷ lục đóng dấu xuống sau khi tiền đếm xong: từ to (× 1 + summaryRecordPopScale) nảy về cỡ thật, hiện nhanh.
+    const rp = recordProgress(reveal, timing);
+    if (rp > 0) {
+      const ease = 1 - (1 - rp) * (1 - rp);
+      this.summaryRecordText
+        .setScale(1 + gameConfig.summaryRecordPopScale * (1 - ease))
+        .setAlpha(Math.min(1, rp * 3))
+        .setVisible(true);
+    } else if (this.summaryRecordText.visible) {
+      this.summaryRecordText.setVisible(false);
+    }
     const left = summaryPanelRect().x + SUMMARY_WINDOW.pad;
     this.summaryLineTexts.forEach((t, i) => {
       if (!lines[i]) return;
@@ -765,27 +858,54 @@ export class GardenHudScene extends Phaser.Scene {
   /** Ô tiền dưới thanh Sức: bảng gỗ, icon đồng xu (quan tiền lỗ vuông), chữ "60 quan" trắng điệp viền mực. */
   private buildMoney(): void {
     const p = moneyPanelRect();
-    new UiFrame(this, 'hud-plank', p);
+    const plank = new UiFrame(this, 'hud-plank', p);
     const cy = p.y + p.h / 2;
-    addUiIcon(this, 'icon-coin', p.x + 6 + MONEY_PANEL.icon / 2, cy, MONEY_PANEL.icon);
-    this.moneyText = this.add.text(p.x + MONEY_PANEL.icon + 14, cy, '', { ...woodText.body, fontSize: '32px' }).setOrigin(0, 0.5);
+    this.moneyIcon = addUiIcon(this, 'icon-coin', p.x + 6 + MONEY_PANEL.icon / 2, cy, MONEY_PANEL.icon);
+    this.moneyIconBase = this.moneyIcon.scaleX;
+    this.moneyText = this.add.text(moneyTextArea().x, cy, '', { ...woodText.body, fontSize: '32px' }).setOrigin(0, 0.5);
+    this.moneyPanel = this.add.container(0, 0, [plank.obj, this.moneyIcon, this.moneyText]);
     this.moneyFloat = this.add
       .text(p.x + p.w + 16, cy, '', { fontFamily: uiFontFamily, fontSize: '28px', fontStyle: 'bold', color: cssColor('gold'), stroke: cssColor('ink'), strokeThickness: 6 })
       .setOrigin(0, 0.5)
       // Nổi trên nền tối của cửa sổ sạp hạt — mua xong vẫn thấy "−4 quan" bay lên.
-      .setDepth(60)
+      .setDepth(DEPTH_MONEY_FLOAT)
       .setVisible(false);
   }
 
-  /** Số tiền: chỉ đặt lại chữ khi đổi; tiền đổi (moneyRevision) → chữ "−4 quan" / "+30 quan" bay lên cạnh ô rồi mờ. */
+  /**
+   * Số tiền: chỉ đặt lại chữ khi đổi; tiền đổi (moneyRevision) → chữ "−4 quan" / "+30 quan" bay lên cạnh ô rồi mờ.
+   * T-027: số hiện là `garden.moneyShown` (ví trừ phần xu còn bay) — mỗi đồng xu chạm ô thì số nhảy lên + ô tiền nảy; xu
+   * bay về lúc màn còn tối (sáng ra) thì ô tiền nổi lên trên lớp tối.
+   */
   private updateMoney(dt: number): void {
-    const money = this.garden.wallet.money;
-    const rev = this.garden.moneyRevision;
+    const garden = this.garden;
+    const shown = garden.moneyShown;
+    if (shown !== this.moneyShownDrawn) {
+      this.moneyShownDrawn = shown;
+      this.moneyText.setText(`${shown} quan`);
+    }
+    if (garden.coins.landedIn !== this.coinsLandedSeen) {
+      this.coinsLandedSeen = garden.coins.landedIn;
+      this.moneyBumpT = gameConfig.moneyBumpSeconds;
+    }
+    this.moneyBumpT = Math.max(0, this.moneyBumpT - dt);
+    const k = bumpScale(this.moneyBumpT, gameConfig.moneyBumpSeconds, gameConfig.moneyBumpScale);
+    // Chữ nảy nhưng không lòi khỏi bảng gỗ khi số dài (moneyTextScale); icon xu thì nảy đủ.
+    this.moneyText.setScale(moneyTextScale(k, this.moneyText.width, MONEY_TEXT_MAX_W));
+    this.moneyIcon.setScale(this.moneyIconBase * k);
+    const spot = hasIncomingCoins(garden.coins) && garden.nightFade > 0.001;
+    if (spot !== this.moneySpotlight) {
+      this.moneySpotlight = spot;
+      this.moneyFloat.setDepth(spot ? DEPTH_MONEY_SPOTLIGHT : DEPTH_MONEY_FLOAT);
+    }
+    // Đang mở sạp hạt: ô tiền nổi trên nền tối của cửa sổ (như chữ "−4 quan") → thấy xu bay KHỎI ô tiền khi mua.
+    const depth = spot ? DEPTH_MONEY_SPOTLIGHT : garden.shopWindow === 'seedStall' ? DEPTH_MONEY_OVER_SHOP : 0;
+    if (this.moneyPanel.depth !== depth) this.moneyPanel.setDepth(depth);
+    const rev = garden.moneyRevision;
     if (rev !== this.moneyDrawn) {
       const first = this.moneyDrawn < 0;
       this.moneyDrawn = rev;
-      this.moneyText.setText(`${money} quan`);
-      const d = this.garden.lastMoneyDelta;
+      const d = garden.lastMoneyDelta;
       if (!first && d !== 0) {
         this.moneyFloat
           .setText(d > 0 ? `+${d} quan` : `−${-d} quan`)
@@ -1177,7 +1297,36 @@ export class GardenHudScene extends Phaser.Scene {
     this.updateVignette(dt);
     this.updateTooltip();
     this.updateFlyers(dt);
+    this.updateCoins();
     this.updateBounces(dt);
+  }
+
+  /**
+   * T-027: vẽ xu bay theo trạng thái GardenScene (systems/juice.ts — Vườn tiến thời gian, Tạm dừng thì xu đứng). Đồng nào chưa
+   * cất cánh / đã chạm thì ẩn. Xu "lật" (co ngang theo cos) cho có cảm giác đồng xu xoay; bay vào thì nhỏ dần cho vừa ô.
+   */
+  private updateCoins(): void {
+    const s = this.garden.coins;
+    const params = this.garden.coinParams;
+    let used = 0;
+    for (const b of s.batches) {
+      for (const f of b.flights) {
+        const p = coinProgress(b, f, params);
+        if (p < 0 || p >= 1 || f.landed) continue;
+        const c = this.coinSprites[used];
+        if (!c) break;
+        used++;
+        const pt = flightPoint(f.from, f.to, p, params.arcPx, this.flightPt);
+        const size = b.kind === 'in' ? 1.15 - 0.3 * p : 1 - 0.2 * p;
+        const flip = 0.35 + 0.65 * Math.abs(Math.cos(Math.PI * 3 * p));
+        c.obj
+          .setPosition(pt.x, pt.y)
+          .setScale(c.base * size * flip, c.base * size)
+          .setAlpha(b.kind === 'out' && p > 0.75 ? 1 - (p - 0.75) / 0.25 : 1)
+          .setVisible(true);
+      }
+    }
+    for (let i = used; i < this.coinSprites.length; i++) if (this.coinSprites[i].obj.visible) this.coinSprites[i].obj.setVisible(false);
   }
 
   private drawSlot(view: SlotView, stack: ItemStack | null): void {
@@ -1270,18 +1419,52 @@ export class GardenHudScene extends Phaser.Scene {
     else f.g.setPosition(x, y).setScale(scale).setAlpha(1).setVisible(true);
   }
 
+  /**
+   * T-027: quầng sáng sau icon + vệt sáng: chấm k nằm ở chỗ icon đã qua k × harvestTrailGapSeconds trước (cùng đường bay —
+   * tính lại từ hàm đường bay, không phải nhớ vị trí cũ), nhỏ và mờ dần về đuôi. `p` < 0 → ẩn hết.
+   */
+  private placeTrail(f: Flyer, from: Point, to: Point, p: number): void {
+    const dur = gameConfig.harvestFlySeconds;
+    const n = f.trail.length;
+    const glowBase = gameConfig.harvestTrailSizePx / FX_GLOW_SIZE;
+    if (p < 0) {
+      f.glow.setVisible(false);
+      for (const t of f.trail) t.setVisible(false);
+      return;
+    }
+    const pt = flightPoint(from, to, p, FLY_ARC, this.flightPt);
+    f.glow.setPosition(pt.x, pt.y).setScale(glowBase * 1.25).setAlpha(gameConfig.harvestTrailAlpha).setVisible(true);
+    for (let k = 1; k <= n; k++) {
+      const dot = f.trail[k - 1];
+      const q = trailProgress(p, k, gameConfig.harvestTrailGapSeconds, dur);
+      if (q < 0) {
+        dot.setVisible(false);
+        continue;
+      }
+      const fade = trailFade(k, n);
+      flightPoint(from, to, q, FLY_ARC, this.flightPt);
+      dot.setPosition(this.flightPt.x, this.flightPt.y).setScale(glowBase * (0.35 + 0.65 * fade)).setAlpha(gameConfig.harvestTrailAlpha * fade).setVisible(true);
+    }
+  }
+
   private updateFlyers(dt: number): void {
     const dur = gameConfig.harvestFlySeconds;
+    const start = this.flyFrom;
+    const to = this.flyTo;
     for (const f of this.flyers) {
       if (f.t <= 0) continue;
       f.t = Math.max(0, f.t - dt);
-      const to = f.target >= 0 ? this.hotbar[f.target].root : this.bagButton;
+      const toObj = f.target >= 0 ? this.hotbar[f.target].root : this.bagButton;
+      to.x = toObj.x;
+      to.y = toObj.y;
+      start.x = f.fromX;
+      start.y = f.fromY;
       const p = 1 - f.t / dur; // 0 → 1
-      // Đi đều theo ngang, vồng lên theo hình sin rồi rơi vào ô; nhỏ dần cho vừa ô.
-      const ease = p * p * (3 - 2 * p);
-      const x = f.fromX + (to.x - f.fromX) * ease;
-      const y = f.fromY + (to.y - f.fromY) * ease - FLY_ARC * Math.sin(Math.PI * p);
-      this.placeFlyer(f, x, y, 1.2 - 0.35 * p);
+      // Đi đều theo ngang, vồng lên theo hình sin rồi rơi vào ô; nhỏ dần cho vừa ô (systems/juice.ts flightPoint).
+      // Vệt sáng vẽ TRƯỚC (dùng điểm tạm flightPt), icon sau; tới nơi thì tắt cả vệt.
+      this.placeTrail(f, start, to, f.t > 0 ? p : -1);
+      const pt = flightPoint(start, to, p, FLY_ARC, this.flightPt);
+      this.placeFlyer(f, pt.x, pt.y, 1.2 - 0.35 * p);
       if (f.t <= 0) {
         f.g.setVisible(false);
         f.img.setVisible(false);
@@ -1384,6 +1567,13 @@ export class GardenHudScene extends Phaser.Scene {
       nightMinFontPx: this.summaryWindow ? this.nightMinFontPx() : 0,
       areaBanner: this.areaBanner?.visible ? this.areaBannerText.text : '',
       closeHover: garden?.windowCloseHover ?? false,
+      trailVisible: this.flyers.reduce((n, f) => n + f.trail.filter((t) => t.visible).length, 0),
+      coinsVisible: this.coinSprites.filter((c) => c.obj.visible).length,
+      moneyScale: this.moneyText?.scaleX ?? 1,
+      moneySpotlight: this.moneySpotlight,
+      summaryRecord: this.summaryWindow?.visible && this.summaryRecordText.visible ? this.summaryRecordText.text : '',
+      summaryRecordAlpha: this.summaryRecordText?.visible ? this.summaryRecordText.alpha : 0,
+      summaryRecordScale: this.summaryRecordText?.visible ? this.summaryRecordText.scaleX : 0,
     };
   }
 }

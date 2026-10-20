@@ -9,8 +9,9 @@
  * - 2 (T-093): thêm `chest` (rương trong nhà {ten}); `player.area` có thêm giá trị 'house' (cảnh trong nhà).
  * - 3 (T-026): thêm `seed` — số ngẫu nhiên cố định của MỘT lần chơi (chọn kiểu gà gáy theo ngày…): F5 / nạp lại cùng ngày
  *   ra cùng kết quả.
+ * - 4 (T-027): thêm `records` — kỷ lục của lần chơi (ngày bán được nhiều tiền nhất → dòng "Kỷ lục mới!" ở tổng kết ngày).
  */
-export const GAME_SAVE_VERSION = 3;
+export const GAME_SAVE_VERSION = 4;
 
 export type SaveFacing = 'up' | 'down' | 'left' | 'right';
 export type SaveSoil = 'untilled' | 'tilled';
@@ -86,8 +87,21 @@ export interface GameSaveV3 extends Omit<GameSaveV2, 'version'> {
   seed: number;
 }
 
+/** Kỷ lục của một lần chơi (T-027). Thêm kỷ lục mới về sau (lỗ nặng nhất cho `profitArrow`…) → thêm trường + bước nâng. */
+export interface SaveRecords {
+  /** Số tiền bán được nhiều nhất trong MỘT đêm (quan, số nguyên ≥ 0). 0 = chưa bán lần nào. */
+  bestDaySale: number;
+}
+
+/** Version 4 (T-027): như version 3 + `records`. */
+export interface GameSaveV4 extends Omit<GameSaveV3, 'version'> {
+  version: 4;
+  /** Kỷ lục. Save cũ nâng lên → chưa có kỷ lục (bestDaySale 0): đêm bán được tiền đầu tiên sau khi nâng là "Kỷ lục mới!". */
+  records: SaveRecords;
+}
+
 /** Save ở định dạng hiện tại. */
-export type GameSave = GameSaveV3;
+export type GameSave = GameSaveV4;
 
 export type SaveParseResult =
   | { ok: true; save: GameSave; /** Phiên bản gốc trước khi nâng cấp (= GAME_SAVE_VERSION nếu không cần nâng). */ fromVersion: number }
@@ -97,10 +111,12 @@ export type SaveParseResult =
  * Các bước nâng cấp save cũ: khóa n = hàm biến save phiên bản n thành phiên bản n + 1 (object thô, chưa kiểm).
  * 1 → 2 (T-093): thêm rương trống; khu cũ ('garden') giữ nguyên — người chơi vẫn đứng ở Vườn như lúc lưu.
  * 2 → 3 (T-026): thêm `seed` suy ra từ `savedAt` (xác định — nạp lại bản cũ nhiều lần vẫn ra cùng seed).
+ * 3 → 4 (T-027): thêm `records` trống (chưa có kỷ lục — save cũ không ghi tiền bán từng ngày nên không suy ra được).
  */
 export const SAVE_MIGRATIONS: Readonly<Record<number, (old: Record<string, unknown>) => Record<string, unknown>>> = {
   1: (old) => ({ ...old, version: 2, chest: { slots: [] } }),
   2: (old) => ({ ...old, version: 3, seed: hashSeedText(typeof old.savedAt === 'string' ? old.savedAt : '') }),
+  3: (old) => ({ ...old, version: 4, records: { bestDaySale: 0 } }),
 };
 
 /** Số nguyên hợp lệ làm seed (0 … 2³²−1). */
@@ -193,7 +209,7 @@ function checkPlot(p: unknown): boolean {
   );
 }
 
-/** Trả về mô tả trường sai đầu tiên, hoặc null nếu đúng hình dạng phiên bản hiện tại (3). */
+/** Trả về mô tả trường sai đầu tiên, hoặc null nếu đúng hình dạng phiên bản hiện tại (4). */
 function checkCurrent(s: Record<string, unknown>): string | null {
   if (s.version !== GAME_SAVE_VERSION) return 'version';
   if (!isStr(s.savedAt)) return 'savedAt';
@@ -217,5 +233,7 @@ function checkCurrent(s: Record<string, unknown>): string | null {
   const chest = s.chest;
   if (!isObj(chest) || !checkSlots(chest.slots)) return 'chest';
   if (!isSaveSeed(s.seed)) return 'seed';
+  const rec = s.records;
+  if (!isObj(rec) || !isInt(rec.bestDaySale) || rec.bestDaySale < 0) return 'records';
   return null;
 }

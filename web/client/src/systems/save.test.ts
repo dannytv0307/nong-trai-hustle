@@ -421,3 +421,70 @@ describe('T-093: khu trong nhà + rương trong save (version 2)', () => {
     expect(captureSave(freshWorld(), NOW).chest).toEqual({ slots: [] });
   });
 });
+
+describe('T-027: kỷ lục trong save (version 4)', () => {
+  const withRecords = (best: number): SaveWorld => ({ ...freshWorld(), records: { bestDaySale: best } });
+
+  it('kỷ lục lưu → JSON → nạp ra y nguyên', () => {
+    const parsed = parseGameSave(serializeGameSave(captureSave(withRecords(137), NOW)));
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.save.records).toEqual({ bestDaySale: 137 });
+    const target = withRecords(0);
+    applySave(parsed.save, target, RULES);
+    expect(target.records).toEqual({ bestDaySale: 137 });
+  });
+
+  it('save version 3 (chưa có kỷ lục) nâng lên version 4: kỷ lục 0, mọi thứ khác giữ nguyên', () => {
+    const v3 = JSON.parse(serializeGameSave(captureSave(richWorld(), NOW))) as Record<string, unknown>;
+    v3.version = 3;
+    delete v3.records;
+    const r = validateGameSave(v3);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.fromVersion).toBe(3);
+    expect(r.save.version).toBe(GAME_SAVE_VERSION);
+    expect(r.save.records).toEqual({ bestDaySale: 0 });
+    expect(r.save.money).toBe(137);
+    const target = withRecords(99); // rác trong game mới phải bị thay theo save
+    applySave(r.save, target, RULES);
+    expect(target.records!.bestDaySale).toBe(0);
+  });
+
+  it('save version 1 nâng qua mọi bước tới version 4 (rương, seed, kỷ lục)', () => {
+    const v1 = JSON.parse(serializeGameSave(captureSave(richWorld(), NOW))) as Record<string, unknown>;
+    v1.version = 1;
+    delete v1.chest;
+    delete v1.seed;
+    delete v1.records;
+    const r = validateGameSave(v1);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.save.chest).toEqual({ slots: [] });
+    expect(r.save.seed).toBe(hashSeedText(NOW.toISOString()));
+    expect(r.save.records).toEqual({ bestDaySale: 0 });
+  });
+
+  it('version 4 thiếu / sai kỷ lục → hỏng (không nạp nửa vời)', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const breakers: ((s: Record<string, any>) => void)[] = [
+      (s) => delete s.records,
+      (s) => (s.records = null),
+      (s) => (s.records.bestDaySale = -1),
+      (s) => (s.records.bestDaySale = 2.5),
+      (s) => (s.records.bestDaySale = '10'),
+    ];
+    breakers.forEach((breakIt, i) => {
+      const s = JSON.parse(serializeGameSave(captureSave(withRecords(10), NOW))) as Record<string, unknown>;
+      breakIt(s);
+      expect(validateGameSave(s).ok, `ca ${i}`).toBe(false);
+    });
+  });
+
+  it('thế giới không có kỷ lục (kiểu cũ) lưu ra 0; nạp vào thế giới không có kỷ lục thì bỏ qua', () => {
+    const s = captureSave(freshWorld(), NOW);
+    expect(s.records).toEqual({ bestDaySale: 0 });
+    s.records.bestDaySale = 50;
+    expect(() => applySave(s, freshWorld(), RULES)).not.toThrow();
+  });
+});

@@ -21,6 +21,9 @@ export type ItemNameOf = (itemId: string) => string;
 
 export const moneyLineText = (amount: number): string => `Bán được: ${amount} quan`;
 
+/** T-027: chữ vàng cạnh dòng tiền khi đêm qua bán được nhiều nhất từ trước tới giờ (systems/records.ts). */
+export const RECORD_TEXT = 'Kỷ lục mới!';
+
 /** Các dòng của màn tổng kết theo thứ tự hiện. Dòng tiền + dòng cây chín luôn có; còn lại chỉ khi xảy ra. */
 export function summaryLines(s: OvernightSummary, staminaMax: number): SummaryLine[] {
   const lines: SummaryLine[] = [
@@ -54,6 +57,8 @@ export interface RevealTiming {
   lineSlide: number;
   /** Số tiền đếm lên mất bao lâu (giây). */
   countSeconds: number;
+  /** T-027: chữ "Kỷ lục mới!" đóng dấu xuống (nảy từ to về cỡ thật) mất bao lâu, bắt đầu ngay khi tiền đếm xong. Mặc định 0. */
+  recordPopSeconds?: number;
 }
 
 export interface RevealState {
@@ -62,9 +67,23 @@ export interface RevealState {
   /** Đã bấm "hiện hết" (lần 1). */
   skipped: boolean;
   lineCount: number;
+  /** T-027: đêm qua lập kỷ lục tiền bán → có chữ "Kỷ lục mới!" hiện sau khi tiền đếm xong. */
+  record: boolean;
 }
 
-export const createReveal = (lineCount: number): RevealState => ({ t: 0, skipped: false, lineCount });
+export const createReveal = (lineCount: number, record = false): RevealState => ({ t: 0, skipped: false, lineCount, record });
+
+/**
+ * T-027: tiến độ "đóng dấu" chữ Kỷ lục mới (0 = chưa hiện, 1 = nằm yên). Bắt đầu lúc số tiền đếm xong (countSeconds) —
+ * đếm lên rồi mới "bùm" kỷ lục. Không có kỷ lục → luôn 0. Đã bấm "hiện hết" → 1.
+ */
+export function recordProgress(r: RevealState, cfg: RevealTiming): number {
+  if (!r.record) return 0;
+  if (r.skipped) return 1;
+  const pop = cfg.recordPopSeconds ?? 0;
+  if (pop <= 0) return r.t >= cfg.countSeconds ? 1 : 0;
+  return Math.min(1, Math.max(0, (r.t - cfg.countSeconds) / pop));
+}
 
 export function tickReveal(r: RevealState, dt: number): void {
   if (dt > 0) r.t += dt;
@@ -89,7 +108,8 @@ export function moneyShown(r: RevealState, earned: number, cfg: RevealTiming): n
 export function allRevealed(r: RevealState, cfg: RevealTiming): boolean {
   if (r.skipped) return true;
   const lastLineDone = Math.max(0, r.lineCount - 1) * cfg.lineInterval + cfg.lineSlide;
-  return r.t >= Math.max(lastLineDone, cfg.countSeconds);
+  const recordDone = r.record ? cfg.countSeconds + (cfg.recordPopSeconds ?? 0) : 0;
+  return r.t >= Math.max(lastLineDone, cfg.countSeconds, recordDone);
 }
 
 /** Bấm Enter / click "Ngày mới": còn đang hiện dần → 'revealAll' (hiện hết ngay); đã hiện hết → 'close' (sang ngày). */

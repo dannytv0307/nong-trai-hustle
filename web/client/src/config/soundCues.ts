@@ -43,6 +43,14 @@ export const SOUND_CUES = {
   // ---- Tiền, thùng, rương ----
   /** Nhận / tạm cả trả tiền (AUD-SFX-002) — mua hạt vẫn mượn tới AUD-SFX-202 (Lô 2). */
   coin: s(['sfx-nhat-xu-1', 'sfx-nhat-xu-2'], { jitterCents: 60 }),
+  /**
+   * T-027: từng đồng xu chạm ô tiền HUD — cùng file "leng keng", nhỏ hơn, nghỉ ngắn (mẻ 6 đồng không thành tiếng ồn); đồng
+   * cuối phát thêm `coin` đầy đủ.
+   */
+  // Nghỉ 0,12 s: mẻ 6 đồng chỉ kêu ~3 lần, chừa chỗ cho `coin` của đồng cuối (cùng file — chung trần sfxMaxConcurrent).
+  coinLand: s(['sfx-nhat-xu-1', 'sfx-nhat-xu-2'], { volume: gameConfig.coinLandSfxVolume, jitterCents: 60, minGapSeconds: 0.12 }),
+  /** T-027: "Kỷ lục mới!" đóng dấu — tiếng xu nâng cao độ (summaryRecordSfxDetune), chờ tiếng riêng (meme profitArrow, T-079). */
+  recordNew: s(['sfx-nhat-xu-1']),
   /** Đếm tiền "tách" ở tổng kết (AUD-SFX-118). */
   countTick: s(['sfx-dem-tien-1', 'sfx-dem-tien-2'], { volume: gameConfig.summaryTickVolume, jitter: true }),
   /** Bỏ đồ vào / lấy ra thúng bán "bịch" (AUD-SFX-113). */

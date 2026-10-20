@@ -273,13 +273,33 @@ export function keyHintSideMaxWidth(): number {
 
 // ---------------------------------------------------------------- T-006: tiền, thùng bán, sạp hạt
 
-/** Ô tiền góc trên trái, ngay dưới thanh Sức (GDD §11): khoảng cách với thanh Sức, rộng, cao, cỡ icon xu. */
-export const MONEY_PANEL = { gap: 10, indent: 10, w: 240, h: 66, icon: 62 } as const;
+/**
+ * Ô tiền góc trên trái, ngay dưới thanh Sức (GDD §11): khoảng cách với thanh Sức, rộng, cao, cỡ icon xu; chữ "60 quan"
+ * bắt đầu sau icon `textGap` px và không được vượt quá mép phải bảng gỗ trừ `textPadRight` px.
+ */
+export const MONEY_PANEL = { gap: 10, indent: 10, w: 240, h: 66, icon: 62, textGap: 14, textPadRight: 6 } as const;
 
 /** Khung ô tiền (bảng gỗ + icon xu + "60 quan"), dưới thanh Sức, thụt vào `indent` so với icon bắp tay (như ảnh mẫu). */
 export function moneyPanelRect(): Rect {
   const s = staminaPanelRect();
   return { x: s.x + MONEY_PANEL.indent, y: s.y + s.h + MONEY_PANEL.gap, w: MONEY_PANEL.w, h: MONEY_PANEL.h };
+}
+
+/** Vùng chữ số tiền trong ô tiền: x = mép trái chữ (origin trái), w = bề rộng tối đa chữ được chiếm. */
+export function moneyTextArea(): { x: number; w: number } {
+  const p = moneyPanelRect();
+  const x = p.x + MONEY_PANEL.icon + MONEY_PANEL.textGap;
+  return { x, w: p.x + p.w - MONEY_PANEL.textPadRight - x };
+}
+
+/**
+ * T-027: scale chữ số tiền = độ "nảy" (`bump` ≥ 1) nhưng không để chữ (bề rộng gốc `textWidth`, origin trái) lòi khỏi
+ * vùng chữ `maxWidth`. Số dài (≥ 4 chữ số) nảy ít hơn, thậm chí co lại < 1 nếu ngay cả lúc đứng yên đã không vừa —
+ * thà chữ nhỏ đi chút còn hơn tràn ra ngoài bảng gỗ.
+ */
+export function moneyTextScale(bump: number, textWidth: number, maxWidth: number): number {
+  if (textWidth <= 0 || maxWidth <= 0) return bump;
+  return Math.min(bump, maxWidth / textWidth);
 }
 
 /**
@@ -418,6 +438,28 @@ export function summaryLineY(i: number): number {
 /** Toạ độ Y dòng chi tiết dưới dòng tiền ("Rau cải ×3 · Khoai lang ×1"). */
 export function summaryDetailY(): number {
   return summaryLineY(0) + SUMMARY_WINDOW.detailGap;
+}
+
+/**
+ * T-027: chữ vàng "Kỷ lục mới!" — mép PHẢI ở mép phải vùng chữ, ngang dòng tiền (dòng tiền nằm bên trái nên không đè).
+ * Chỗ này cũng là chỗ chừa cho meme mũi tên lãi `profitArrow` (T-079): mũi tên đặt ngay trái chữ / chen xuống giữa dòng
+ * tiền và dòng sau, không phải dời các dòng khác.
+ */
+export function summaryRecordAnchor(): { x: number; y: number } {
+  const p = summaryPanelRect();
+  return { x: p.x + p.w - SUMMARY_WINDOW.pad, y: summaryLineY(0) };
+}
+
+/** T-027: xu bay về ô tiền lúc đóng tổng kết cất cánh từ đây (khoảng giữa chữ "Bán được: N quan" của dòng tiền). */
+export function summaryCoinOrigin(): { x: number; y: number } {
+  const p = summaryPanelRect();
+  return { x: p.x + SUMMARY_WINDOW.pad + 240, y: summaryLineY(0) };
+}
+
+/** T-027: tâm icon đồng xu trong ô tiền HUD — đích của xu bay vào, chỗ cất cánh của xu bay ra. */
+export function moneyCoinCenter(): { x: number; y: number } {
+  const m = moneyPanelRect();
+  return { x: m.x + 6 + MONEY_PANEL.icon / 2, y: m.y + m.h / 2 };
 }
 
 /** Nút "Ngày mới" (Enter). */

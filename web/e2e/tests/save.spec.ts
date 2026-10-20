@@ -7,6 +7,7 @@
 // giữa chuỗi đêm, Chơi lại không rò listener.
 // Mỗi test là một browser context MỚI của Playwright → localStorage sạch, không dính save của test khác.
 // Chờ theo TRẠNG THÁI (expect.poll / frame game), không chờ giờ cố định (BUG-006).
+import { GAME_SAVE_VERSION } from '@bph/shared';
 import { expect, test, type Page } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -537,7 +538,8 @@ test('tự lưu theo nhịp: hook rút ngắn 0.5 s → ghi đều; đóng gùi 
   const s = await st(page);
   expect(s.save.lastSaveAt!.reason).toBe('auto');
   const saved = (await call<{ version: number; clock: { day: number } }>(page, 'debugReadSave'))!;
-  expect(saved.version).toBe(1);
+  // BUG-016: so với version hiện tại của save (tăng mỗi lần đổi khuôn save), không ghi số cứng.
+  expect(saved.version).toBe(GAME_SAVE_VERSION);
   expect(saved.clock.day).toBe(1);
 });
 

@@ -8,6 +8,7 @@ import { normalizeMoney, type Wallet } from './economy';
 import type { FarmState } from './farm';
 import { addItem, countOf, type Inventory, type ItemStack } from './inventory';
 import type { Facing } from './movement';
+import { normalizeRecordValue, type DayRecords } from './records';
 import { setStamina, type StaminaState } from './stamina';
 import type { DayClockState } from './time';
 
@@ -30,6 +31,8 @@ export interface SaveWorld {
   chest?: Inventory;
   /** T-026: seed ngẫu nhiên của lần chơi (kiểu gà gáy theo ngày…). Thiếu = 0 (test cũ). */
   seed?: number;
+  /** T-027: kỷ lục (ngày bán nhiều tiền nhất). Thiếu = chưa có kỷ lục (test cũ) — lưu ra 0, nạp vào thì bỏ qua. */
+  records?: DayRecords;
 }
 
 /** Luật game dùng khi nạp (lấy từ gameConfig / dữ liệu). */
@@ -93,6 +96,7 @@ export function captureSave(w: SaveWorld, now: Date): GameSave {
     sellBox: { slots: w.sellBox.slots.map(copyStack) },
     chest: { slots: w.chest ? w.chest.slots.map(copyStack) : [] },
     seed: (w.seed ?? 0) >>> 0,
+    records: { bestDaySale: normalizeRecordValue(w.records?.bestDaySale ?? 0) },
   };
 }
 
@@ -125,8 +129,9 @@ export function applySave(save: GameSave, w: SaveWorld, rules: SaveRules): Appli
   const elsewhere = w.chest ? [w.chest] : [];
   for (const id of rules.requiredItems ?? []) if (ensureItem(w.inventory, w.sellBox, id, elsewhere)) addedItems.push(id);
 
-  // Tiền, Sức (trần Sức theo game hiện tại, không theo save), đồng hồ.
+  // Tiền, kỷ lục, Sức (trần Sức theo game hiện tại, không theo save), đồng hồ.
   w.wallet.money = normalizeMoney(save.money);
+  if (w.records) w.records.bestDaySale = normalizeRecordValue(save.records.bestDaySale);
   setStamina(w.stamina, save.stamina.current);
   w.clock.day = Math.max(1, Math.floor(save.clock.day));
   // Lưu đúng lúc 24:00 (hiếm) → lùi một chút để vào game đồng hồ chạm 24h như thường (ngủ gục), không kẹt ở 24:00.

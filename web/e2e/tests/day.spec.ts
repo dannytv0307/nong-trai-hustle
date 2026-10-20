@@ -564,7 +564,8 @@ test('Enter nhanh lúc các dòng đang trượt: lần 1 hiện hết ngay (ti�
   await waitPhase(page, 'none');
   s = await st(page);
   expect(s.money.current).toBe(money0 + 110);
-  expect(s.hud!.moneyText).toBe(`${money0 + 110} quan`);
+  // T-027: số trên HUD nhảy lên theo từng đồng xu bay về (bay xong ~1 s sau khi đóng tổng kết) → chờ theo trạng thái.
+  await expect.poll(async () => (await st(page)).hud!.moneyText).toBe(`${money0 + 110} quan`);
   expect(s.time.day).toBe(2);
 });
 

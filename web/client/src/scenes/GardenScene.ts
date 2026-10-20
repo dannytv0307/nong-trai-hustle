@@ -143,6 +143,7 @@ import {
   allRevealed,
   createReveal,
   moneyShown,
+  recordProgress,
   saleDetailText,
   summaryLines,
   tickReveal,
@@ -150,6 +151,24 @@ import {
   type RevealTiming,
   type SummaryLine,
 } from '../systems/daySummary';
+import {
+  coinsInFlight,
+  createCoinState,
+  heldCoinMoney,
+  ripeCueCycle,
+  ripeCueOffset,
+  ripeCueProgress,
+  ripeHop,
+  sparkleOffset,
+  sparkleScale,
+  startCoinBatch,
+  stepCoins,
+  type CoinLanding,
+  type CoinParams,
+  type CoinState,
+} from '../systems/juice';
+import { createRecords, noteDaySale } from '../systems/records';
+import { ensureSparkleTexture, FX_SPARKLE, FX_SPARKLE_SIZE } from '../ui/fxTextures';
 import seedStallJson from '../data/seedStall.json';
 import type { SeedStallItem } from '../data/types';
 import {
@@ -178,6 +197,8 @@ import {
   hotbarSlotAt,
   hotbarSlotRect,
   isOverHud,
+  moneyCoinCenter,
+  summaryCoinOrigin,
   pausePanelRect,
   pauseRestartButtonRect,
   pauseResumeButtonRect,
@@ -440,7 +461,28 @@ const REVEAL_TIMING: RevealTiming = {
   lineInterval: gameConfig.summaryLineIntervalSeconds,
   lineSlide: gameConfig.summaryLineSlideSeconds,
   countSeconds: gameConfig.summaryCountSeconds,
+  recordPopSeconds: gameConfig.summaryRecordPopSeconds,
 };
+/** T-027: xu bay vào / ra ô tiền HUD (systems/juice.ts). HUD đọc qua `GardenScene.coinParams` để vẽ cùng nhịp. */
+const COIN_PARAMS: CoinParams = {
+  count: gameConfig.coinFlyCount,
+  flySeconds: gameConfig.coinFlySeconds,
+  staggerSeconds: gameConfig.coinFlyStaggerSeconds,
+  spreadPx: gameConfig.coinFlySpreadPx,
+  arcPx: gameConfig.coinFlyArcPx,
+};
+/**
+ * T-027: pool đốm lấp lánh của cây chín — mỗi lần gọi hái ripeSparkleCount đốm sống ripeSparkleSeconds; các ô lệch nhịp nên
+ * cả ruộng 24 ô chín cùng lúc cũng chỉ ~24 × 0.6 / 2 lần chồng nhau. Hết pool thì bỏ qua (không tạo thêm).
+ */
+const SPARKLE_POOL = 24;
+/**
+ * Đốm lấp lánh nằm theo chiều sâu của CHÍNH cây đó: depth gốc cây + chừng này → ngay trên sprite cây, dưới {ten} khi
+ * {ten} đứng trước cây (chân thấp hơn gốc), dưới tán nhãn (DEPTH_CANOPY) và dưới lớp màu trời. Trước đây đốm ở trên lớp
+ * trời nên đè cả lên {ten} lẫn tán cây (QA T-027). Đốm vẽ blend ADD (cộng sáng vào cây bên dưới) nên lúc chiều tối bị lớp
+ * trời (tối nhất 45%) phủ vẫn là chỗ sáng nhất quanh đó — vẫn thấy cây chín gọi hái.
+ */
+const SPARKLE_DEPTH_ABOVE_CROP = 0.5;
 
 /** Tham số hoạt ảnh đi, lấy từ gameConfig (D-020). */
 const WALK_PARAMS: WalkAnimParams = {
@@ -834,6 +876,20 @@ export interface GardenDebugState {
     lastSfxVolume: number;
     dustActive: number;
     heroScale: { x: number; y: number };
+    /**
+     * T-027 "khoảnh khắc sướng": cây chín gọi hái (số lần đã gọi, đốm lấp lánh đang hiện, cây đang nhún), xu bay (đồng chưa
+     * chạm, các mẻ đang bay, tổng đồng "in" đã chạm, tiền chờ xu bay khi đóng tổng kết, số tiền HUD đang hiện), kỷ lục.
+     */
+    ripeCues: number;
+    ripeSparkles: number;
+    ripeHopping: number;
+    coinFlights: number;
+    coinBatches: { kind: 'in' | 'out'; amount: number; landed: number; total: number }[];
+    coinBatchesStarted: number;
+    coinsLandedIn: number;
+    pendingPayout: number;
+    moneyShown: number;
+    record: { bestDaySale: number; newToday: boolean; badgeProgress: number; sfxPlayed: boolean };
   };
   /**
    * T-026: âm thanh — trạng thái AudioManager (kênh, nhạc / tiếng nền đang phát, jingle, vài lần phát gần nhất), seed lần
@@ -1147,6 +1203,31 @@ export class GardenScene extends Phaser.Scene {
   /** Số tiền đếm lên lần trước (để biết lúc nào phát tiếng "tách") + lúc phát lần trước (nightT). */
   private summaryMoneyPrev = 0;
   private summaryTickAt = Number.NEGATIVE_INFINITY;
+
+  // ---- "Khoảnh khắc sướng" (T-027) ----
+  /** Kỷ lục của lần chơi (lưu trong save version 4). */
+  private readonly records = createRecords();
+  /** Đêm vừa qua lập kỷ lục tiền bán → màn tổng kết có chữ "Kỷ lục mới!" (HUD đọc). */
+  summaryRecord = false;
+  private recordSfxPlayed = false;
+  /** Xu bay vào / ra ô tiền HUD (systems/juice.ts). HUD đọc để vẽ; chỉ scene này sửa. */
+  readonly coins: CoinState = createCoinState();
+  readonly coinParams: CoinParams = COIN_PARAMS;
+  /** Danh sách đồng xu vừa chạm (dùng lại mỗi frame, không tạo mảng mới). */
+  private readonly coinLandings: CoinLanding[] = [];
+  /** Tiền bán thùng đêm qua đã vào ví nhưng còn chờ đóng màn tổng kết mới bay xu về ô tiền. */
+  private pendingPayout = 0;
+  /** Đồng hồ nhịp "gọi hái" của cây chín (giây, đứng khi thế giới đứng). */
+  private ripeT = 0;
+  /** Chu kỳ gọi hái đã xét của từng ô ruộng (NaN = ô không có cây chín). */
+  private readonly ripeCycleSeen: number[] = [];
+  private ripeCueCount = 0;
+  private ripeHoppingNow = 0;
+  /** Pool đốm lấp lánh + đời còn lại (giây). */
+  private readonly sparkles: Phaser.GameObjects.Image[] = [];
+  private readonly sparkleLife: number[] = [];
+  private readonly ripeHopScale = { x: 1, y: 1 };
+  private readonly sparklePt = { x: 0, y: 0 };
 
   // ---- Tự lưu, nạp save, Chơi lại từ đầu (T-008) ----
   /** Tên nhân vật ({ten}) — chưa có màn đặt tên nên là tên mặc định, hoặc tên trong save. */
@@ -1763,6 +1844,8 @@ export class GardenScene extends Phaser.Scene {
       return;
     }
     this.clock += dt;
+    // T-027: xu bay về ô tiền chạy cả lúc đang sáng dần (thức dậy) / chuyển khu — chỉ đứng khi Tạm dừng (return ở trên).
+    this.tickCoins(dt);
     // T-007: đang hỏi ngủ / ngủ / ngủ gục / tổng kết / thức dậy → chỉ chạy chuỗi "đêm" (thế giới đứng yên, đồng hồ dừng).
     if (this.nightPhase !== 'none') {
       this.updateNight(dt);
@@ -1907,6 +1990,7 @@ export class GardenScene extends Phaser.Scene {
     this.updatePops(workDt);
     tickPitchLadder(this.harvestLadder, workDt);
     this.updateCropVisuals();
+    this.updateRipeCues(workDt);
     this.updateBubble(dt);
     this.updateFloats(dt);
     this.updateClickMarker(dt);
@@ -2441,12 +2525,50 @@ export class GardenScene extends Phaser.Scene {
     // Icon hạt bay vào ô hotbar nhận (nếu ở hotbar) — dùng chung hiệu ứng hái; xuất phát từ nút vừa bấm.
     const b = stallButtonRect(i, this.seedStallItems.length);
     this.events.emit('item-gained', { itemId: seedItemId(item.cropId), slot: result.firstSlot, screenX: b.x + 60, screenY: b.y + b.h / 2 });
+    // T-027: xu bay KHỎI ô tiền rơi vào chỗ icon hạt trên nút vừa bấm (số tiền đã trừ ngay — xu chỉ là hình).
+    startCoinBatch(this.coins, 'out', result.cost, moneyCoinCenter(), { x: b.x + 60, y: b.y + b.h / 2 }, COIN_PARAMS);
   }
 
   /** Tiền vừa đổi (`delta` quan, âm = tiêu) → HUD vẽ lại số + chữ bay. */
   private onMoneyChanged(delta: number): void {
     this.lastMoneyDelta = delta;
     this.moneyRevision++;
+  }
+
+  /**
+   * T-027: số tiền HUD đang hiện = ví − tiền bán đêm qua còn chờ đóng tổng kết − phần xu đang bay chưa chạm ô tiền.
+   * Xu chạm tới đâu số nhảy lên tới đó; xu bay hết thì bằng đúng ví.
+   */
+  get moneyShown(): number {
+    return Math.max(0, this.wallet.money - this.pendingPayout - heldCoinMoney(this.coins));
+  }
+
+  /**
+   * T-027: tiền bán đêm qua bay về ô tiền — mẻ xu cất cánh từ `from` (toạ độ màn: dòng tiền của màn tổng kết, hoặc đầu {ten}
+   * khi qua đêm bằng phím G), mỗi đồng chạm ô tiền thì số nhảy + "leng keng".
+   */
+  private startPayout(from: { x: number; y: number }): void {
+    const amount = this.pendingPayout;
+    this.pendingPayout = 0;
+    if (amount > 0) startCoinBatch(this.coins, 'in', amount, from, moneyCoinCenter(), COIN_PARAMS);
+  }
+
+  /** Mỗi frame: xu bay tiếp; đồng "in" chạm ô tiền → "leng keng" nhỏ; đồng cuối → tiếng xu đầy + chữ "+N quan" bay. */
+  private tickCoins(dt: number): void {
+    if (this.coins.batches.length === 0) return;
+    for (const l of stepCoins(this.coins, dt, COIN_PARAMS, this.coinLandings)) {
+      if (l.kind !== 'in') continue;
+      if (!l.last) {
+        this.audio.play('coinLand');
+        continue;
+      }
+      this.onMoneyChanged(l.amount);
+      const sfx = this.audio.play('coin');
+      if (sfx) {
+        this.lastCoinSfx = sfx.key;
+        this.lastSfx = sfx.key;
+      }
+    }
   }
 
   private setShopNotice(text: string, warn: boolean): void {
@@ -2707,7 +2829,11 @@ export class GardenScene extends Phaser.Scene {
     this.overnightCount++;
     this.lastOvernightCause = cause;
     this.inventoryRevision++; // thùng bán vừa trống
-    if (summary.sale.earned > 0) this.onMoneyChanged(summary.sale.earned);
+    // T-027: tiền đã vào ví (save ghi ngay) nhưng ô tiền HUD giữ số cũ tới khi xu bay về: ngủ / ngủ gục → lúc đóng màn tổng
+    // kết; phím G (không có tổng kết) → bay luôn từ đầu {ten}. Kỷ lục tính cho mọi cách qua đêm.
+    this.summaryRecord = noteDaySale(this.records, summary.sale.earned);
+    this.pendingPayout += summary.sale.earned;
+    if (cause === 'devG') this.startPayout(this.heroHeadScreen());
     this.updateSky();
     return summary;
   }
@@ -2820,9 +2946,10 @@ export class GardenScene extends Phaser.Scene {
   private openSummary(summary: OvernightSummary): void {
     this.summaryLineList = summaryLines(summary, this.stamina.max);
     this.summaryDetail = saleDetailText(summary, (id) => itemInfo(id)?.name ?? id);
-    this.summaryReveal = createReveal(this.summaryLineList.length);
+    this.summaryReveal = createReveal(this.summaryLineList.length, this.summaryRecord);
     this.summaryMoneyPrev = 0;
     this.summaryTickAt = Number.NEGATIVE_INFINITY;
+    this.recordSfxPlayed = false;
     this.nightFade = 1;
     this.enterNight('summary');
     // T-026: jingle "ngày mới / tổng kết" (AUD-JNG-003) — nhạc nền nhỏ lại tới khi jingle xong.
@@ -2837,6 +2964,11 @@ export class GardenScene extends Phaser.Scene {
 
   /** Số tiền đang đếm lên → tiếng "tách" (AUD-SFX-118 `dem-tien-1/2`, lệch cao độ ±4%), cách nhau tối thiểu summaryTickSeconds. */
   private tickSummarySound(): void {
+    // T-027: chữ "Kỷ lục mới!" bắt đầu đóng dấu (kể cả khi bấm "hiện hết") → "ting" một lần.
+    if (!this.recordSfxPlayed && recordProgress(this.summaryReveal, REVEAL_TIMING) > 0) {
+      this.recordSfxPlayed = true;
+      this.audio.play('recordNew', { detune: gameConfig.summaryRecordSfxDetune });
+    }
     const earned = this.lastSummary?.sale.earned ?? 0;
     const shown = moneyShown(this.summaryReveal, earned, REVEAL_TIMING);
     if (shown === this.summaryMoneyPrev) return;
@@ -2852,6 +2984,8 @@ export class GardenScene extends Phaser.Scene {
    * đồng (T-093: "sáng dậy trong nhà"). Màn đang tối hẳn nên đổi khu thẳng, không cần màn mờ chuyển khu; màn sáng dần.
    */
   private startWaking(): void {
+    // T-027: đóng màn tổng kết → xu bay từ dòng tiền về ô tiền HUD (HUD đưa ô tiền lên trên lớp tối lúc xu bay).
+    this.startPayout(summaryCoinOrigin());
     this.area = 'house';
     this.placeHero(HOUSE.wakeSpot.x, HOUSE.wakeSpot.y, 'down');
     this.applyAreaView();
@@ -3303,6 +3437,14 @@ export class GardenScene extends Phaser.Scene {
       this.popLife.push(0);
       this.popBaseY.push(0);
     }
+    // T-027: đốm lấp lánh của cây chín (texture vẽ bằng code một lần) + nhịp gọi hái từng ô.
+    ensureSparkleTexture(this);
+    for (let i = 0; i < SPARKLE_POOL; i++) {
+      // Depth đặt lúc bật đốm (theo ô cây) — xem SPARKLE_DEPTH_ABOVE_CROP.
+      this.sparkles.push(this.add.image(0, 0, FX_SPARKLE).setVisible(false).setBlendMode(Phaser.BlendModes.ADD));
+      this.sparkleLife.push(0);
+    }
+    for (let i = 0; i < this.farm.plots.length; i++) this.ripeCycleSeen.push(Number.NaN);
     // T-092: bong bóng vẽ 1:1 với màn (ảnh giao diện làm cho 1080p): container co 1/cameraZoom để bù camera phóng to →
     // toạ độ trong container = px màn. Chữ cỡ px màn (gameConfig.bubbleFontPx).
     this.bubbleBg = this.add.graphics();
@@ -3415,6 +3557,73 @@ export class GardenScene extends Phaser.Scene {
       const alpha = p < 0.5 ? 1 : 1 - (p - 0.5) * 2;
       g.setY(y).setScale(1 + 0.3 * rise).setAlpha(alpha);
       img.setY(y).setScale(1 + 0.3 * rise).setAlpha(alpha);
+    }
+  }
+
+  /**
+   * T-027: cây chín "gọi hái" (GDD §8): mỗi ripeSparkleIntervalSeconds mỗi cây chín nhún nhẹ (gốc đứng yên) + vài đốm lấp
+   * lánh quanh ngọn; các ô lệch nhịp nhau (ripeCueOffset). Nhịp tính bằng hàm thuần (systems/juice.ts) — ở đây chỉ đặt scale
+   * sprite (cây vẽ bằng code dự phòng thì chỉ lấp lánh) và bật đốm từ pool. `dt` = 0 khi thế giới đứng (cửa sổ, khựng hình).
+   */
+  private updateRipeCues(dt: number): void {
+    this.ripeT += dt;
+    const interval = gameConfig.ripeSparkleIntervalSeconds;
+    let hopping = 0;
+    for (let i = 0; i < this.farm.plots.length; i++) {
+      const plot = this.farm.plots[i];
+      const crop = plot.crop;
+      if (!crop || cropStage(crop, growDaysOf) !== 'ripe') {
+        this.ripeCycleSeen[i] = Number.NaN;
+        continue;
+      }
+      const offset = ripeCueOffset(i, interval);
+      const p = ripeCueProgress(this.ripeT, interval, offset, gameConfig.ripeHopSeconds);
+      const cycle = ripeCueCycle(this.ripeT, interval, offset);
+      if (cycle !== this.ripeCycleSeen[i]) {
+        this.ripeCycleSeen[i] = cycle;
+        // Vừa sang lần gọi mới (không bật khi cây vừa chín giữa lúc nghỉ — chờ lần sau cho đúng nhịp).
+        if (p >= 0) this.spawnRipeSparkles(i, plot, cycle);
+      }
+      const sprite = this.plotCropSprites[i];
+      if (!sprite.visible) continue;
+      const base = crop.dryDays > 0 && !plot.watered ? gameConfig.cropThirstyScaleY : 1;
+      const hop = ripeHop(p, gameConfig.ripeHopAmount, this.ripeHopScale);
+      sprite.setScale(hop.x, base * hop.y);
+      if (p >= 0) hopping++;
+    }
+    this.ripeHoppingNow = hopping;
+    this.updateSparkles(dt);
+  }
+
+  /** Bật ripeSparkleCount đốm quanh ngọn cây ô `i` (chỗ tính từ ô + lần gọi — không ngẫu nhiên). Hết pool thì thôi. */
+  private spawnRipeSparkles(i: number, plot: FarmPlot, cycle: number): void {
+    this.ripeCueCount++;
+    const depth = this.plotCropSprites[i].depth + SPARKLE_DEPTH_ABOVE_CROP;
+    for (let j = 0; j < gameConfig.ripeSparkleCount; j++) {
+      const k = this.sparkleLife.findIndex((l) => l <= 0);
+      if (k < 0) return;
+      const off = sparkleOffset(i, cycle, j, T * 0.32, T * 0.26, this.sparklePt);
+      this.sparkles[k].setPosition(plot.x * T + T / 2 + off.x, plot.y * T + T * 0.08 + off.y).setScale(0).setAngle(0).setDepth(depth).setVisible(true);
+      // Đốm sau lệch đời một chút → hai đốm không chớp cùng lúc.
+      this.sparkleLife[k] = gameConfig.ripeSparkleSeconds * (1 + j * 0.25);
+    }
+  }
+
+  private updateSparkles(dt: number): void {
+    if (dt <= 0) return;
+    const size = gameConfig.ripeSparkleSizePx / FX_SPARKLE_SIZE;
+    const dur = gameConfig.ripeSparkleSeconds;
+    for (let k = 0; k < this.sparkles.length; k++) {
+      if (this.sparkleLife[k] <= 0) continue;
+      this.sparkleLife[k] -= dt;
+      const s = this.sparkles[k];
+      if (this.sparkleLife[k] <= 0) {
+        s.setVisible(false);
+        continue;
+      }
+      // Đời đếm ngược; phần dư đầu (đốm thứ hai sống lâu hơn) = chờ ẩn trước khi chớp.
+      const p = 1 - this.sparkleLife[k] / dur;
+      s.setScale(size * sparkleScale(p)).setAngle(s.angle + dt * 120);
     }
   }
 
@@ -4177,6 +4386,7 @@ export class GardenScene extends Phaser.Scene {
       sellBox: this.sellBox,
       chest: this.chest,
       seed: this.worldSeed,
+      records: this.records,
     };
   }
 
@@ -5105,6 +5315,21 @@ export class GardenScene extends Phaser.Scene {
         lastSfxVolume: this.lastSfxVolume,
         dustActive: this.tillDustLife.filter((l) => l > 0).length,
         heroScale: { x: this.hero?.scaleX ?? 1, y: this.hero?.scaleY ?? 1 },
+        ripeCues: this.ripeCueCount,
+        ripeSparkles: this.sparkleLife.filter((l) => l > 0).length,
+        ripeHopping: this.ripeHoppingNow,
+        coinFlights: coinsInFlight(this.coins),
+        coinBatches: this.coins.batches.map((b) => ({ kind: b.kind, amount: b.amount, landed: b.flights.filter((f) => f.landed).length, total: b.flights.length })),
+        coinBatchesStarted: this.coins.started,
+        coinsLandedIn: this.coins.landedIn,
+        pendingPayout: this.pendingPayout,
+        moneyShown: this.moneyShown,
+        record: {
+          bestDaySale: this.records.bestDaySale,
+          newToday: this.summaryRecord,
+          badgeProgress: this.nightPhase === 'summary' ? recordProgress(this.summaryReveal, REVEAL_TIMING) : 0,
+          sfxPlayed: this.recordSfxPlayed,
+        },
       },
       audio: {
         ...this.audio.debugState(),
@@ -5205,6 +5430,12 @@ export class GardenScene extends Phaser.Scene {
     setMoney(this.wallet, n);
     if (this.wallet.money !== before) this.onMoneyChanged(this.wallet.money - before);
     return this.wallet.money;
+  }
+
+  /** T-027 (QA/test): đặt kỷ lục tiền bán một đêm (vd 0 để đêm sau chắc chắn "Kỷ lục mới!", 9999 để chắc chắn không). */
+  debugSetRecord(bestDaySale: number): number {
+    this.records.bestDaySale = Math.max(0, Math.floor(bestDaySale));
+    return this.records.bestDaySale;
   }
 
   /** Ghi đè một ô thùng bán (QA/test). */

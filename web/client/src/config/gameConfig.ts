@@ -472,6 +472,42 @@ export const gameConfig = {
   /** Ngừng hái quá bấy nhiêu giây (giờ game) thì tiếng hái về nấc đầu. */
   harvestPitchResetSeconds: 1.2,
 
+  // ---- "Khoảnh khắc sướng" khi hái, bán, tổng kết (T-027, GDD §8, giả thuyết 2) — Giả định, chỉnh khi thử ----
+  /** Cây chín "gọi hái": cứ bấy nhiêu giây mỗi cây nhún nhẹ + lấp lánh một lần (các ô lệch nhịp nhau). */
+  ripeSparkleIntervalSeconds: 2,
+  /** Một lần nhún dài bao lâu (giây) và bẹp sâu nhất bao nhiêu (0.1 = 10%; gốc cây đứng yên). */
+  ripeHopSeconds: 0.45,
+  ripeHopAmount: 0.1,
+  /** Mỗi lần gọi hái: số đốm lấp lánh quanh ngọn cây, mỗi đốm sống bao lâu (giây), cỡ lớn nhất (px thế giới). */
+  ripeSparkleCount: 2,
+  ripeSparkleSeconds: 0.6,
+  ripeSparkleSizePx: 22,
+  /** Icon món hái bay: số chấm vệt sáng bám sau, mỗi chấm lùi bấy nhiêu giây, độ đục chấm đầu, cỡ chấm đầu (px màn). */
+  harvestTrailCount: 5,
+  harvestTrailGapSeconds: 0.035,
+  harvestTrailAlpha: 0.75,
+  harvestTrailSizePx: 60,
+  /**
+   * Xu bay vào / ra ô tiền HUD: tối đa bấy nhiêu đồng một mẻ (tiền ít hơn thì ít xu hơn), một đồng bay mất bao lâu (giây),
+   * đồng sau cất cánh sau đồng trước bấy nhiêu giây, toả quanh điểm gốc bao xa / vồng lên bao cao (px màn), cỡ đồng xu (px).
+   */
+  coinFlyCount: 6,
+  coinFlySeconds: 0.6,
+  coinFlyStaggerSeconds: 0.07,
+  coinFlySpreadPx: 46,
+  coinFlyArcPx: 150,
+  coinFlySizePx: 44,
+  /** Mỗi đồng xu chạm ô tiền: số tiền nảy to thêm bấy nhiêu (0.25 = 25%) trong bao lâu (giây). */
+  moneyBumpScale: 0.25,
+  moneyBumpSeconds: 0.22,
+  /** Mỗi đồng chạm: tiếng "leng keng" nhỏ (× âm lượng); đồng cuối: tiếng xu đầy đủ (cue `coin`). */
+  coinLandSfxVolume: 0.55,
+  /** Tổng kết: chữ "Kỷ lục mới!" đóng dấu xuống trong bấy nhiêu giây (bắt đầu khi tiền đếm xong), từ cỡ × (1 + số này). */
+  summaryRecordPopSeconds: 0.35,
+  summaryRecordPopScale: 0.7,
+  /** Tiếng "ting" lúc đóng dấu kỷ lục: dùng tiếng xu nâng cao độ bấy nhiêu cent (sáng, khác tiếng xu thường). */
+  summaryRecordSfxDetune: 700,
+
   // ---- Cuộn chuột chọn ô hotbar (BUG-009) ----
   /** Cộng dồn deltaY (px) đủ bấy nhiêu mới tính 1 nấc. Chuột thường ~100 px/nấc → 1 ô; touchpad vuốt nhẹ không nhảy vèo. */
   wheelStepDelta: 100,
