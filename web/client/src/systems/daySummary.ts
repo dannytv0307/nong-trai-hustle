@@ -6,7 +6,7 @@
 import { dayLabel } from './time';
 import type { OvernightSummary } from './overnight';
 
-export type SummaryLineKind = 'money' | 'ripe' | 'unwatered' | 'withered' | 'passout' | 'season';
+export type SummaryLineKind = 'money' | 'xp' | 'ripe' | 'unwatered' | 'withered' | 'passout' | 'season';
 
 export interface SummaryLine {
   kind: SummaryLineKind;
@@ -24,12 +24,20 @@ export const moneyLineText = (amount: number): string => `Bán được: ${amoun
 /** T-027: chữ vàng cạnh dòng tiền khi đêm qua bán được nhiều nhất từ trước tới giờ (systems/records.ts). */
 export const RECORD_TEXT = 'Kỷ lục mới!';
 
-/** Các dòng của màn tổng kết theo thứ tự hiện. Dòng tiền + dòng cây chín luôn có; còn lại chỉ khi xảy ra. */
-export function summaryLines(s: OvernightSummary, staminaMax: number): SummaryLine[] {
-  const lines: SummaryLine[] = [
-    { kind: 'money', text: moneyLineText(s.sale.earned), warn: false },
-    { kind: 'ripe', text: `Cây chín sáng nay: ${s.ripenedThisMorning}`, warn: false },
-  ];
+/** T-042: dòng "Tiếng tăm hôm nay: +N" (GDD §7 — ngay dưới dòng tiền; meme mũi tên lãi T-079 chen giữa hai dòng này). */
+export const xpLineText = (xp: number): string => `Tiếng tăm hôm nay: +${Math.max(0, Math.floor(xp))}`;
+
+/** Số dòng tối đa của màn tổng kết (tiền, tiếng tăm, cây chín, chưa tưới, héo, ngủ gục, đổi mùa) — HUD dựng sẵn chừng này. */
+export const SUMMARY_MAX_LINES = 7;
+
+/**
+ * Các dòng của màn tổng kết theo thứ tự hiện. Dòng tiền + dòng cây chín luôn có; dòng tiếng tăm có khi truyền `xpToday`
+ * (game luôn truyền — T-042, kể cả +0); còn lại chỉ khi xảy ra.
+ */
+export function summaryLines(s: OvernightSummary, staminaMax: number, xpToday: number | null = null): SummaryLine[] {
+  const lines: SummaryLine[] = [{ kind: 'money', text: moneyLineText(s.sale.earned), warn: false }];
+  if (xpToday !== null) lines.push({ kind: 'xp', text: xpLineText(xpToday), warn: false });
+  lines.push({ kind: 'ripe', text: `Cây chín sáng nay: ${s.ripenedThisMorning}`, warn: false });
   if (s.unwateredYesterday > 0) lines.push({ kind: 'unwatered', text: `${s.unwateredYesterday} ô chưa tưới hôm qua`, warn: true });
   if (s.witheredTonight > 0) lines.push({ kind: 'withered', text: `${s.witheredTonight} cây đã héo — click để dọn`, warn: true });
   if (s.passedOut) lines.push({ kind: 'passout', text: `Ngủ gục ngoài đồng — sáng nay Sức ${s.staminaAfter}/${staminaMax}`, warn: true });

@@ -77,6 +77,10 @@ export const SOUND_CUES = {
   /** Sấm xa (AUD-SFX-121), chọn 1 trong 2 — chỉ khi mưa (thời tiết chưa có, hook sẵn). */
   thunder: s(['sfx-sam-xa-1', 'sfx-sam-xa-2']),
 
+  // ---- Level (T-042) ----
+  /** Lên level (AUD-SFX-001 "kèn trống ngắn", 1,66 s) — mỗi thẻ "Lên level N!" một lần. */
+  levelUp: s(['sfx-len-level']),
+
   // ---- Nhiệm vụ (nạp sẵn cho T-043) ----
   questDone: s(['sfx-xong-nhiem-vu']),
 

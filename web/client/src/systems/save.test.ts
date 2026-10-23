@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { defaultV5Fields, GAME_SAVE_VERSION, hashSeedText, parseGameSave, serializeGameSave, validateGameSave, type GameSave } from '@bph/shared';
 import protoV1 from './__fixtures__/save-v1-prototype.json';
 import { createStage4State } from './progress';
+import { pendingLevelCards } from './level';
 import { gameConfig } from '../config/gameConfig';
 import { clearLocalSave, loadLocalSave, SAVE_BACKUP_KEY, SAVE_KEY, writeLocalSave, type SaveStorage } from '../net/saveLocal';
 import { cropById } from './crops';
@@ -500,21 +501,21 @@ describe('T-041: chỗ lưu chặng 4 (version 5)', () => {
   const v1Part = (s: object): Record<string, unknown> =>
     Object.fromEntries(Object.entries(s).filter(([k]) => !ADDED_AFTER_V1.includes(k)));
 
-  it('save version 1 THẬT của prototype (T-008) nạp lên version 5: mọi trường v1 còn nguyên, trường mới = mặc định', () => {
+  it('save version 1 THẬT của prototype (T-008) nạp lên version hiện tại (6): mọi trường v1 còn nguyên, trường mới = mặc định', () => {
     const original = JSON.parse(JSON.stringify(protoV1)) as Record<string, unknown>;
     const r = validateGameSave(JSON.parse(JSON.stringify(protoV1)));
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.fromVersion).toBe(1);
     expect(r.save.version).toBe(GAME_SAVE_VERSION);
-    expect(GAME_SAVE_VERSION).toBe(5);
+    expect(GAME_SAVE_VERSION).toBe(6);
     // Không mất gì: phần v1 giống hệt file gốc.
     expect(v1Part(r.save)).toEqual(v1Part(original));
     expect(Object.keys(v1Part(original)).length).toBeGreaterThan(5);
     expect(r.save.chest).toEqual({ slots: [] });
     expect(r.save.seed).toBe(hashSeedText(protoV1.savedAt));
     expect(r.save.records).toEqual({ bestDaySale: 0 });
-    expect(r.save.progress).toEqual({ xp: 0, level: 1, quests: {}, trackedQuest: null });
+    expect(r.save.progress).toEqual({ xp: 0, level: 1, xpToday: 0, levelSeen: 1, quests: {}, trackedQuest: null });
     expect(r.save.flags).toEqual({});
     expect(r.save.tools).toEqual({});
     expect(r.save.outfitTier).toBe(1);
@@ -539,7 +540,7 @@ describe('T-041: chỗ lưu chặng 4 (version 5)', () => {
     expect(w.stage4!.progress.level).toBe(1);
   });
 
-  it('save version 4 (T-027) nâng lên version 5: kỷ lục, seed, rương giữ nguyên; trường mới mặc định', () => {
+  it('save version 4 (T-027) nâng lên version hiện tại: kỷ lục, seed, rương giữ nguyên; trường mới mặc định', () => {
     const w: SaveWorld = { ...richWorld(), records: { bestDaySale: 88 }, seed: 777 };
     const v4 = JSON.parse(serializeGameSave(captureSave(w, NOW))) as Record<string, unknown>;
     v4.version = 4;
@@ -548,11 +549,69 @@ describe('T-041: chỗ lưu chặng 4 (version 5)', () => {
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.fromVersion).toBe(4);
-    expect(r.save.version).toBe(5);
+    expect(r.save.version).toBe(GAME_SAVE_VERSION);
     expect(r.save.records).toEqual({ bestDaySale: 88 });
     expect(r.save.seed).toBe(777);
     expect(r.save.money).toBe(137);
     expect(r.save).toMatchObject(defaultV5Fields());
+  });
+
+  it('T-042: save version 5 nâng lên 6 — level, tiếng tăm trong level, nhiệm vụ giữ nguyên; xpToday = 0, levelSeen = level (BUG-019)', () => {
+    const w = withStage4();
+    w.stage4!.progress.level = 4;
+    w.stage4!.progress.xp = 77;
+    w.stage4!.progress.quests['ruong-dau-tay'] = { status: 'done', counters: { till: 3 } };
+    const v5 = JSON.parse(serializeGameSave(captureSave(w, NOW))) as { version: number; progress: Record<string, unknown> };
+    v5.version = 5;
+    delete v5.progress.xpToday;
+    delete v5.progress.levelSeen;
+    const r = validateGameSave(v5);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.fromVersion).toBe(5);
+    expect(r.save.version).toBe(6);
+    expect(r.save.progress).toEqual({
+      xp: 77,
+      level: 4,
+      xpToday: 0,
+      levelSeen: 4,
+      quests: { 'ruong-dau-tay': { status: 'done', counters: { till: 3 } } },
+      trackedQuest: null,
+    });
+    // Save cũ đã ở Lv 4 → coi như đã xem hết thẻ (không bật lại thẻ Lv 2…4).
+    expect(pendingLevelCards(r.save.progress)).toEqual([]);
+  });
+
+  it('BUG-019: levelSeen lưu → nạp y nguyên (thẻ chưa xem xếp lại được); sai hình dạng (0, âm, lẻ, chuỗi, thiếu) → save hỏng', () => {
+    const w = withStage4();
+    w.stage4!.progress.level = 3;
+    w.stage4!.progress.levelSeen = 1;
+    const s = captureSave(w, NOW);
+    expect(s.progress.levelSeen).toBe(1);
+    const target = withStage4();
+    applySave(s, target, { ...HOUSE_RULES, requiredItems: [] });
+    expect(target.stage4!.progress.levelSeen).toBe(1);
+    expect(pendingLevelCards(target.stage4!.progress)).toEqual([2, 3]);
+    for (const bad of [0, -1, 2.5, '2', undefined]) {
+      const raw = JSON.parse(serializeGameSave(s)) as { progress: Record<string, unknown> };
+      raw.progress.levelSeen = bad;
+      expect(validateGameSave(raw).ok, String(bad)).toBe(false);
+    }
+  });
+
+  it('T-042: xpToday lưu → nạp y nguyên; sai hình dạng (âm, lẻ, thiếu) → save hỏng', () => {
+    const w = withStage4();
+    w.stage4!.progress.xpToday = 23;
+    const s = captureSave(w, NOW);
+    expect(s.progress.xpToday).toBe(23);
+    const target = withStage4();
+    applySave(s, target, { ...HOUSE_RULES, requiredItems: [] });
+    expect(target.stage4!.progress.xpToday).toBe(23);
+    for (const bad of [-1, 1.5, '3', undefined]) {
+      const raw = JSON.parse(serializeGameSave(s)) as { progress: Record<string, unknown> };
+      raw.progress.xpToday = bad;
+      expect(validateGameSave(raw).ok, String(bad)).toBe(false);
+    }
   });
 
   it('level, cờ, nhiệm vụ, độ bền, bậc đồ, gia đình, thời tiết: lưu → JSON → nạp ra y nguyên', () => {
@@ -560,6 +619,8 @@ describe('T-041: chỗ lưu chặng 4 (version 5)', () => {
     const s4 = w.stage4!;
     s4.progress.level = 5;
     s4.progress.xp = 37;
+    s4.progress.xpToday = 12;
+    s4.progress.levelSeen = 4;
     s4.progress.quests['ruong-dau-tay'] = { status: 'done', counters: { till: 3, plant: 3, water: 3 } };
     s4.progress.quests['rao-vuon'] = { status: 'active', counters: { plots: 0 } };
     s4.progress.trackedQuest = 'rao-vuon';

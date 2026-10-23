@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "agent-company": {
+      "command": "node",
+      "args": [
+        "C:\\Users\\91506\\Desktop\\workplace\\agent-company\\server\\mcp.mjs"
+      ],
+      "env": {
+        "AGENT_COMPANY_URL": "http://127.0.0.1:4317"
+      }
+    }
+  }
+}

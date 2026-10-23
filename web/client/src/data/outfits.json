@@ -1,0 +1,6 @@
+[
+  {"tier": 1, "name": "Nghèo kiết xác", "outfitName": "Đồ rách của ông nội", "unlockLevel": 1, "cost": 0, "requiresMarried": false, "shopDiscount": 0, "haggleDiscount": 0},
+  {"tier": 2, "name": "Người bình thường", "outfitName": "Bộ đồ lành", "unlockLevel": 3, "cost": 50, "requiresMarried": false, "shopDiscount": 0, "haggleDiscount": 0},
+  {"tier": 3, "name": "Khá giả", "outfitName": "Bộ áo chàm", "unlockLevel": 7, "cost": 300, "requiresMarried": false, "shopDiscount": 0.05, "haggleDiscount": 0.05},
+  {"tier": 4, "name": "Phú ông", "outfitName": "Bộ áo the Phú ông", "unlockLevel": 12, "cost": 1500, "requiresMarried": true, "shopDiscount": 0.1, "haggleDiscount": 0.05}
+]

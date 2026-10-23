@@ -48,12 +48,17 @@ export function createStage4State(): Stage4State {
   return { progress: d.progress, flags: d.flags, tools: d.tools, outfit: { tier: d.outfitTier }, family: d.family, weather: d.weather };
 }
 
-// ---------------------------------------------------------------- level (T-042 thêm cộng XP / lên level)
+// ---------------------------------------------------------------- level (cộng XP / lên level: systems/level.ts, T-042)
 
-/** Đặt level (bảng Thử, save sửa tay): số nguyên ≥ 1; tiếng tăm trong level về 0. Trả về level sau khi đặt. */
+/**
+ * Đặt THẲNG level (bảng Thử "Lv N", save sửa tay): số nguyên ≥ 1; tiếng tăm trong level về 0, tiếng tăm hôm nay giữ nguyên.
+ * Không qua grantXp → không có thẻ "Lên level"; BUG-019: coi như đã xem thẻ tới level này (levelSeen = level) — F5 không bật
+ * thẻ của các level vừa nhảy qua. Trả về level sau khi đặt.
+ */
 export function setLevel(p: ProgressState, level: number): number {
   p.level = Number.isFinite(level) ? Math.max(1, Math.floor(level)) : 1;
   p.xp = 0;
+  p.levelSeen = p.level;
   return p.level;
 }
 
@@ -103,6 +108,8 @@ export function copyStage4(s: Stage4State): Stage4State {
     progress: {
       xp: s.progress.xp,
       level: s.progress.level,
+      xpToday: s.progress.xpToday,
+      levelSeen: s.progress.levelSeen,
       quests: Object.fromEntries(Object.entries(s.progress.quests).map(([id, q]) => [id, { status: q.status, counters: { ...q.counters } }])),
       trackedQuest: s.progress.trackedQuest,
     },

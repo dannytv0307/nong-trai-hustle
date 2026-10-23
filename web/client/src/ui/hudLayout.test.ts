@@ -229,7 +229,7 @@ describe('hudLayout — hỏi đi ngủ, tổng kết ngày (T-007)', () => {
     expect(sleepButtonAt(p.x + 2, p.y + 2)).toBeNull();
   });
 
-  it('tổng kết: khung nằm trong màn 1920×1080; 6 dòng + chi tiết nằm trên nút "Ngày mới"', async () => {
+  it('tổng kết: khung nằm trong màn 1920×1080; 7 dòng (T-042) + chi tiết nằm trên nút "Ngày mới"', async () => {
     const { summaryPanelRect, summaryLineY, summaryDetailY, summaryButtonRect } = await import('./hudLayout');
     const p = summaryPanelRect();
     expect(p.x).toBeGreaterThanOrEqual(0);
@@ -238,8 +238,10 @@ describe('hudLayout — hỏi đi ngủ, tổng kết ngày (T-007)', () => {
     expect(p.y + p.h).toBeLessThanOrEqual(gameConfig.gameHeight);
     const b = summaryButtonRect();
     expect(summaryDetailY()).toBeLessThan(summaryLineY(1));
-    for (let i = 1; i < 6; i++) expect(summaryLineY(i)).toBeGreaterThan(summaryLineY(i - 1));
-    expect(summaryLineY(5) + 24).toBeLessThan(b.y);
+    const { SUMMARY_MAX_LINES } = await import('../systems/daySummary');
+    expect(SUMMARY_MAX_LINES).toBe(7);
+    for (let i = 1; i < SUMMARY_MAX_LINES; i++) expect(summaryLineY(i) - summaryLineY(i - 1)).toBeGreaterThanOrEqual(i === 1 ? 48 : 56);
+    expect(summaryLineY(SUMMARY_MAX_LINES - 1) + 24).toBeLessThan(b.y);
     expect(b.y + b.h).toBeLessThanOrEqual(p.y + p.h);
   });
 

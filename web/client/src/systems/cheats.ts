@@ -10,12 +10,17 @@ import cheatPanelJson from '../data/cheatPanel.json';
 import { isAreaId, type AreaId } from './areas';
 import { normalizeMoney, setMoney, type Wallet } from './economy';
 import { addItem, countOf, type Inventory } from './inventory';
+import { grantXp, xpRemaining, xpToNext, type LevelRules } from './level';
 import { activeFlags, clampOutfitTier, flagLabel, hasFlag, setLevel, toggleFlag, type FlagState, type Stage4State } from './progress';
 import { dayLabel } from './time';
 
 export type CheatAction =
+  /** Đặt THẲNG level (không thẻ "Lên level" — nhảy nhanh tới level muốn thử). */
   | { kind: 'setLevel'; level: number }
+  /** T-042: lên `delta` level bằng cách cho ĐÚNG số tiếng tăm còn thiếu (qua grantXp → có thẻ "Lên level"). Âm = đặt thẳng. */
   | { kind: 'addLevel'; delta: number }
+  /** T-042: cho tiếng tăm (qua grantXp như hái cây — đủ thì lên level, có thẻ). */
+  | { kind: 'addXp'; amount: number }
   | { kind: 'addMoney'; amount: number }
   | { kind: 'setMoney'; amount: number }
   /** Qua một đêm như phím G (ruộng lớn, bán thùng, Sức đầy). */
@@ -61,6 +66,8 @@ export function isCheatAction(a: unknown): a is CheatAction {
       return isNum(a.level) && a.level >= 1;
     case 'addLevel':
       return isNum(a.delta);
+    case 'addXp':
+      return isNum(a.amount) && a.amount > 0;
     case 'addMoney':
     case 'setMoney':
       return isNum(a.amount);
@@ -148,6 +155,8 @@ export interface CheatStatusView {
   money: number;
   day: number;
   daysPerSeason: number;
+  /** T-042: tiếng tăm cần cho level kế — có thì dòng trạng thái ghi "Lv 5 (12/150)". */
+  xpNeed?: number;
 }
 
 const WEATHER_TEXT: Readonly<Record<SaveWeatherKind, string>> = { sun: 'nắng', rain: 'mưa' };
@@ -160,8 +169,9 @@ export function cheatStatusLine(v: CheatStatusView): string {
   const s = v.stage4;
   const w = s.weather.day === v.day ? WEATHER_TEXT[s.weather.kind] : '—';
   const flags = activeFlags(s.flags).map(flagLabel);
+  const lv = v.xpNeed !== undefined ? `Lv ${s.progress.level} (${s.progress.xp}/${v.xpNeed})` : `Lv ${s.progress.level}`;
   return [
-    `Lv ${s.progress.level}`,
+    lv,
     `${v.money} quan`,
     dayLabel(v.day, v.daysPerSeason),
     `Bậc đồ ${s.outfit.tier}`,
@@ -192,6 +202,8 @@ export interface CheatRules {
   maxLevel: number;
   outfitTierCount: number;
   daysPerSeason: number;
+  /** T-042: bảng XP (nút "Lv +1" / "+50 XP" cộng tiếng tăm qua grantXp). */
+  level: LevelRules;
 }
 
 /** Việc scene phải làm tiếp (qua đêm n lần như phím G, đặt giờ, đi tới khu). */
@@ -210,6 +222,8 @@ export interface CheatResult {
    */
   syncMoney: boolean;
   task: CheatTask | null;
+  /** T-042: các level vừa đạt qua grantXp ("Lv +1", "+50 XP") → scene xếp thẻ "Lên level" (hiện khi đóng bảng). */
+  levelUps: number[];
 }
 
 const done = (message: string, extra: Partial<CheatResult> = {}): CheatResult => ({
@@ -218,8 +232,15 @@ const done = (message: string, extra: Partial<CheatResult> = {}): CheatResult =>
   inventoryChanged: false,
   syncMoney: false,
   task: null,
+  levelUps: [],
   ...extra,
 });
+
+/** Chữ báo sau khi cộng tiếng tăm: "+50 tiếng tăm → Lv 2 (20/60)" / "… — lên Lv 3, 4!". */
+function xpMessage(prefix: string, levelUps: readonly number[], p: Stage4State['progress'], rules: CheatRules): string {
+  const now = `Lv ${p.level} (${p.xp}/${p.xp + xpRemaining(p, rules.level)})`;
+  return levelUps.length > 0 ? `${prefix} — lên Lv ${levelUps.join(', ')}! Thẻ hiện khi đóng bảng · ${now}` : `${prefix} · ${now}`;
+}
 
 /** Món đang chọn để cho (chỉ số vòng quanh danh sách). */
 export function pickedItem(s: CheatState, rules: CheatRules): string | null {
@@ -237,11 +258,26 @@ export function defaultPickIndex(rules: CheatRules): number {
 export function applyCheat(action: CheatAction, s: CheatState, rules: CheatRules): CheatResult {
   const p = s.stage4.progress;
   switch (action.kind) {
-    case 'setLevel':
     case 'addLevel': {
-      const want = action.kind === 'setLevel' ? action.level : p.level + action.delta;
-      const level = setLevel(p, Math.min(rules.maxLevel, Math.max(1, want)));
-      return done(`Đặt Lv ${level} (tiếng tăm trong level về 0)`);
+      if (action.delta <= 0) {
+        const level = setLevel(p, Math.max(1, p.level + action.delta));
+        return done(`Đặt Lv ${level} (tiếng tăm trong level về 0, không hiện thẻ)`);
+      }
+      // Cho đúng số tiếng tăm còn thiếu tới level đích (không vượt trần nút) → đi qua grantXp như chơi thật, có thẻ.
+      const target = Math.min(rules.maxLevel, p.level + Math.floor(action.delta));
+      if (target <= p.level) return done(`Đã ở Lv ${p.level} (trần nút thử ${rules.maxLevel})`);
+      let amount = -p.xp;
+      for (let lv = p.level; lv < target; lv++) amount += xpToNext(lv, rules.level);
+      const g = grantXp(p, amount, 'cheat', rules.level);
+      return done(xpMessage(`+${g.amount} tiếng tăm`, g.levelUps, p, rules), { levelUps: g.levelUps });
+    }
+    case 'setLevel': {
+      const level = setLevel(p, Math.min(rules.maxLevel, Math.max(1, action.level)));
+      return done(`Đặt Lv ${level} (tiếng tăm trong level về 0, không hiện thẻ)`);
+    }
+    case 'addXp': {
+      const g = grantXp(p, action.amount, 'cheat', rules.level);
+      return done(xpMessage(`+${g.amount} tiếng tăm`, g.levelUps, p, rules), { levelUps: g.levelUps });
     }
     case 'addMoney':
     case 'setMoney': {

@@ -73,3 +73,40 @@ export interface ToolData {
   icon: string;
   note?: string;
 }
+
+/** Loại thứ được mở khi lên level (T-042, data/levels.json): khu, cây, công thức / đồ chế, bộ đồ sắm được, việc mới khác. */
+export type LevelUnlockKind = 'area' | 'crop' | 'recipe' | 'outfit' | 'feature';
+
+/** Một thứ mở khóa trên thẻ "Mở khóa" (GDD §7). */
+export interface LevelUnlockData {
+  kind: LevelUnlockKind;
+  /** Chữ trên thẻ. Cây (`crop`) bỏ trống được — lấy tên trong crops.json. */
+  text?: string;
+  /** Cây: id trong crops.json (unlockLevel của cây phải bằng level của dòng này). */
+  id?: string;
+  /** Dòng phụ nhỏ dưới chữ chính (tuỳ chọn). */
+  detail?: string;
+}
+
+/** Một dòng levels.json: đạt level này thì mở những gì. */
+export interface LevelData {
+  level: number;
+  unlocks: LevelUnlockData[];
+}
+
+/**
+ * Một bậc ngoại hình (GDD §3.14 `OutfitData`) — file `outfits.json`. T-042 dùng `name` làm danh hiệu cạnh level trên HUD;
+ * phần sắm sửa (giá, giảm giá…) dùng ở T-065….
+ */
+export interface OutfitData {
+  tier: number;
+  /** Tên bậc = danh hiệu ("Nghèo kiết xác"). */
+  name: string;
+  /** Tên bộ đồ ("Bộ đồ lành"). */
+  outfitName: string;
+  unlockLevel: number;
+  cost: number;
+  requiresMarried: boolean;
+  shopDiscount: number;
+  haggleDiscount: number;
+}

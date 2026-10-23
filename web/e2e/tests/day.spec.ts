@@ -11,6 +11,9 @@ import { mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+/** T-042: màn tổng kết có thêm dòng "Tiếng tăm hôm nay: +N" (số tuỳ việc đã làm trong test) — so các dòng cũ thì bỏ dòng này. */
+const notXpLine = (t: string): boolean => !t.startsWith('Tiếng tăm hôm nay');
+
 const SCREENSHOT_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'screenshots');
 const PROD = process.env.QA_PROD === '1';
 
@@ -296,7 +299,7 @@ test('Bạn thử thế nào (1): gieo + tưới 3 ô cải, 1 món vào thùng 
   expect(s.night.summary!.moneyShown).toBe(10);
   expect(s.hud!.summaryTitle).toBe('Hết Ngày 1');
   expect(s.hud!.summarySubtitle).toBe('Sáng mai: Ngày 2 · Mùa nắng');
-  expect(s.hud!.summaryLines.map((l) => l.text)).toEqual(['Bán được: 10 quan', 'Cây chín sáng nay: 3']);
+  expect(s.hud!.summaryLines.map((l) => l.text).filter(notXpLine)).toEqual(['Bán được: 10 quan', 'Cây chín sáng nay: 3']);
   expect(s.hud!.summaryLines.every((l) => l.alpha === 1 && l.offsetX === 0)).toBe(true);
   expect(s.hud!.summaryDetail).toBe('Rau cải ×1');
   expect(s.hud!.summaryButtonText).toBe('Ngày mới (Enter)');
@@ -526,7 +529,7 @@ test('Héo sau 2 đêm không tưới: đêm 1 cảnh báo "2 ô chưa tưới h
   await press(page, 'Enter');
   s = await st(page);
   expect(s.night.summary!.data).toMatchObject({ unwateredYesterday: 2, witheredTonight: 2, passedOut: true });
-  expect(s.hud!.summaryLines.map((l) => l.text)).toEqual([
+  expect(s.hud!.summaryLines.map((l) => l.text).filter(notXpLine)).toEqual([
     'Bán được: 0 quan',
     'Cây chín sáng nay: 0',
     '2 ô chưa tưới hôm qua',

@@ -1,16 +1,17 @@
 {
-  "_note": "Bảng Thử (T-041, chỉ bản dev — phím F2 hoặc `). Mỗi hàng: nhãn + các nút; mỗi nút: chữ, việc (action) và bề rộng px tuỳ chọn (mặc định 170). Chữ nút có thể chứa {item} (món đang chọn để cho) và {on} (cờ của nút đang bật: có / không). Các loại việc: setLevel, addLevel, addMoney, setMoney, nextDay, nextSeason, setHour, pickItem, giveItem, toggleFlag, setOutfitTier, setWeather, gotoArea — xem systems/cheats.ts. Task sau thêm nút: thêm một dòng ở đây (việc mới thì thêm loại trong cheats.ts).",
+  "_note": "Bảng Thử (T-041, chỉ bản dev — phím F2 hoặc `). Mỗi hàng: nhãn + các nút; mỗi nút: chữ, việc (action) và bề rộng px tuỳ chọn (mặc định 170). Chữ nút có thể chứa {item} (món đang chọn để cho) và {on} (cờ của nút đang bật: có / không). Các loại việc: setLevel (đặt thẳng, không thẻ), addLevel (cho đủ tiếng tăm qua grantXp — có thẻ \"Lên level\"), addXp (cho tiếng tăm), addMoney, setMoney, nextDay, nextSeason, setHour, pickItem, giveItem, toggleFlag, setOutfitTier, setWeather, gotoArea — xem systems/cheats.ts. Task sau thêm nút: thêm một dòng ở đây (việc mới thì thêm loại trong cheats.ts).",
   "rows": [
     {
       "id": "level",
       "label": "Level",
       "buttons": [
-        { "label": "Lv 1", "w": 140, "action": { "kind": "setLevel", "level": 1 } },
-        { "label": "Lv 2", "w": 140, "action": { "kind": "setLevel", "level": 2 } },
-        { "label": "Lv 5", "w": 140, "action": { "kind": "setLevel", "level": 5 } },
-        { "label": "Lv 8", "w": 140, "action": { "kind": "setLevel", "level": 8 } },
-        { "label": "Lv 10", "w": 150, "action": { "kind": "setLevel", "level": 10 } },
-        { "label": "Lv +1", "w": 150, "action": { "kind": "addLevel", "delta": 1 } }
+        { "label": "Lv 1", "w": 120, "action": { "kind": "setLevel", "level": 1 } },
+        { "label": "Lv 2", "w": 120, "action": { "kind": "setLevel", "level": 2 } },
+        { "label": "Lv 5", "w": 120, "action": { "kind": "setLevel", "level": 5 } },
+        { "label": "Lv 8", "w": 120, "action": { "kind": "setLevel", "level": 8 } },
+        { "label": "Lv 10", "w": 130, "action": { "kind": "setLevel", "level": 10 } },
+        { "label": "Lv +1", "w": 130, "action": { "kind": "addLevel", "delta": 1 } },
+        { "label": "+50 XP", "w": 160, "action": { "kind": "addXp", "amount": 50 } }
       ]
     },
     {

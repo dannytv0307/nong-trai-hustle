@@ -25,6 +25,9 @@
 // như thùng bán), bếp rơm (đặt sẵn, nấu ở T-048), hũ gạo, nón ông nội. Ra khe cửa (bấm S) → đứng trước nhà. Save nhớ khu.
 // T-041: chỗ lưu chặng 4 (`stage4`: level, nhiệm vụ, cờ, độ bền nông cụ, bậc đồ, gia đình, thời tiết — save version 5) +
 // bảng Thử (chỉ bản dev, F2 / `): nút khai báo ở data/cheatPanel.json, việc thuần ở systems/cheats.ts, HUD vẽ (CheatPanelView).
+// T-042: level + tiếng tăm (systems/level.ts): mọi nguồn XP qua `awardXp` → `grantXp`; hái cây cho XP theo crops.json, chữ
+// "+2 tiếng tăm" bay (gộp khi hái liên tiếp); lên level → hàng chờ thẻ "Lên level N! / Mở khóa" (data/levels.json), hiện lần
+// lượt từng thẻ, thế giới đứng (lý do dừng 'levelUp'); tổng kết ngày có dòng "Tiếng tăm hôm nay: +N" (save version 6).
 import Phaser from 'phaser';
 import {
   bendHandOffset,
@@ -172,6 +175,23 @@ import {
   type CoinState,
 } from '../systems/juice';
 import { createRecords, noteDaySale } from '../systems/records';
+import {
+  grantXp,
+  levelBarRatio,
+  markLevelSeen,
+  pendingLevelCards,
+  levelUpHeading,
+  takeXpToday,
+  unlocksAt,
+  xpRemaining,
+  xpToNext,
+  type LevelRules,
+  type LevelUnlock,
+  type XpGrant,
+  type XpSource,
+} from '../systems/level';
+import { levelCardButtonRect, levelCardCloseRect } from '../ui/levelLayout';
+import type { LevelCardModel } from '../ui/LevelUpCardView';
 import { ensureSparkleTexture, FX_SPARKLE, FX_SPARKLE_SIZE } from '../ui/fxTextures';
 import seedStallJson from '../data/seedStall.json';
 import type { SeedStallItem } from '../data/types';
@@ -296,6 +316,7 @@ import {
   type WalkAnimParams,
 } from '../systems/walkAnim';
 import { physicsDebugFromSearch } from '../utils/sceneSelect';
+import { fillPlayerName } from '../utils/text';
 import { AudioManager, type AudioDebugState, type Soundscape } from '../audio/AudioManager';
 import { roosterKey } from '../config/soundCues';
 import {
@@ -451,6 +472,24 @@ const SAVE_RULES: SaveRules = {
   isKnownTool: isToolItem,
 };
 
+/** T-042: bảng tiếng tăm cần cho từng level (GDD §7). */
+const LEVEL_RULES: LevelRules = { xpToNextLevel: gameConfig.xpToNextLevel, xpPerLevelAfter10: gameConfig.xpPerLevelAfter10 };
+/** T-042: giữ bao nhiêu lần nhận tiếng tăm gần nhất trong debugState. */
+const XP_LOG = 12;
+/** T-042: model thẻ "Lên level" lúc không có thẻ (HUD hỏi mỗi frame — dùng chung một object, không tạo mới). */
+const LEVEL_CARD_CLOSED: LevelCardModel = Object.freeze({
+  open: false,
+  level: 0,
+  heading: '',
+  unlocks: [],
+  index: 0,
+  total: 0,
+  t: 0,
+  hoverButton: false,
+  closeHover: false,
+  pointerDown: false,
+});
+
 /** T-041: bảng Thử — chỗ từng nút (chỉ số phẳng như CHEAT_BUTTONS) + luật (mọi món cho được, trần level…). */
 const CHEAT_SLOTS = cheatButtonSlots(cheatButtonWidths(CHEAT_ROWS));
 const CHEAT_RULES: CheatRules = {
@@ -460,6 +499,7 @@ const CHEAT_RULES: CheatRules = {
   maxLevel: gameConfig.cheatMaxLevel,
   outfitTierCount: gameConfig.outfitTierCount,
   daysPerSeason: gameConfig.daysPerSeason,
+  level: LEVEL_RULES,
 };
 
 /** Origin Y của sprite nhân vật: khung đi/đứng 64×96 chân sát đáy (1); khung động tác 128×128 chân ở hàng footY. */
@@ -943,6 +983,19 @@ export interface GardenDebugState {
    * cờ (object + danh sách đang bật), độ bền nông cụ, bậc đồ, gia đình, thời tiết đã chọn.
    */
   progress: SaveProgress & {
+    /**
+     * T-042: tiếng tăm cần cho level kế (cả level) + còn thiếu bao nhiêu; các lần nhận gần nhất (nguồn, số, level vừa đạt);
+     * tổng số lần lên level trong phiên; level đang chờ hiện thẻ; thẻ đang hiện (null = không); chữ "+N tiếng tăm" đang bay;
+     * tiếng tăm hôm qua (dòng tổng kết gần nhất).
+     */
+    xpNeed: number;
+    xpRemaining: number;
+    xpLog: { source: XpSource; amount: number; levelUps: number[] }[];
+    levelUps: number;
+    levelQueue: number[];
+    levelCard: { level: number; heading: string; unlocks: LevelUnlock[]; index: number; total: number; t: number; hoverButton: boolean } | null;
+    xpFloats: string[];
+    summaryXp: number;
     flags: Record<string, boolean>;
     activeFlags: string[];
     tools: Record<string, SaveToolState>;
@@ -1183,6 +1236,8 @@ export class GardenScene extends Phaser.Scene {
   private readonly floatBaseY: number[] = [];
   /** Số Sức chữ bay đang hiện (cộng dồn khi gộp — BUG-012). */
   private readonly floatAmount: number[] = [];
+  /** T-042: chữ bay là Sức hay tiếng tăm (chỉ gộp chữ cùng loại). */
+  private readonly floatKind: FloatKind[] = [];
   private readonly floatLog: string[] = [];
   // Pool bụi đất (nâu) khi cuốc — cùng cách với bụi chân: tạo sẵn, tái dùng.
   private readonly tillDust: Phaser.GameObjects.Arc[] = [];
@@ -1402,6 +1457,20 @@ export class GardenScene extends Phaser.Scene {
   private cheatNotice = '';
   private cheatUses = 0;
   private lastCheatButton: string | null = null;
+
+  // ---- Level + tiếng tăm (T-042) ----
+  /** Các level vừa đạt, chờ hiện thẻ "Lên level" (lên nhiều level một lần → lần lượt từng thẻ). */
+  private readonly levelUpQueue: number[] = [];
+  /** Thẻ đang hiện (null = không): level, các thứ mở, thứ tự trong đợt, giây từ lúc hiện. */
+  private levelCard: { level: number; unlocks: LevelUnlock[]; index: number; total: number; t: number } | null = null;
+  /** Con trỏ trên nút "Hay quá!" của thẻ. */
+  private levelCardHover = false;
+  private levelUpCount = 0;
+  private readonly xpLog: { source: XpSource; amount: number; levelUps: number[] }[] = [];
+  private readonly xpFloatLog: string[] = [];
+  /** Tiếng tăm của ngày vừa hết (dòng "Tiếng tăm hôm nay: +N" ở màn tổng kết). */
+  private summaryXp = 0;
+  private readonly levelViewState: LevelView = { level: 1, tier: 1, xp: 0, need: 1, ratio: 0 };
 
   gardenReady = false;
 
@@ -1926,6 +1995,12 @@ export class GardenScene extends Phaser.Scene {
       this.updateCheatPanel();
       return;
     }
+    // T-042: thẻ "Lên level" đang hiện → chỉ xử lý thẻ (thế giới đứng yên, đồng hồ dừng — lý do 'levelUp').
+    if (this.levelCard) {
+      this.updateLevelCard(dt);
+      this.controls.endFrame();
+      return;
+    }
     // T-007: đang hỏi ngủ / ngủ / ngủ gục / tổng kết / thức dậy → chỉ chạy chuỗi "đêm" (thế giới đứng yên, đồng hồ dừng).
     if (this.nightPhase !== 'none') {
       this.updateNight(dt);
@@ -1935,6 +2010,12 @@ export class GardenScene extends Phaser.Scene {
     // T-093: đang chuyển khu (màn mờ) → nhân vật đứng yên, phím bỏ qua, đồng hồ đứng (lý do 'areaFade'); vài giây là xong.
     if (isTransitioning(this.areaTransition)) {
       this.updateAreaTransition(dt);
+      this.controls.endFrame();
+      return;
+    }
+    // T-042: có level chờ thẻ và không cửa sổ nào đang mở (gùi / thùng / sạp / rương) → hiện thẻ từ frame này.
+    if (this.levelUpQueue.length > 0 && !this.windowOpen) {
+      this.openLevelCard();
       this.controls.endFrame();
       return;
     }
@@ -2798,24 +2879,32 @@ export class GardenScene extends Phaser.Scene {
       this.floatLife.push(0);
       this.floatBaseY.push(0);
       this.floatAmount.push(0);
+      this.floatKind.push('stamina');
     }
   }
 
-  /** Chữ "+8 Sức" (xanh mạ) / "−4 Sức" (đỏ son) bay lên cạnh đầu {ten} rồi mờ dần (GDD §8). */
-  private spawnFloat(amount: number): void {
+  /**
+   * Chữ "+8 Sức" (xanh mạ) / "−4 Sức" (đỏ son) bay lên cạnh đầu {ten} rồi mờ dần (GDD §8). T-042: `kind` 'xp' = chữ "+2 tiếng
+   * tăm" (vàng hoa hoè) khi hái — cùng pool, cùng nhịp bay, chỉ gộp với chữ cùng loại.
+   */
+  private spawnFloat(amount: number, kind: FloatKind = 'stamina'): void {
     const gain = amount > 0;
     const dur = gameConfig.staminaFloatSeconds;
     // BUG-012: ăn / trừ liền tay thì các chữ cùng loại chồng khít nhau → GỘP vào chữ cùng dấu còn mới
-    // (< staminaFloatMergeSeconds) thành một số cộng dồn ("+16 Sức"), chữ đó nảy lại và bay tiếp từ chỗ đang đứng.
+    // (< staminaFloatMergeSeconds) thành một số cộng dồn ("+16 Sức", "+6 tiếng tăm"), chữ đó nảy lại và bay tiếp từ chỗ đang đứng.
     const merge = this.floats.findIndex(
-      (_, k) => this.floatLife[k] > 0 && dur - this.floatLife[k] < gameConfig.staminaFloatMergeSeconds && Math.sign(this.floatAmount[k]) === Math.sign(amount),
+      (_, k) =>
+        this.floatLife[k] > 0 &&
+        this.floatKind[k] === kind &&
+        dur - this.floatLife[k] < gameConfig.staminaFloatMergeSeconds &&
+        Math.sign(this.floatAmount[k]) === Math.sign(amount),
     );
     if (merge >= 0) {
       this.floatAmount[merge] += amount;
-      const f = this.floats[merge].setText(floatLabel(this.floatAmount[merge]));
+      const f = this.floats[merge].setText(floatLabel(this.floatAmount[merge], kind));
       this.floatBaseY[merge] = f.y;
       this.floatLife[merge] = dur;
-      this.logFloat(f.text);
+      this.logFloat(f.text, kind);
       return;
     }
     let i = this.floatLife.findIndex((l) => l <= 0);
@@ -2830,11 +2919,12 @@ export class GardenScene extends Phaser.Scene {
       if (Math.abs(this.floats[k].y - y) < gap) y = this.floats[k].y - gap;
     }
     this.floatAmount[i] = amount;
-    const text = floatLabel(amount);
-    this.logFloat(text);
+    this.floatKind[i] = kind;
+    const text = floatLabel(amount, kind);
+    this.logFloat(text, kind);
     this.floats[i]
       .setText(text)
-      .setColor(cssColor(gain ? 'sprout' : 'vermilion'))
+      .setColor(cssColor(kind === 'xp' ? 'gold' : gain ? 'sprout' : 'vermilion'))
       .setStroke(cssColor(gain ? 'ink' : 'paper'), gain ? 7 : 5)
       .setPosition(x, y)
       .setAlpha(1)
@@ -2844,9 +2934,11 @@ export class GardenScene extends Phaser.Scene {
     this.floatBaseY[i] = y;
   }
 
-  private logFloat(text: string): void {
-    this.floatLog.push(text);
-    if (this.floatLog.length > FLOAT_LOG) this.floatLog.shift();
+  /** Ghi chữ bay cho QA: chữ Sức vào floatLog (như cũ), chữ tiếng tăm vào xpFloatLog (để test cũ về Sức không lẫn). */
+  private logFloat(text: string, kind: FloatKind = 'stamina'): void {
+    const log = kind === 'xp' ? this.xpFloatLog : this.floatLog;
+    log.push(text);
+    if (log.length > FLOAT_LOG) log.shift();
   }
 
   private updateFloats(dt: number): void {
@@ -2917,6 +3009,8 @@ export class GardenScene extends Phaser.Scene {
     // T-027: tiền đã vào ví (save ghi ngay) nhưng ô tiền HUD giữ số cũ tới khi xu bay về: ngủ / ngủ gục → lúc đóng màn tổng
     // kết; phím G (không có tổng kết) → bay luôn từ đầu {ten}. Kỷ lục tính cho mọi cách qua đêm.
     this.summaryRecord = noteDaySale(this.records, summary.sale.earned);
+    // T-042: tiếng tăm hôm nay → dòng tổng kết, ngày mới đếm lại từ 0. Thùng bán ở nhà KHÔNG cho tiếng tăm (GDD §7: chỉ bán ở chợ).
+    this.summaryXp = takeXpToday(this.stage4.progress);
     this.pendingPayout += summary.sale.earned;
     if (cause === 'devG') this.startPayout(this.heroHeadScreen());
     this.updateSky();
@@ -3029,7 +3123,7 @@ export class GardenScene extends Phaser.Scene {
 
   /** Mở màn tổng kết với kết quả đêm vừa qua: dòng chữ, dòng chi tiết bán, nhịp hiện dần từ đầu. */
   private openSummary(summary: OvernightSummary): void {
-    this.summaryLineList = summaryLines(summary, this.stamina.max);
+    this.summaryLineList = summaryLines(summary, this.stamina.max, this.summaryXp);
     this.summaryDetail = saleDetailText(summary, (id) => itemInfo(id)?.name ?? id);
     this.summaryReveal = createReveal(this.summaryLineList.length, this.summaryRecord);
     this.summaryMoneyPrev = 0;
@@ -3430,6 +3524,8 @@ export class GardenScene extends Phaser.Scene {
     this.inventoryRevision++;
     this.farmCounts.harvests++;
     this.spendStamina(gameConfig.staminaCostHarvest, false);
+    // T-042: tiếng tăm theo cây (crops.json harvestXp: rau / khoai 2, dưa / lúa 5) + chữ "+2 tiếng tăm" bay lên.
+    this.awardXp(cropById(cropId)?.harvestXp ?? 0, 'harvest', true);
     // Tiếng "pop": không random cao độ — hái liên tiếp thì lên dần theo thang ngũ cung, ngừng lâu thì về nấc đầu.
     const detune = nextLadderStep(this.harvestLadder, gameConfig.harvestPitchLadderCents, gameConfig.harvestPitchResetSeconds);
     const harvestSfx = this.audio.play('harvest', { detune });
@@ -4223,6 +4319,7 @@ export class GardenScene extends Phaser.Scene {
       return this.windowCloseHover ? 'close' : null;
     }
     if (this.cheatPanelOpen) return this.cheatHover >= 0 ? `cheat-${this.cheatHover}` : this.windowCloseHover ? 'close' : null;
+    if (this.levelCard) return this.levelCardHover ? 'levelCard' : this.windowCloseHover ? 'close' : null;
     if (this.nightPhase === 'sleepPrompt') return this.sleepPromptHover ?? (this.windowCloseHover ? 'close' : null);
     if (this.nightPhase === 'summary') return this.summaryHoverButton ? 'summary' : this.windowCloseHover ? 'close' : null;
     if (this.nightPhase !== 'none') return null;
@@ -4375,8 +4472,8 @@ export class GardenScene extends Phaser.Scene {
     this.pauseVolumeHover = null;
     this.closeRestartConfirm();
     this.pauseReasons.set('pauseMenu', false);
-    // T-041: bảng Thử còn mở bên dưới → thế giới vẫn đứng (bảng đóng mới chạy lại).
-    if (!this.cheatPanelOpen) {
+    // T-041: bảng Thử còn mở bên dưới → thế giới vẫn đứng (bảng đóng mới chạy lại). T-042: thẻ lên level cũng vậy.
+    if (!this.cheatPanelOpen && !this.levelCard) {
       this.physics.world.resume();
       this.hero.anims.resume();
     }
@@ -4487,6 +4584,8 @@ export class GardenScene extends Phaser.Scene {
     this.loadReason = r.status === 'corrupt' ? r.reason : null;
     if (r.status !== 'ok') return;
     const applied = applySave(r.save, this.saveWorld(), SAVE_RULES);
+    // BUG-019: F5 / đóng tab lúc thẻ "Lên level" đang hiện / còn chờ → save có level mới mà levelSeen cũ → xếp lại các thẻ chưa xem.
+    this.levelUpQueue.push(...pendingLevelCards(this.stage4.progress));
     this.loadAddedItems = applied.addedItems;
     this.worldSeed = applied.seed;
     this.playerName = applied.playerName;
@@ -5173,7 +5272,12 @@ export class GardenScene extends Phaser.Scene {
   private runCheat(i: number): string {
     const btn = CHEAT_BUTTONS[i];
     if (!btn) return '';
+    // T-042: "Lv N" đặt thẳng level → bỏ thẻ đang chờ (của "+50 XP" bấm trước đó) cho khỏi hiện thẻ level cũ.
+    const a = btn.action;
+    if (a.kind === 'setLevel' || (a.kind === 'addLevel' && a.delta <= 0)) this.levelUpQueue.length = 0;
     const r = applyCheat(btn.action, this.cheatState(), CHEAT_RULES);
+    // "Lv +1" / "+50 XP" đi qua grantXp → thẻ "Lên level" xếp hàng, hiện khi đóng bảng Thử.
+    if (r.levelUps.length > 0) this.queueLevelUps(r.levelUps);
     this.cheatUses++;
     this.lastCheatButton = btn.label;
     this.cheatNotice = r.message;
@@ -5234,7 +5338,141 @@ export class GardenScene extends Phaser.Scene {
   }
 
   private cheatStatus(): string {
-    return cheatStatusLine({ stage4: this.stage4, money: this.wallet.money, day: this.dayClock.day, daysPerSeason: gameConfig.daysPerSeason });
+    return cheatStatusLine({
+      stage4: this.stage4,
+      money: this.wallet.money,
+      day: this.dayClock.day,
+      daysPerSeason: gameConfig.daysPerSeason,
+      xpNeed: xpToNext(this.stage4.progress.level, LEVEL_RULES),
+    });
+  }
+
+  // ---------------------------------------------------------------- level + tiếng tăm (T-042)
+
+  /**
+   * Cộng tiếng tăm từ một nguồn — MỌI nguồn gọi hàm này (hái cây; T-043 thưởng nhiệm vụ: `awardXp(n, 'quest')`; cá, săn, chế
+   * đồ, sắm đồ, bán ở chợ ở các task sau). `float` = hiện chữ "+N tiếng tăm" bay trên đầu {ten}. Lên level → xếp thẻ.
+   */
+  awardXp(amount: number, source: XpSource, float = false): XpGrant {
+    const g = grantXp(this.stage4.progress, amount, source, LEVEL_RULES);
+    if (g.amount <= 0) return g;
+    this.xpLog.push({ source, amount: g.amount, levelUps: [...g.levelUps] });
+    if (this.xpLog.length > XP_LOG) this.xpLog.shift();
+    if (float) this.spawnFloat(g.amount, 'xp');
+    if (g.levelUps.length > 0) this.queueLevelUps(g.levelUps);
+    return g;
+  }
+
+  /** Xếp các level vừa đạt vào hàng chờ thẻ (hiện khi chơi bình thường + không cửa sổ nào mở — xem updateFrame). */
+  private queueLevelUps(levels: readonly number[]): void {
+    this.levelUpQueue.push(...levels);
+    this.levelUpCount += levels.length;
+  }
+
+  /** Thứ HUD cần để vẽ bảng level góc trên trái (HUD hỏi mỗi frame → điền lại một object, không tạo mới). */
+  get levelView(): Readonly<LevelView> {
+    const p = this.stage4.progress;
+    const v = this.levelViewState;
+    v.level = p.level;
+    v.tier = this.stage4.outfit.tier;
+    v.xp = p.xp;
+    v.need = xpToNext(p.level, LEVEL_RULES);
+    v.ratio = levelBarRatio(p, LEVEL_RULES);
+    return v;
+  }
+
+  /**
+   * Hiện thẻ của level kế trong hàng chờ. Thẻ đầu của đợt: đóng gùi / cửa sổ (đã kiểm không mở), thế giới đứng như bảng Thử
+   * (lý do dừng 'levelUp', vật lý + anim dừng), thôi đi theo click, kèn "lên level" + rung màn vừa (GDD §8), lưu ngay.
+   * Lên nhiều level một lần: hiện LẦN LƯỢT từng thẻ (mỗi level một danh sách mở khóa riêng — gộp thì thẻ quá dài), "Thẻ 1/2".
+   */
+  private openLevelCard(): void {
+    const level = this.levelUpQueue.shift();
+    if (level === undefined) return;
+    const first = this.levelCard === null;
+    const index = first ? 1 : this.levelCard!.index + 1;
+    const total = first ? 1 + this.levelUpQueue.length : this.levelCard!.total;
+    this.levelCard = { level, unlocks: unlocksAt(level), index, total, t: 0 };
+    this.levelCardHover = false;
+    this.windowCloseHover = false;
+    if (first) {
+      this.pauseReasons.set('levelUp', true);
+      cancelClickMove(this.clickMove);
+      this.hideClickMarker();
+      this.feetBody.setVelocity(0, 0);
+      this.physics.world.pause();
+      this.hero.anims.pause();
+      this.hideHighlight();
+      this.shakeScreen(gameConfig.screenShakeMedium);
+      this.saveNow('levelUp');
+    }
+    this.controls.clearPending();
+    this.audio.play('levelUp');
+  }
+
+  /** Đóng thẻ đang hiện: còn level chờ → thẻ kế; hết → thế giới chạy lại, {ten} khoe một câu (bong bóng vàng). */
+  private advanceLevelCard(): void {
+    if (!this.levelCard) return;
+    // BUG-019: thẻ này đã xem → ghi levelSeen + lưu ngay (F5 sau đó không hiện lại thẻ này, vẫn hiện các thẻ còn chờ).
+    markLevelSeen(this.stage4.progress, this.levelCard.level);
+    this.saveNow('levelSeen');
+    if (this.levelUpQueue.length > 0) {
+      this.openLevelCard();
+      return;
+    }
+    this.levelCard = null;
+    this.levelCardHover = false;
+    this.windowCloseHover = false;
+    this.pauseReasons.set('levelUp', false);
+    if (!this.pauseMenuOpen) {
+      this.physics.world.resume();
+      this.hero.anims.resume();
+    }
+    this.dragKind = null;
+    this.dragBlocked = true; // chuột còn giữ sau khi bấm nút → không tính là click xuống ruộng
+    this.controls.clearPending();
+    this.audio.play('uiClose');
+    // Story bible §6.4 (khoe khoang): lên level → "Thấy chưa! Cả làng Lầy ai cuốc nhanh bằng {ten}!"
+    this.showBubble(fillPlayerName(bubbles.boastLevelUp, this.playerName), 'bark', 'boast');
+  }
+
+  /**
+   * Mỗi frame lúc thẻ hiện: Enter / Space / Esc / click (nút, X hay bất cứ đâu) = đóng thẻ (sang thẻ kế). Bỏ qua phím / click
+   * trong levelCardInputDelaySeconds đầu — đang giữ chuột hái liền tay thì không lỡ tay đóng thẻ trước khi kịp đọc.
+   */
+  private updateLevelCard(dt: number): void {
+    const card = this.levelCard;
+    if (!card) return;
+    card.t += dt;
+    const c = this.controls;
+    const sp = c.pointerScreen(this.pointerScreenPt);
+    const inside = c.isPointerInside();
+    const rows = Math.max(1, card.unlocks.length);
+    this.levelCardHover = inside && rectContains(levelCardButtonRect(rows), sp.x, sp.y);
+    this.windowCloseHover = inside && rectContains(levelCardCloseRect(rows), sp.x, sp.y);
+    const key = c.consumePressed('accept') || c.consumePressed('confirm') || c.consumePressed('menu');
+    const clicked = c.consumePrimaryPress();
+    c.clearPending();
+    if (card.t < gameConfig.levelCardInputDelaySeconds) return;
+    if (key || clicked) this.advanceLevelCard();
+  }
+
+  /** Thứ HUD cần để vẽ thẻ "Lên level". */
+  get levelCardModel(): LevelCardModel {
+    const card = this.levelCard;
+    if (!card) return LEVEL_CARD_CLOSED;
+    return {
+      open: true,
+      level: card.level,
+      heading: levelUpHeading(card.level),
+      unlocks: card.unlocks,
+      index: card.index,
+      total: card.total,
+      t: card.t,
+      hoverButton: this.levelCardHover,
+      closeHover: this.windowCloseHover,
+      pointerDown: this.primaryDown,
+    };
   }
 
   // ---------------------------------------------------------------- QA
@@ -5371,8 +5609,8 @@ export class GardenScene extends Phaser.Scene {
         lastBark: this.barks.lastLine,
         barkChance: this.barkChance,
         barkCooldownSeconds: this.barkCooldown,
-        floatsActive: this.floats.filter((_, i) => this.floatLife[i] > 0).map((f) => f.text),
-        floatsActiveY: this.floats.flatMap((f, i) => (this.floatLife[i] > 0 ? [{ text: f.text, y: f.y }] : [])),
+        floatsActive: this.floats.filter((_, i) => this.floatLife[i] > 0 && this.floatKind[i] === 'stamina').map((f) => f.text),
+        floatsActiveY: this.floats.flatMap((f, i) => (this.floatLife[i] > 0 && this.floatKind[i] === 'stamina' ? [{ text: f.text, y: f.y }] : [])),
         floatLog: [...this.floatLog],
       },
       farmJuice: {
@@ -5569,9 +5807,22 @@ export class GardenScene extends Phaser.Scene {
       progress: (() => {
         const s = this.stage4;
         const p = s.progress;
+        const card = this.levelCard;
         return {
           xp: p.xp,
           level: p.level,
+          xpToday: p.xpToday,
+          levelSeen: p.levelSeen,
+          xpNeed: xpToNext(p.level, LEVEL_RULES),
+          xpRemaining: xpRemaining(p, LEVEL_RULES),
+          xpLog: this.xpLog.map((e) => ({ ...e, levelUps: [...e.levelUps] })),
+          levelUps: this.levelUpCount,
+          levelQueue: [...this.levelUpQueue],
+          levelCard: card
+            ? { level: card.level, heading: levelUpHeading(card.level), unlocks: card.unlocks.map((u) => ({ ...u })), index: card.index, total: card.total, t: card.t, hoverButton: this.levelCardHover }
+            : null,
+          xpFloats: this.floats.filter((_, i) => this.floatLife[i] > 0 && this.floatKind[i] === 'xp').map((f) => f.text),
+          summaryXp: this.summaryXp,
           quests: Object.fromEntries(Object.entries(p.quests).map(([id, q]) => [id, { status: q.status, counters: { ...q.counters } }])),
           trackedQuest: p.trackedQuest,
           flags: { ...s.flags },
@@ -5604,6 +5855,27 @@ export class GardenScene extends Phaser.Scene {
     const i = typeof which === 'number' ? which : CHEAT_BUTTONS.findIndex((b) => b.label === which);
     const s = CHEAT_SLOTS[i];
     return s ? { x: s.rect.x + s.rect.w / 2, y: s.rect.y + s.rect.h / 2 } : null;
+  }
+
+  /**
+   * T-042 (QA/test): cộng tiếng tăm như một nguồn thật (mặc định 'cheat', không chữ bay) — đủ thì lên level, thẻ hiện ở frame
+   * sau (khi không cửa sổ nào mở). Trả về số đã cộng + các level vừa đạt.
+   */
+  debugGrantXp(amount: number, source: XpSource = 'cheat', float = false): XpGrant {
+    return this.awardXp(amount, source, float);
+  }
+
+  /** T-042 (QA/test): tâm nút "Hay quá!" của thẻ lên level đang hiện (toạ độ màn 1920×1080); null = không có thẻ. */
+  debugLevelCardButtonCenter(): { x: number; y: number } | null {
+    if (!this.levelCard) return null;
+    const r = levelCardButtonRect(Math.max(1, this.levelCard.unlocks.length));
+    return { x: r.x + r.w / 2, y: r.y + r.h / 2 };
+  }
+
+  /** T-042 (QA/test): đóng thẻ lên level đang hiện như bấm Enter (bỏ qua nhịp chờ đầu). Trả về còn thẻ nào đang hiện không. */
+  debugCloseLevelCard(): boolean {
+    this.advanceLevelCard();
+    return this.levelCard !== null;
   }
 
   /** T-041 (QA/test): mở / đóng bảng Thử như bấm F2 (chỉ bản dev). Trả về bảng có đang mở không. */
@@ -5944,9 +6216,22 @@ function jaggedBubblePoints(w: number, h: number, cy: number, spike: number): { 
   return pts;
 }
 
-/** Chữ bay: "+8 Sức" / "−4 Sức" (dấu trừ thật, không phải gạch nối). */
-function floatLabel(amount: number): string {
-  return amount > 0 ? `+${amount} Sức` : `−${-amount} Sức`;
+/** T-042: chữ bay là Sức hay tiếng tăm. */
+type FloatKind = 'stamina' | 'xp';
+
+/** T-042: bảng level trên HUD — level, bậc đồ (danh hiệu), tiếng tăm trong level / cần, tỷ lệ thanh. */
+export interface LevelView {
+  level: number;
+  tier: number;
+  xp: number;
+  need: number;
+  ratio: number;
+}
+
+/** Chữ bay: "+8 Sức" / "−4 Sức" (dấu trừ thật, không phải gạch nối); T-042: "+2 tiếng tăm". */
+function floatLabel(amount: number, kind: FloatKind = 'stamina'): string {
+  const unit = kind === 'xp' ? 'tiếng tăm' : 'Sức';
+  return amount > 0 ? `+${amount} ${unit}` : `−${-amount} ${unit}`;
 }
 
 function rectContains(r: Rect, px: number, py: number): boolean {

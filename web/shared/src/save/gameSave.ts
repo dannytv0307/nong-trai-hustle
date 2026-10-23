@@ -12,8 +12,11 @@
  * - 4 (T-027): thêm `records` — kỷ lục của lần chơi (ngày bán được nhiều tiền nhất → dòng "Kỷ lục mới!" ở tổng kết ngày).
  * - 5 (T-041): chỗ lưu cho chặng 4 — `progress` (tiếng tăm, level, nhiệm vụ), `flags` (cờ: đã cưới, bếp gạch…), `tools`
  *   (độ bền nông cụ), `outfitTier` (bậc ngoại hình), `family` (gia đình), `weather` (thời tiết hôm nay). Mặc định rỗng.
+ * - 6 (T-042): `progress.xpToday` — tiếng tăm kiếm được TRONG NGÀY đang chơi (dòng "Tiếng tăm hôm nay: +N" ở tổng kết ngày;
+ *   F5 giữa ngày không mất). Về 0 khi qua đêm. `progress.levelSeen` (BUG-019) — level cao nhất đã xem thẻ "Lên level": F5 lúc
+ *   thẻ đang hiện / còn chờ thì vào lại vẫn hiện các thẻ levelSeen+1 … level.
  */
-export const GAME_SAVE_VERSION = 5;
+export const GAME_SAVE_VERSION = 6;
 
 export type SaveFacing = 'up' | 'down' | 'left' | 'right';
 export type SaveSoil = 'untilled' | 'tilled';
@@ -116,10 +119,20 @@ export interface SaveQuest {
 export interface SaveProgress {
   xp: number;
   level: number;
+  /** Version 6 (T-042): tiếng tăm đã nhận trong ngày đang chơi (số nguyên ≥ 0), về 0 khi qua đêm. */
+  xpToday: number;
+  /**
+   * Version 6 (BUG-019): level cao nhất người chơi đã xem thẻ "Lên level / Mở khóa" (số nguyên ≥ 1). `level > levelSeen` lúc nạp
+   * → hiện lại các thẻ levelSeen+1 … level. Bảng Thử "Lv N" (đặt thẳng, không thẻ) đặt levelSeen = N.
+   */
+  levelSeen: number;
   quests: Record<string, SaveQuest>;
   /** Nhiệm vụ đang ghim ở HUD góc trên phải (null = không ghim). */
   trackedQuest: string | null;
 }
+
+/** Tiến trình như ở version 5 (chưa có `xpToday`, `levelSeen`). */
+export type SaveProgressV5 = Omit<SaveProgress, 'xpToday' | 'levelSeen'>;
 
 /** Độ bền một nông cụ (T-049, GDD §3.8). Nông cụ không có mục trong `tools` = còn nguyên (đầy độ bền). */
 export interface SaveToolState {
@@ -154,7 +167,7 @@ export interface SaveWeather {
 /** Version 5 (T-041): như version 4 + chỗ lưu cho level, nhiệm vụ, cờ, nông cụ, bậc đồ, gia đình, thời tiết. */
 export interface GameSaveV5 extends Omit<GameSaveV4, 'version'> {
   version: 5;
-  progress: SaveProgress;
+  progress: SaveProgressV5;
   /** Cờ bật / tắt theo tên (vd `married`, `brickKitchen`). Không có tên = tắt. */
   flags: Record<string, boolean>;
   /** Độ bền theo mã nông cụ (tools.json). */
@@ -165,13 +178,22 @@ export interface GameSaveV5 extends Omit<GameSaveV4, 'version'> {
   weather: SaveWeather;
 }
 
-/** Save ở định dạng hiện tại. */
-export type GameSave = GameSaveV5;
+/** Version 6 (T-042): như version 5, `progress` có thêm `xpToday` + `levelSeen` (BUG-019). */
+export interface GameSaveV6 extends Omit<GameSaveV5, 'version' | 'progress'> {
+  version: 6;
+  progress: SaveProgress;
+}
 
-/** Giá trị mặc định của các trường thêm ở version 5 (save cũ nâng lên + game mới). Mỗi lần gọi trả object MỚI. */
-export function defaultV5Fields(): Pick<GameSaveV5, 'progress' | 'flags' | 'tools' | 'outfitTier' | 'family' | 'weather'> {
+/** Save ở định dạng hiện tại. */
+export type GameSave = GameSaveV6;
+
+/**
+ * Giá trị mặc định của các trường chặng 4 (thêm ở version 5; `progress.xpToday`, `progress.levelSeen` từ version 6) — game mới + save cũ nâng lên.
+ * Mỗi lần gọi trả object MỚI.
+ */
+export function defaultV5Fields(): Pick<GameSave, 'progress' | 'flags' | 'tools' | 'outfitTier' | 'family' | 'weather'> {
   return {
-    progress: { xp: 0, level: 1, quests: {}, trackedQuest: null },
+    progress: { xp: 0, level: 1, xpToday: 0, levelSeen: 1, quests: {}, trackedQuest: null },
     flags: {},
     tools: {},
     outfitTier: 1,
@@ -191,12 +213,15 @@ export type SaveParseResult =
  * 3 → 4 (T-027): thêm `records` trống (chưa có kỷ lục — save cũ không ghi tiền bán từng ngày nên không suy ra được).
  * 4 → 5 (T-041): thêm progress (Lv 1, 0 tiếng tăm, chưa nhiệm vụ nào), cờ trống, nông cụ còn nguyên, bậc đồ 1, gia đình trống,
  *   thời tiết "chưa chọn" (day 0). Không suy từ dữ liệu cũ: các hệ này chưa có trước version 5.
+ * 5 → 6 (T-042): `progress.xpToday` = 0 (save cũ không ghi tiếng tăm từng ngày; tiếng tăm hôm nay tính từ lúc nạp);
+ *   `progress.levelSeen` = level hiện tại (save cũ không có thẻ nào → coi như đã xem hết, không bật thẻ cũ).
  */
 export const SAVE_MIGRATIONS: Readonly<Record<number, (old: Record<string, unknown>) => Record<string, unknown>>> = {
   1: (old) => ({ ...old, version: 2, chest: { slots: [] } }),
   2: (old) => ({ ...old, version: 3, seed: hashSeedText(typeof old.savedAt === 'string' ? old.savedAt : '') }),
   3: (old) => ({ ...old, version: 4, records: { bestDaySale: 0 } }),
   4: (old) => ({ ...old, version: 5, ...defaultV5Fields() }),
+  5: (old) => ({ ...old, version: 6, progress: isObj(old.progress) ? { ...old.progress, xpToday: 0, levelSeen: old.progress.level } : old.progress }),
 };
 
 /** Số nguyên hợp lệ làm seed (0 … 2³²−1). */
@@ -300,6 +325,9 @@ function checkProgress(p: unknown): boolean {
     isObj(p) &&
     isCount(p.xp) &&
     isInt(p.level) &&
+    isCount(p.xpToday) &&
+    isInt(p.levelSeen) &&
+    p.levelSeen >= 1 &&
     p.level >= 1 &&
     isObj(p.quests) &&
     Object.values(p.quests).every(checkQuest) &&
@@ -324,7 +352,7 @@ function checkV5Fields(s: Record<string, unknown>): string | null {
   return null;
 }
 
-/** Trả về mô tả trường sai đầu tiên, hoặc null nếu đúng hình dạng phiên bản hiện tại (5). */
+/** Trả về mô tả trường sai đầu tiên, hoặc null nếu đúng hình dạng phiên bản hiện tại (6). */
 function checkCurrent(s: Record<string, unknown>): string | null {
   if (s.version !== GAME_SAVE_VERSION) return 'version';
   if (!isStr(s.savedAt)) return 'savedAt';

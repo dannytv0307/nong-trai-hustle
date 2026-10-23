@@ -3,10 +3,10 @@
 // Nhờ vậy nhiều cửa sổ chồng nhau (vd mất focus lúc đang mở gùi) không làm đồng hồ chạy lại sớm khi mới đóng một cái.
 // T-006: thùng bán / sạp hạt gọi set('sellBox' | 'seedStall', true). T-007: hỏi ngủ / đang ngủ / ngủ gục = 'sleep',
 // màn tổng kết ngày = 'daySummary'. T-093: cửa sổ rương = 'chest', đang mờ màn chuyển khu = 'areaFade'. T-041: bảng Thử
-// (chỉ bản dev) = 'cheatPanel'.
+// (chỉ bản dev) = 'cheatPanel'. T-042: thẻ "Lên level / Mở khóa" = 'levelUp'.
 
 /** Các lý do đã biết. Thêm cửa sổ mới thì thêm tên ở đây. */
-export type PauseReason = 'bag' | 'pauseMenu' | 'sellBox' | 'seedStall' | 'chest' | 'daySummary' | 'sleep' | 'areaFade' | 'cheatPanel';
+export type PauseReason = 'bag' | 'pauseMenu' | 'sellBox' | 'seedStall' | 'chest' | 'daySummary' | 'sleep' | 'areaFade' | 'cheatPanel' | 'levelUp';
 
 export class PauseReasons {
   private readonly reasons = new Set<PauseReason>();

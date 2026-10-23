@@ -10,6 +10,8 @@ import {
   recordProgress,
   saleDetailText,
   summaryLines,
+  SUMMARY_MAX_LINES,
+  xpLineText,
   summarySubtitle,
   summaryTitle,
   tickReveal,
@@ -51,6 +53,19 @@ describe('summaryLines', () => {
     expect(lines[4].text).toBe('Ngủ gục ngoài đồng — sáng nay Sức 70/100');
     expect(lines[5].text).toBe('Mùa mưa tới rồi!');
     expect(lines.filter((l) => l.warn).map((l) => l.kind)).toEqual(['unwatered', 'withered', 'passout']);
+  });
+
+  it('T-042: dòng "Tiếng tăm hôm nay: +N" ngay dưới dòng tiền (có cả +0); tối đa 7 dòng', () => {
+    expect(summaryLines(base(), 100, 34).map((l) => l.text)).toEqual(['Bán được: 52 quan', 'Tiếng tăm hôm nay: +34', 'Cây chín sáng nay: 3']);
+    expect(summaryLines(base(), 100, 0)[1]).toEqual({ kind: 'xp', text: 'Tiếng tăm hôm nay: +0', warn: false });
+    expect(xpLineText(-3)).toBe('Tiếng tăm hôm nay: +0');
+    const all = summaryLines(
+      base({ unwateredYesterday: 2, witheredTonight: 1, passedOut: true, staminaAfter: 70, seasonChanged: true, newSeason: 'rainy', newDay: 5, dayEnded: 4 }),
+      100,
+      12,
+    );
+    expect(all.map((l) => l.kind)).toEqual(['money', 'xp', 'ripe', 'unwatered', 'withered', 'passout', 'season']);
+    expect(all.length).toBe(SUMMARY_MAX_LINES);
   });
 
   it('dòng chi tiết bán, tiêu đề, dòng phụ', () => {

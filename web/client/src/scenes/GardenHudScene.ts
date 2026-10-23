@@ -14,6 +14,8 @@
 // chữ mực có nút đóng (X), tooltip món + tên khu trên khung giấy nhỏ. Khung / nút / cửa sổ dựng qua `ui/uiKit.ts` (dùng
 // chung cho cửa sổ làm sau: thoại, cửa hàng, Kỳ kèo); thiếu ảnh → vẽ tạm bằng code.
 // T-026: cửa sổ Tạm dừng có 2 hàng âm lượng Nhạc / Hiệu ứng (nút − / + gỗ, số %). Bấm / hover do GardenScene xử lý.
+// T-042: bảng level "Lv 1 · Nghèo kiết xác" + thanh XP mảnh dưới ô tiền (ui/levelLayout.ts), thẻ "Lên level N! / Mở khóa" +
+// pháo giấy (ui/LevelUpCardView.ts). Màn tổng kết thêm dòng "Tiếng tăm hôm nay: +N".
 import Phaser from 'phaser';
 import { gameConfig } from '../config/gameConfig';
 import { cssColor, palette } from '../config/palette';
@@ -73,7 +75,10 @@ import {
   type Rect,
 } from '../ui/hudLayout';
 import { blinkOn, dayLabel, formatClock, isPassOutWarning, seasonOf, skyPhase } from '../systems/time';
-import { lineProgress, moneyLineText, moneyShown, RECORD_TEXT, recordProgress, summarySubtitle, summaryTitle, type RevealTiming } from '../systems/daySummary';
+import { lineProgress, moneyLineText, moneyShown, RECORD_TEXT, recordProgress, SUMMARY_MAX_LINES, summarySubtitle, summaryTitle, type RevealTiming } from '../systems/daySummary';
+import { levelBadgeText } from '../systems/level';
+import { LEVEL_BADGE, levelBadgeRect, levelBarRect, levelIconCenter, levelTextArea, levelTextScale } from '../ui/levelLayout';
+import { LevelUpCardView } from '../ui/LevelUpCardView';
 import { bumpScale, coinProgress, flightPoint, hasIncomingCoins, trailFade, trailProgress, type Point } from '../systems/juice';
 import { ensureGlowTexture, FX_GLOW, FX_GLOW_SIZE } from '../ui/fxTextures';
 import { drawItemIcon, itemIconTexture, showsItemCount } from '../ui/itemArt';
@@ -188,6 +193,23 @@ export interface HudDebugState {
   cheatButtonTexts: string[];
   cheatStatusText: string;
   cheatNoticeText: string;
+  /**
+   * T-042: bảng level góc trên trái — chữ đang hiện ("Lv 1 · Nghèo kiết xác"), tỷ lệ thanh XP đang vẽ (chạy dần tới số mới) và
+   * đích, khung bảng; thẻ "Lên level": đang hiện, chữ lớn, các dòng mở khóa ("Khu mới: Núi sau nhà"), chữ nút, số mảnh pháo
+   * giấy đang bay, cỡ chữ nhỏ nhất trên thẻ.
+   */
+  level: {
+    text: string;
+    barRatio: number;
+    barTarget: number;
+    rect: Rect;
+    cardVisible: boolean;
+    cardHeading: string;
+    cardUnlocks: string[];
+    cardButton: string;
+    confetti: number;
+    cardMinFontPx: number;
+  };
 }
 
 /** Texture viền màn tối (vẽ một lần, độ phân giải thấp rồi phóng — gradient mượt nên không vỡ). */
@@ -412,6 +434,20 @@ export class GardenHudScene extends Phaser.Scene {
   private summaryShownFor: unknown = null;
   /** T-041: bảng Thử — chỉ dựng ở bản dev (gameConfig.devCheatsEnabled); bản build là null. */
   private cheatView: CheatPanelView | null = null;
+  // ---- Level + tiếng tăm (T-042) ----
+  private levelText!: Phaser.GameObjects.Text;
+  private levelStar!: Phaser.GameObjects.Image | Phaser.GameObjects.Graphics;
+  private levelStarBase = 1;
+  private levelBarFill!: Phaser.GameObjects.Graphics;
+  /** Level + tỷ lệ thanh đang VẼ (thanh chạy dần: lên level thì chạy đầy, về 0 rồi chạy tiếp tới số mới). */
+  private barLevel = 1;
+  private barShown = 0;
+  private barDrawn = -1;
+  private levelTextDrawn = '';
+  /** Tiếng tăm lần trước (đổi → sao nảy). */
+  private xpSeen = '';
+  private levelBumpT = 0;
+  private levelCard!: LevelUpCardView;
 
   constructor() {
     super('GardenHud');
@@ -449,6 +485,7 @@ export class GardenHudScene extends Phaser.Scene {
     this.buildVignette();
     this.buildStaminaBar();
     this.buildMoney();
+    this.buildLevelBadge();
     this.buildClock();
 
     // Góc dưới phải: gợi ý phím (GDD §11). Dòng chính dài → đặt ngay TRÊN nút gùi (khe bên phải nút gùi chỉ ~340px);
@@ -481,6 +518,7 @@ export class GardenHudScene extends Phaser.Scene {
     this.buildPauseWindow();
     this.buildNight();
     this.cheatView = gameConfig.devCheatsEnabled ? new CheatPanelView(this, CHEAT_ROWS) : null;
+    this.levelCard = new LevelUpCardView(this);
 
     // T-027: quầng sáng (gradient vẽ bằng code một lần) cho vệt sáng sau icon bay — chế độ hoà màu ADD cho "sáng" thật.
     ensureGlowTexture(this);
@@ -724,7 +762,7 @@ export class GardenHudScene extends Phaser.Scene {
     this.summarySubText = this.add.text(s.x + s.w / 2, s.y + 126, '', { ...paperText.note, fontSize: '26px' }).setOrigin(0.5);
     this.summaryDetailText = this.add.text(s.x + SUMMARY_WINDOW.pad + 4, summaryDetailY(), '', paperText.note).setOrigin(0, 0.5);
     const parts: Phaser.GameObjects.GameObject[] = [...this.summaryChrome.parts, divider, this.summaryTitleText, this.summarySubText, this.summaryDetailText];
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < SUMMARY_MAX_LINES; i++) {
       const t = this.add
         .text(s.x + SUMMARY_WINDOW.pad, summaryLineY(i), '', { fontFamily: uiFontFamily, fontSize: '36px', fontStyle: 'bold', color: cssColor('ink') })
         .setOrigin(0, 0.5);
@@ -1304,6 +1342,8 @@ export class GardenHudScene extends Phaser.Scene {
     this.updateClock(dt);
     this.updatePauseWindow();
     this.cheatView?.update(this.garden.cheatPanelModel);
+    this.updateLevelBadge(dt);
+    this.levelCard.update(this.garden.levelCardModel);
     this.updateNight(dt);
     this.updateVignette(dt);
     this.updateTooltip();
@@ -1589,7 +1629,86 @@ export class GardenHudScene extends Phaser.Scene {
       cheatButtonTexts: this.cheatView?.buttonTexts ?? [],
       cheatStatusText: this.cheatView?.statusText ?? '',
       cheatNoticeText: this.cheatView?.noticeText ?? '',
+      level: {
+        text: this.levelText?.text ?? '',
+        barRatio: this.barShown,
+        barTarget: garden?.levelView.ratio ?? 0,
+        rect: levelBadgeRect(),
+        cardVisible: this.levelCard?.visible ?? false,
+        cardHeading: this.levelCard?.headingText ?? '',
+        cardUnlocks: this.levelCard?.unlockTexts ?? [],
+        cardButton: this.levelCard?.buttonText ?? '',
+        confetti: this.levelCard?.confettiVisible ?? 0,
+        cardMinFontPx: this.levelCard?.minFontPx() ?? 0,
+      },
     };
+  }
+
+  // ---------------------------------------------------------------- level + tiếng tăm (T-042)
+
+  /** Bảng gỗ dưới ô tiền: ngôi sao, "Lv 1 · Nghèo kiết xác" trắng điệp viền mực, thanh XP mảnh (nền mực, ruột vàng). */
+  private buildLevelBadge(): void {
+    const r = levelBadgeRect();
+    new UiFrame(this, 'hud-plank', r);
+    const ic = levelIconCenter();
+    this.levelStar = addUiIcon(this, 'icon-star', ic.x, ic.y, LEVEL_BADGE.icon);
+    this.levelStarBase = this.levelStar.scaleX;
+    const t = levelTextArea();
+    this.levelText = this.add.text(t.x, t.y, '', { ...woodText.body, fontSize: '28px' }).setOrigin(0, 0.5);
+    const bar = levelBarRect();
+    const back = this.add.graphics();
+    back.fillStyle(palette.ink, 0.85).fillRect(bar.x - 2, bar.y - 2, bar.w + 4, bar.h + 4);
+    this.levelBarFill = this.add.graphics();
+    const lv = this.garden.levelView;
+    this.barLevel = lv.level;
+    this.barShown = lv.ratio;
+    this.barDrawn = -1;
+    this.levelTextDrawn = '';
+    this.xpSeen = `${lv.level}|${lv.xp}`;
+    this.levelBumpT = 0;
+  }
+
+  /**
+   * Mỗi frame: chữ level (đổi khi level / bậc đồ đổi; dài quá thì co), thanh XP chạy dần tới số mới (lên level: chạy đầy → về 0
+   * → chạy tiếp), sao nảy khi được tiếng tăm. Graphics chỉ vẽ lại khi tỷ lệ đổi.
+   */
+  private updateLevelBadge(dt: number): void {
+    const lv = this.garden.levelView;
+    const text = levelBadgeText(lv.level, lv.tier);
+    if (text !== this.levelTextDrawn) {
+      this.levelTextDrawn = text;
+      this.levelText.setText(text).setScale(1);
+      this.levelText.setScale(levelTextScale(this.levelText.width, levelTextArea().w));
+    }
+    const seen = `${lv.level}|${lv.xp}`;
+    if (seen !== this.xpSeen) {
+      this.xpSeen = seen;
+      this.levelBumpT = gameConfig.moneyBumpSeconds;
+    }
+    this.levelBumpT = Math.max(0, this.levelBumpT - dt);
+    this.levelStar.setScale(this.levelStarBase * bumpScale(this.levelBumpT, gameConfig.moneyBumpSeconds, gameConfig.moneyBumpScale));
+    // Thanh: level giảm (bảng Thử đặt thấp hơn) → nhảy thẳng; level tăng → chạy đầy rồi sang level sau.
+    if (lv.level < this.barLevel) {
+      this.barLevel = lv.level;
+      this.barShown = lv.ratio;
+    }
+    const target = lv.level > this.barLevel ? 1 : lv.ratio;
+    const step = gameConfig.xpBarFillRate * dt;
+    this.barShown = this.barShown < target ? Math.min(target, this.barShown + step) : Math.max(target, this.barShown - step);
+    if (this.barShown >= 1 && lv.level > this.barLevel) {
+      this.barLevel++;
+      this.barShown = 0;
+    }
+    const drawn = Math.round(this.barShown * 1000);
+    if (drawn === this.barDrawn) return;
+    this.barDrawn = drawn;
+    const bar = levelBarRect();
+    const g = this.levelBarFill.clear();
+    const w = Math.round(bar.w * this.barShown);
+    if (w > 0) {
+      g.fillStyle(palette.gold, 1).fillRect(bar.x, bar.y, w, bar.h);
+      g.fillStyle(palette.paper, 0.3).fillRect(bar.x, bar.y, w, Math.max(1, Math.round(bar.h * 0.35)));
+    }
   }
 }
 

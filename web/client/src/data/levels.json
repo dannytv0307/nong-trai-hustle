@@ -1,0 +1,71 @@
+{
+  "_note": "T-042: thẻ \"Mở khóa\" khi lên level (GDD §2 bảng level, §7, §3.14). Mỗi dòng: level đạt tới + các thứ mở. kind: area (khu), crop (cây — id trong crops.json, unlockLevel phải khớp; tên lấy từ crops.json), recipe (công thức / đồ chế / nâng cấp), outfit (bộ đồ sắm được), feature (việc / luật mới khác). text = chữ hiện trên thẻ (crop thì bỏ trống được), detail = dòng phụ nhỏ (tuỳ chọn). Thêm level mới = thêm một dòng; task làm tính năng chỉ cần sửa chữ ở đây. Level không có dòng nào vẫn hiện thẻ \"Lên level N!\" (không có mục mở khóa).",
+  "levels": [
+    {
+      "level": 2,
+      "unlocks": [{ "kind": "area", "text": "Núi sau nhà", "detail": "Hái nấm, măng, sim · chặt củi, tre" }]
+    },
+    {
+      "level": 3,
+      "unlocks": [
+        { "kind": "crop", "id": "dua-hau", "detail": "Lời nhất mùa nắng" },
+        { "kind": "recipe", "text": "Cuốc sắt", "detail": "Lò rèn ông Hai Bễ" },
+        { "kind": "outfit", "text": "Bộ đồ lành", "detail": "Sắm ở quán cô Tám Thóc" }
+      ]
+    },
+    {
+      "level": 4,
+      "unlocks": [
+        { "kind": "feature", "text": "Câu cá ở hồ làng", "detail": "Chú Đục sửa bến câu" },
+        { "kind": "recipe", "text": "Cần câu tre", "detail": "Xưởng mộc chú Đục" },
+        { "kind": "recipe", "text": "Rìu sắt", "detail": "Lò rèn ông Hai Bễ" }
+      ]
+    },
+    {
+      "level": 5,
+      "unlocks": [
+        { "kind": "crop", "id": "lua-nep", "detail": "Trồng mùa mưa" },
+        { "kind": "recipe", "text": "Ủ rượu nếp · Thùng tưới" },
+        { "kind": "area", "text": "Đồng Lầy", "detail": "Thuê theo vụ tối đa 2 thửa (ông Sào)" }
+      ]
+    },
+    {
+      "level": 6,
+      "unlocks": [{ "kind": "area", "text": "Chợ làng Sung", "detail": "Bán giá ×1,3 · mua lễ vật" }]
+    },
+    {
+      "level": 7,
+      "unlocks": [
+        { "kind": "recipe", "text": "Gùi to · Cần câu trúc" },
+        { "kind": "outfit", "text": "Bộ áo chàm", "detail": "Sắm ở sạp bà Cân" },
+        { "kind": "feature", "text": "Đồng Lầy: thuê tối đa 4 thửa" }
+      ]
+    },
+    {
+      "level": 8,
+      "unlocks": [
+        { "kind": "recipe", "text": "Nỏ săn gà rừng", "detail": "Xưởng mộc chú Đục" },
+        { "kind": "feature", "text": "Đồng Lầy: mua đứt thửa" }
+      ]
+    },
+    {
+      "level": 9,
+      "unlocks": [
+        { "kind": "recipe", "text": "Cải tạo bếp gạch", "detail": "Ăn hồi ×1,5 Sức" },
+        { "kind": "feature", "text": "Đồng Lầy: đủ 6 thửa" }
+      ]
+    },
+    {
+      "level": 10,
+      "unlocks": [{ "kind": "feature", "text": "Nhiệm vụ cưới vợ", "detail": "Bà mối gõ cửa" }]
+    },
+    {
+      "level": 11,
+      "unlocks": [{ "kind": "feature", "text": "Mua đứt cả 6 thửa Đồng Lầy" }]
+    },
+    {
+      "level": 12,
+      "unlocks": [{ "kind": "outfit", "text": "Bộ áo the Phú ông", "detail": "Sạp bà Cân · cần đã cưới" }]
+    }
+  ]
+}

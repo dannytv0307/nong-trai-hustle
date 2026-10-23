@@ -9,6 +9,9 @@ import { mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+/** T-042: màn tổng kết có thêm dòng "Tiếng tăm hôm nay: +N" (số tuỳ việc đã làm trong test) — so các dòng cũ thì bỏ dòng này. */
+const notXpLine = (t: string): boolean => !t.startsWith('Tiếng tăm hôm nay');
+
 const SCREENSHOT_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'screenshots');
 
 interface XY {
@@ -352,7 +355,7 @@ test('E3 tổng kết đầy đủ + tiền cộng đúng 1 lần (Enter dồn, 
   await expect.poll(async () => (await st(page)).night.summary.allRevealed, { timeout: 15_000 }).toBe(true);
   s = await st(page);
   expect(s.night.summary.data).toMatchObject({ ripenedThisMorning: 0, unwateredYesterday: 1, witheredTonight: 1 });
-  expect(s.hud.summaryLines.map((l: { text: string }) => l.text)).toEqual([
+  expect(s.hud.summaryLines.map((l: { text: string }) => l.text).filter(notXpLine)).toEqual([
     'Bán được: 74 quan',
     'Cây chín sáng nay: 0',
     '1 ô chưa tưới hôm qua',
@@ -663,7 +666,7 @@ test('E13 1366×768: tổng kết nhiều dòng (tiền, chín, chưa tưới, h
   await waitPhase(page, 'summary');
   await expect.poll(async () => (await st(page)).night.summary.allRevealed, { timeout: 15_000 }).toBe(true);
   const s = await st(page);
-  const lines = s.hud.summaryLines.map((l: { text: string }) => l.text);
+  const lines = s.hud.summaryLines.map((l: { text: string }) => l.text).filter(notXpLine);
   console.log('[E13] lines', JSON.stringify(lines), 'detail', s.hud.summaryDetail, 'minFont', s.hud.nightMinFontPx);
   expect(lines).toEqual([
     'Bán được: 74 quan',

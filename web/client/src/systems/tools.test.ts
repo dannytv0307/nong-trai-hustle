@@ -142,7 +142,7 @@ describe('ensureItem / nạp save cũ chưa có cuốc', () => {
 
   /** Save kiểu T-008 (trước khi có cuốc): hạt ở ô 1–2, đang chọn ô 1 (đã nâng lên version hiện tại: thêm rương trống). */
   const oldSave = (): GameSave => ({
-    version: GAME_SAVE_VERSION as 5,
+    version: GAME_SAVE_VERSION as GameSave["version"],
     savedAt: '2026-10-12T08:30:00.000Z',
     player: { name: 'Tèo', area: 'garden', x: 500, y: 600, facing: 'left' },
     clock: { day: 3, elapsedSeconds: 120 },

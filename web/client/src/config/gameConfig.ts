@@ -251,6 +251,8 @@ export const gameConfig = {
    * — xem `tillScreenShake`).
    */
   screenShakeLight: { amplitudeTiles: 0.05, durationSeconds: 0.1 },
+  /** Rung vừa (lên level — GDD §8). */
+  screenShakeMedium: { amplitudeTiles: 0.1, durationSeconds: 0.15 },
 
   // ---- Bản đồ Vườn, va chạm, camera (T-001, GDD §5, §12) ----
   /** Kích thước bản đồ Vườn [cột, hàng] (ô). */
@@ -431,6 +433,41 @@ export const gameConfig = {
   outfitTierCount: 4,
   /** Level cao nhất nút "Lv +1" của bảng Thử lên tới (GDD không có trần level — endless; đây chỉ là trần của nút thử). */
   cheatMaxLevel: 30,
+
+  // ---- Level + tiếng tăm (T-042, GDD §7) ----
+  /** Tiếng tăm (XP) cần để lên level kế: phần tử i = từ level i+1 lên i+2 (1→2 = 30 … 9→10 = 480). */
+  xpToNextLevel: [30, 60, 100, 150, 200, 260, 330, 400, 480] as readonly number[],
+  /** Từ level 10: mỗi level cần thêm bấy nhiêu so với level trước (10→11 = 480 + 90, 11→12 = 480 + 180…). */
+  xpPerLevelAfter10: 90,
+  // XP theo nguồn (GDD §7). Hái cây: cột `harvestXp` trong crops.json (rau, khoai 2 / dưa, lúa 5). Cá: `FishData` (T-034).
+  // Nhiệm vụ: thưởng trong quests.json (T-043). Các nguồn chưa có tính năng chỉ khai báo sẵn để gọi grantXp.
+  /** Hái lượm / chặt 1 món trên núi (nấm, măng, sim, củi, tre). */
+  forageXp: 1,
+  /** Gặt 1 thửa ở Đồng Lầy (D-041). */
+  fieldHarvestXp: 15,
+  /** Săn 1 gà rừng. */
+  huntXp: 15,
+  /** Chế đồ / nâng cấp nông cụ. */
+  craftXp: 10,
+  /** Sắm một bộ đồ (lên bậc ngoại hình, §3.14) — tính như một lần nâng cấp. */
+  outfitXpReward: 10,
+  /** Bán ở chợ (chợ phiên Lầy / chợ làng Sung — bán ngay): 1 XP mỗi bấy nhiêu quan. Thùng bán ở nhà KHÔNG cho XP (GDD §7). */
+  marketSaleQuanPerXp: 20,
+  /** (Should, §3.16) Chào hỏi mỗi ngày: +XP lần đầu nói chuyện với mỗi người, trần mỗi ngày. */
+  dailyChatXp: 1,
+  dailyChatXpMaxPerDay: 5,
+  // Chữ "+2 tiếng tăm" bay khi hái dùng chung nhịp chữ Sức (staminaFloat*): gộp các lần cách nhau < staminaFloatMergeSeconds.
+  /** Thanh XP mảnh trên HUD: chạy tới số mới với tốc độ bấy nhiêu phần thanh / giây (đầy thanh = 1). */
+  xpBarFillRate: 1.6,
+  /**
+   * Thẻ "Lên level N!": chữ lớn nảy từ cỡ × (1 + popScale) về cỡ thật trong popSeconds; pháo giấy (số mảnh, rơi bao lâu);
+   * bỏ qua Enter / click trong inputDelaySeconds đầu (đang giữ chuột hái liền tay thì không lỡ tay đóng thẻ).
+   */
+  levelUpPopSeconds: 0.4,
+  levelUpPopScale: 0.6,
+  levelUpConfettiCount: 40,
+  levelUpConfettiSeconds: 2.2,
+  levelCardInputDelaySeconds: 0.5,
 
   // ---- Gieo, tưới, hái: hiệu ứng (T-003, GDD §8) ----
   /** Bong bóng chữ trên đầu nhân vật ("hết hạt rồi", "gùi đầy") hiện bao lâu (giây). */

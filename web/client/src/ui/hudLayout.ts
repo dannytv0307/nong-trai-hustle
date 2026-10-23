@@ -421,9 +421,10 @@ export function sleepButtonAt(px: number, py: number): 'yes' | 'no' | null {
 /**
  * Màn tổng kết ngày (GDD §7): khung giữa màn; tiêu đề "Hết Ngày 1" + dòng phụ "Sáng mai: …"; các dòng bắt đầu từ
  * `firstLine`, cách nhau `lineGap`; dòng tiền có thêm dòng chi tiết nhỏ (`detailGap`); nút "Ngày mới" ở chân.
- * Tối đa 6 dòng + chi tiết vẫn nằm trên nút (kiểm ở hudLayout.test.ts).
+ * Tối đa 7 dòng (T-042 thêm dòng "Tiếng tăm hôm nay" — khung cao thêm, dòng khít lại) + chi tiết vẫn nằm trên nút (kiểm ở
+ * hudLayout.test.ts).
  */
-export const SUMMARY_WINDOW = { w: 980, h: 780, pad: 72, firstLine: 196, lineGap: 70, detailGap: 48, buttonW: 380, buttonH: 92, buttonBottom: 52 } as const;
+export const SUMMARY_WINDOW = { w: 980, h: 840, pad: 72, firstLine: 196, lineGap: 62, detailGap: 48, buttonW: 380, buttonH: 92, buttonBottom: 52 } as const;
 
 export function summaryPanelRect(): Rect {
   return { x: Math.round((W - SUMMARY_WINDOW.w) / 2), y: Math.round((H - SUMMARY_WINDOW.h) / 2), w: SUMMARY_WINDOW.w, h: SUMMARY_WINDOW.h };

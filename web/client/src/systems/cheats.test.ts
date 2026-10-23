@@ -31,6 +31,7 @@ const RULES: CheatRules = {
   maxLevel: gameConfig.cheatMaxLevel,
   outfitTierCount: gameConfig.outfitTierCount,
   daysPerSeason: 4,
+  level: { xpToNextLevel: gameConfig.xpToNextLevel, xpPerLevelAfter10: gameConfig.xpPerLevelAfter10 },
 };
 
 function state(): CheatState {
@@ -125,6 +126,43 @@ describe('việc của nút (applyCheat)', () => {
     expect(s.stage4.progress.level).toBe(gameConfig.cheatMaxLevel);
     applyCheat({ kind: 'addLevel', delta: -999 }, s, RULES);
     expect(s.stage4.progress.level).toBe(1);
+  });
+
+  it('T-042: "Lv N" đặt thẳng — không có thẻ (levelUps rỗng), tiếng tăm hôm nay giữ nguyên', () => {
+    const s = state();
+    s.stage4.progress.xpToday = 9;
+    const r = applyCheat({ kind: 'setLevel', level: 5 }, s, RULES);
+    expect(r.levelUps).toEqual([]);
+    expect(s.stage4.progress).toMatchObject({ level: 5, xp: 0, xpToday: 9, levelSeen: 5 });
+  });
+
+  it('T-042: "Lv +1" cho đúng số tiếng tăm còn thiếu qua grantXp → lên đúng 1 level, có thẻ', () => {
+    const s = state();
+    s.stage4.progress.xp = 12;
+    const r = applyCheat({ kind: 'addLevel', delta: 1 }, s, RULES);
+    expect(r.levelUps).toEqual([2]);
+    expect(s.stage4.progress).toMatchObject({ level: 2, xp: 0, xpToday: 18, levelSeen: 1 }); // thẻ Lv 2 chưa xem
+    const r2 = applyCheat({ kind: 'addLevel', delta: 2 }, s, RULES);
+    expect(r2.levelUps).toEqual([3, 4]);
+    expect(s.stage4.progress).toMatchObject({ level: 4, xp: 0 });
+    // Trần nút thử: không lên quá cheatMaxLevel.
+    s.stage4.progress.level = gameConfig.cheatMaxLevel;
+    expect(applyCheat({ kind: 'addLevel', delta: 1 }, s, RULES).levelUps).toEqual([]);
+    expect(s.stage4.progress.level).toBe(gameConfig.cheatMaxLevel);
+  });
+
+  it('T-042: "+50 XP" qua grantXp — Lv 1 → Lv 2 dư 20; báo số mới', () => {
+    const { s, r } = run({ kind: 'addXp', amount: 50 });
+    expect(r.levelUps).toEqual([2]);
+    expect(s.stage4.progress).toMatchObject({ level: 2, xp: 20, xpToday: 50 });
+    expect(r.message).toContain('Lv 2 (20/60)');
+    expect(CHEAT_BUTTONS.some((b) => b.action.kind === 'addXp' && b.label === '+50 XP')).toBe(true);
+  });
+
+  it('T-042: dòng trạng thái có tiếng tăm trong level khi biết số cần', () => {
+    const s = state();
+    s.stage4.progress.xp = 7;
+    expect(cheatStatusLine({ stage4: s.stage4, money: 0, day: 1, daysPerSeason: 4, xpNeed: 30 }).startsWith('Lv 1 (7/30) · ')).toBe(true);
   });
 
   it('+100 quan, đặt 500, đặt 0: báo đúng số tiền đổi', () => {
