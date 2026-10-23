@@ -23,6 +23,8 @@
 // T-093: cảnh trong nhà {ten} (systems/house.ts) — phòng là một KHU nằm dưới bản đồ Vườn trong cùng thế giới; bước vào bậc
 // thềm (bấm W) → màn mờ (systems/areas.ts, dùng chung cho các khu sau) → trong nhà: giường (ngủ), rương (cửa sổ 2 lưới
 // như thùng bán), bếp rơm (đặt sẵn, nấu ở T-048), hũ gạo, nón ông nội. Ra khe cửa (bấm S) → đứng trước nhà. Save nhớ khu.
+// T-041: chỗ lưu chặng 4 (`stage4`: level, nhiệm vụ, cờ, độ bền nông cụ, bậc đồ, gia đình, thời tiết — save version 5) +
+// bảng Thử (chỉ bản dev, F2 / `): nút khai báo ở data/cheatPanel.json, việc thuần ở systems/cheats.ts, HUD vẽ (CheatPanelView).
 import Phaser from 'phaser';
 import {
   bendHandOffset,
@@ -80,6 +82,7 @@ import { CROPS, cropById, growDaysOf } from '../systems/crops';
 import { createPitchLadder, nextLadderStep, tickPitchLadder } from '../systems/pitchLadder';
 import { addItem, canAdd, countOf, createInventory, moveFromSlot, removeFromSlot, scrollSelect, selectSlot, setSlot, type Inventory } from '../systems/inventory';
 import {
+  allItemIds,
   canTillWithSelected,
   cropItemId,
   cropOfSeed,
@@ -154,6 +157,7 @@ import {
 import {
   coinsInFlight,
   createCoinState,
+  dropIncomingCoins,
   heldCoinMoney,
   ripeCueCycle,
   ripeCueOffset,
@@ -309,7 +313,22 @@ import {
 } from '../systems/audio';
 import { applySave, captureSave, type SaveRules, type SaveWorld } from '../systems/save';
 import { clearLocalSave, loadLocalSave, SAVE_KEY, writeLocalSave } from '../net/saveLocal';
-import type { GameSave } from '@bph/shared';
+import { GAME_SAVE_VERSION, type GameSave, type SaveFamily, type SaveProgress, type SaveToolState, type SaveWeather } from '@bph/shared';
+import { activeFlags, createStage4State } from '../systems/progress';
+import {
+  applyCheat,
+  CHEAT_BUTTONS,
+  CHEAT_ROWS,
+  cheatButtonLabel,
+  cheatButtonWidths,
+  cheatStatusLine,
+  defaultPickIndex,
+  pickedItem,
+  type CheatRules,
+  type CheatState,
+} from '../systems/cheats';
+import { cheatButtonAt, cheatButtonSlots, cheatPanelRect } from '../ui/cheatLayout';
+import type { CheatPanelModel } from '../ui/CheatPanelView';
 
 const T = gameConfig.tileSize;
 /** Mỗi ảnh tile thử 256×256 = 4×4 ô 64px (Art Bible §9.1). */
@@ -427,6 +446,20 @@ const SAVE_RULES: SaveRules = {
   requiredItems: gameConfig.startTools,
   // T-093: save đứng trong nhà (toạ độ trong ảnh phòng).
   otherAreas: { house: houseSize() },
+  // T-041: bậc đồ kẹp theo số bậc; độ bền nông cụ đã bỏ khỏi dữ liệu thì bỏ.
+  outfitTierCount: gameConfig.outfitTierCount,
+  isKnownTool: isToolItem,
+};
+
+/** T-041: bảng Thử — chỗ từng nút (chỉ số phẳng như CHEAT_BUTTONS) + luật (mọi món cho được, trần level…). */
+const CHEAT_SLOTS = cheatButtonSlots(cheatButtonWidths(CHEAT_ROWS));
+const CHEAT_RULES: CheatRules = {
+  items: allItemIds(),
+  itemName: (id) => itemInfo(id)?.name ?? id,
+  isTool: isToolItem,
+  maxLevel: gameConfig.cheatMaxLevel,
+  outfitTierCount: gameConfig.outfitTierCount,
+  daysPerSeason: gameConfig.daysPerSeason,
 };
 
 /** Origin Y của sprite nhân vật: khung đi/đứng 64×96 chân sát đáy (1); khung động tác 128×128 chân ở hàng footY. */
@@ -734,6 +767,8 @@ export interface GardenDebugState {
    */
   save: {
     saveKey: string;
+    /** T-041: phiên bản định dạng save game này ghi ra (= GAME_SAVE_VERSION, hiện 5). */
+    version: number;
     lastSaveAt: { day: number; hour: number; clockText: string; savedAt: string; reason: string } | null;
     saveCount: number;
     loadedFromSave: boolean;
@@ -902,6 +937,33 @@ export interface GardenDebugState {
     yawns: number;
     footsteps: number;
     volumeHover: string | null;
+  };
+  /**
+   * T-041: trạng thái chặng 4 (lưu ở save version 5) — tiến trình (level, tiếng tăm trong level, nhiệm vụ, nhiệm vụ ghim),
+   * cờ (object + danh sách đang bật), độ bền nông cụ, bậc đồ, gia đình, thời tiết đã chọn.
+   */
+  progress: SaveProgress & {
+    flags: Record<string, boolean>;
+    activeFlags: string[];
+    tools: Record<string, SaveToolState>;
+    outfitTier: number;
+    family: SaveFamily;
+    weather: SaveWeather;
+  };
+  /**
+   * T-041: bảng Thử (chỉ bản dev) — có bật ở bản này không, đang mở, nút dưới con trỏ (-1 = không), chữ từng nút (đã thay
+   * {item} / {on}), món đang chọn để cho, số lần bấm nút, nút bấm gần nhất, dòng báo + dòng trạng thái chân bảng.
+   */
+  cheatPanel: {
+    enabled: boolean;
+    open: boolean;
+    hover: number;
+    labels: string[];
+    pickedItem: string | null;
+    uses: number;
+    lastButton: string | null;
+    notice: string;
+    status: string;
   };
 }
 
@@ -1327,6 +1389,19 @@ export class GardenScene extends Phaser.Scene {
   private seenPrimaryPresses = 0;
   /** Nút −/+ âm lượng dưới con trỏ trong cửa sổ Tạm dừng (HUD tô sáng; null = không). */
   pauseVolumeHover: VolumeButtonId | null = null;
+
+  // ---- Chặng 4: tiến trình, cờ, nông cụ, bậc đồ, gia đình, thời tiết + bảng Thử (T-041) ----
+  /** Lưu ở save version 5. T-041 chỉ có chỗ lưu + bảng Thử ghi vào; luật từng hệ làm ở T-042, T-043, T-047, T-049… */
+  readonly stage4 = createStage4State();
+  /** Bảng Thử (chỉ bản dev) đang mở: thế giới đứng yên như Tạm dừng. HUD đọc `cheatPanelModel` để vẽ. */
+  cheatPanelOpen = false;
+  /** Nút bảng Thử dưới con trỏ (chỉ số trong CHEAT_BUTTONS), -1 = không. */
+  private cheatHover = -1;
+  /** Món đang chọn để "Cho món" (chỉ số trong CHEAT_RULES.items). */
+  private readonly cheatPicker = { itemIndex: defaultPickIndex(CHEAT_RULES) };
+  private cheatNotice = '';
+  private cheatUses = 0;
+  private lastCheatButton: string | null = null;
 
   gardenReady = false;
 
@@ -1846,6 +1921,11 @@ export class GardenScene extends Phaser.Scene {
     this.clock += dt;
     // T-027: xu bay về ô tiền chạy cả lúc đang sáng dần (thức dậy) / chuyển khu — chỉ đứng khi Tạm dừng (return ở trên).
     this.tickCoins(dt);
+    // T-041: bảng Thử mở → chỉ xử lý bảng (thế giới đứng yên như Tạm dừng; xu bay vẫn bay để thấy "+100 quan" về ô tiền).
+    if (this.cheatPanelOpen) {
+      this.updateCheatPanel();
+      return;
+    }
     // T-007: đang hỏi ngủ / ngủ / ngủ gục / tổng kết / thức dậy → chỉ chạy chuỗi "đêm" (thế giới đứng yên, đồng hồ dừng).
     if (this.nightPhase !== 'none') {
       this.updateNight(dt);
@@ -1864,7 +1944,7 @@ export class GardenScene extends Phaser.Scene {
     const moveSpeed = speed * walkSpeedMultiplier(this.stamina, gameConfig.staminaExhaustedSpeedMultiplier);
     // T-003: phím bấm-một-lần (1–9, cuộn, E/Esc, G) trước, để mở gùi có tác dụng ngay frame này.
     this.handleUiKeys();
-    if (this.pauseMenuOpen) return; // Esc vừa mở Tạm dừng ở frame này
+    if (this.pauseMenuOpen || this.cheatPanelOpen) return; // Esc vừa mở Tạm dừng / F2 vừa mở bảng Thử ở frame này
     if (this.nightPhase !== 'none') {
       // F ở giường vừa mở hộp "Đi ngủ?", hoặc F9 vừa đẩy đồng hồ tới 24h (ngủ gục) → frame sau chạy chuỗi đêm.
       this.controls.endFrame();
@@ -2313,6 +2393,11 @@ export class GardenScene extends Phaser.Scene {
     // Đang mở thùng bán / sạp hạt thì E / Tab không mở gùi chồng lên (gùi đã hiện sẵn bên trái cửa sổ thùng bán).
     const openBag = c.consumePressed('openBag');
     if (openBag && !this.shopWindow) this.setBagOpen(!this.bagOpen);
+    // T-041: F2 / ` mở bảng Thử (chỉ bản dev) — đóng gùi / cửa sổ đang mở; phím khác cùng frame bị bỏ (openCheatPanel xoá).
+    if (c.consumePressed('devCheatPanel') && gameConfig.devCheatsEnabled) {
+      this.openCheatPanel();
+      return;
+    }
     const windowOpen = this.windowOpen;
     if (c.consumePressed('devAddHour') && gameConfig.devCheatsEnabled && !windowOpen) this.devAddHour();
     const slot = c.hotbarPressed();
@@ -4137,6 +4222,7 @@ export class GardenScene extends Phaser.Scene {
       if (this.pauseHoverRestart) return 'restart';
       return this.windowCloseHover ? 'close' : null;
     }
+    if (this.cheatPanelOpen) return this.cheatHover >= 0 ? `cheat-${this.cheatHover}` : this.windowCloseHover ? 'close' : null;
     if (this.nightPhase === 'sleepPrompt') return this.sleepPromptHover ?? (this.windowCloseHover ? 'close' : null);
     if (this.nightPhase === 'summary') return this.summaryHoverButton ? 'summary' : this.windowCloseHover ? 'close' : null;
     if (this.nightPhase !== 'none') return null;
@@ -4289,8 +4375,11 @@ export class GardenScene extends Phaser.Scene {
     this.pauseVolumeHover = null;
     this.closeRestartConfirm();
     this.pauseReasons.set('pauseMenu', false);
-    this.physics.world.resume();
-    this.hero.anims.resume();
+    // T-041: bảng Thử còn mở bên dưới → thế giới vẫn đứng (bảng đóng mới chạy lại).
+    if (!this.cheatPanelOpen) {
+      this.physics.world.resume();
+      this.hero.anims.resume();
+    }
     this.dragKind = null;
     this.dragBlocked = true; // vừa bấm nút "Tiếp tục" mà chuột còn giữ → không tính là click xuống ruộng
     this.controls.clearPending();
@@ -4387,6 +4476,7 @@ export class GardenScene extends Phaser.Scene {
       chest: this.chest,
       seed: this.worldSeed,
       records: this.records,
+      stage4: this.stage4,
     };
   }
 
@@ -5012,6 +5102,141 @@ export class GardenScene extends Phaser.Scene {
     }
   }
 
+  // ---------------------------------------------------------------- bảng Thử (T-041, chỉ bản dev)
+
+  /**
+   * Mở bảng Thử (F2 / `): chỉ lúc chơi bình thường (không giữa chuỗi đêm / chuyển khu / Tạm dừng). Đóng gùi / cửa sổ đang
+   * mở, thế giới đứng yên như Tạm dừng (lý do dừng 'cheatPanel', vật lý + anim dừng), bỏ mọi phím bấm dở.
+   */
+  private openCheatPanel(): void {
+    if (!gameConfig.devCheatsEnabled || this.cheatPanelOpen || this.pauseMenuOpen) return;
+    if (this.nightPhase !== 'none' || isTransitioning(this.areaTransition)) return;
+    if (this.bagOpen) this.setBagOpen(false, false);
+    this.closeShop(false);
+    this.cheatPanelOpen = true;
+    this.cheatHover = -1;
+    this.windowCloseHover = false;
+    this.pauseReasons.set('cheatPanel', true);
+    this.feetBody.setVelocity(0, 0);
+    this.physics.world.pause();
+    this.hero.anims.pause();
+    this.hideHighlight();
+    this.controls.clearPending();
+    this.audio.play('uiOpen');
+  }
+
+  private closeCheatPanel(): void {
+    if (!this.cheatPanelOpen) return;
+    this.cheatPanelOpen = false;
+    this.cheatHover = -1;
+    this.windowCloseHover = false;
+    this.pauseReasons.set('cheatPanel', false);
+    // Mất focus lúc bảng mở → Tạm dừng nằm trên; đóng bảng sau đó không được cho thế giới chạy lại dưới Tạm dừng.
+    if (!this.pauseMenuOpen) {
+      this.physics.world.resume();
+      this.hero.anims.resume();
+    }
+    this.dragKind = null;
+    this.dragBlocked = true; // chuột còn giữ sau khi bấm nút → không tính là click xuống ruộng
+    this.controls.clearPending();
+    this.audio.play('uiClose');
+  }
+
+  /** Mỗi frame lúc bảng mở: Esc / F2 / nút X / click ra ngoài khung = đóng; click nút = làm việc của nút. Phím khác bị bỏ. */
+  private updateCheatPanel(): void {
+    const c = this.controls;
+    const sp = c.pointerScreen(this.pointerScreenPt);
+    const inside = c.isPointerInside();
+    const closeKey = c.consumePressed('menu') || c.consumePressed('devCheatPanel');
+    const clicked = c.consumePrimaryPress();
+    c.clearPending();
+    const panel = cheatPanelRect(CHEAT_ROWS.length);
+    this.cheatHover = inside ? cheatButtonAt(sp.x, sp.y, CHEAT_SLOTS) : -1;
+    this.windowCloseHover = inside && rectContains(windowCloseRect(panel), sp.x, sp.y);
+    if (closeKey || (clicked && (this.windowCloseHover || !rectContains(panel, sp.x, sp.y)))) {
+      this.closeCheatPanel();
+      return;
+    }
+    if (clicked && this.cheatHover >= 0) this.runCheat(this.cheatHover);
+  }
+
+  /** Trạng thái bảng Thử cho systems/cheats.ts — object THẬT của scene (nút sửa thẳng). */
+  private cheatState(): CheatState {
+    return { stage4: this.stage4, wallet: this.wallet, inventory: this.inventory, day: this.dayClock.day, picker: this.cheatPicker };
+  }
+
+  /**
+   * Làm việc của nút thứ `i` (chỉ số trong CHEAT_BUTTONS). Việc cần scene dùng lại đúng hàm của game: qua đêm = như phím G
+   * (applyOvernight 'devG' + gà gáy), đi tới khu = chuyển khu có màn mờ (đóng bảng trước). Xong thì lưu ngay — F5 vẫn còn.
+   * Trả về dòng báo.
+   */
+  private runCheat(i: number): string {
+    const btn = CHEAT_BUTTONS[i];
+    if (!btn) return '';
+    const r = applyCheat(btn.action, this.cheatState(), CHEAT_RULES);
+    this.cheatUses++;
+    this.lastCheatButton = btn.label;
+    this.cheatNotice = r.message;
+    if (r.syncMoney) {
+      // BUG-018: ví vừa bị ghi thẳng → bỏ xu bán hàng còn bay + tiền chờ bay (đã nằm trong ví) cho ô tiền khớp ví ngay.
+      dropIncomingCoins(this.coins);
+      this.pendingPayout = 0;
+    }
+    if (r.moneyDelta !== 0) this.onMoneyChanged(r.moneyDelta);
+    if (r.inventoryChanged) this.inventoryRevision++;
+    const task = r.task;
+    if (task?.kind === 'overnight') {
+      let summary: OvernightSummary | null = null;
+      for (let n = 0; n < task.nights; n++) summary = this.applyOvernight('devG');
+      if (summary) this.greetMorning(summary);
+      this.cheatNotice = `${r.message} — giờ là ${dayLabel(this.dayClock.day, gameConfig.daysPerSeason)}`;
+    } else if (task?.kind === 'setHour') {
+      setGameHour(this.dayClock, task.hour, gameConfig);
+      this.updateSky();
+    } else if (task?.kind === 'gotoArea') {
+      if (task.area === this.area) {
+        this.cheatNotice = 'Đang ở khu này rồi';
+      } else {
+        this.closeCheatPanel();
+        const to = this.areaSpawn(task.area);
+        this.beginAreaChange(task.area, to.spot, to.facing); // chuyển khu tự lưu lúc đổi khu (swapArea)
+        return this.cheatNotice;
+      }
+    }
+    this.saveNow('cheat');
+    return this.cheatNotice;
+  }
+
+  /** Chỗ đứng + hướng mặt khi tới một khu bằng bảng Thử (khu mới T-054 thêm nhánh ở đây). */
+  private areaSpawn(area: AreaId): { spot: { x: number; y: number }; facing: Facing } {
+    if (area === 'house') return { spot: HOUSE.spawn, facing: 'up' };
+    return { spot: houseExitSpot(L.houseDoor, T), facing: 'down' };
+  }
+
+  /** Thứ HUD cần để vẽ bảng Thử (chỉ tính chữ nút khi bảng mở). */
+  get cheatPanelModel(): CheatPanelModel {
+    if (!this.cheatPanelOpen) return { open: false, hover: -1, closeHover: false, pointerDown: false, labels: [], status: '', notice: '' };
+    return {
+      open: true,
+      hover: this.cheatHover,
+      closeHover: this.windowCloseHover,
+      pointerDown: this.primaryDown,
+      labels: this.cheatLabels(),
+      status: this.cheatStatus(),
+      notice: this.cheatNotice,
+    };
+  }
+
+  private cheatLabels(): string[] {
+    const id = pickedItem(this.cheatState(), CHEAT_RULES);
+    const view = { itemName: id ? CHEAT_RULES.itemName(id) : '—', flags: this.stage4.flags };
+    return CHEAT_BUTTONS.map((b) => cheatButtonLabel(b, view));
+  }
+
+  private cheatStatus(): string {
+    return cheatStatusLine({ stage4: this.stage4, money: this.wallet.money, day: this.dayClock.day, daysPerSeason: gameConfig.daysPerSeason });
+  }
+
   // ---------------------------------------------------------------- QA
 
   get debugState(): GardenDebugState {
@@ -5192,6 +5417,7 @@ export class GardenScene extends Phaser.Scene {
       },
       save: {
         saveKey: SAVE_KEY,
+        version: GAME_SAVE_VERSION,
         lastSaveAt: this.lastSave ? { ...this.lastSave, clockText: formatClock(this.lastSave.hour) } : null,
         saveCount: this.saveCount,
         loadedFromSave: this.loadStatus === 'ok',
@@ -5340,7 +5566,61 @@ export class GardenScene extends Phaser.Scene {
         footsteps: this.footstepCount,
         volumeHover: this.pauseVolumeHover,
       },
+      progress: (() => {
+        const s = this.stage4;
+        const p = s.progress;
+        return {
+          xp: p.xp,
+          level: p.level,
+          quests: Object.fromEntries(Object.entries(p.quests).map(([id, q]) => [id, { status: q.status, counters: { ...q.counters } }])),
+          trackedQuest: p.trackedQuest,
+          flags: { ...s.flags },
+          activeFlags: activeFlags(s.flags),
+          tools: Object.fromEntries(Object.entries(s.tools).map(([id, t]) => [id, { ...t }])),
+          outfitTier: s.outfit.tier,
+          family: { members: s.family.members.map((m) => ({ ...m })), porridgeDays: s.family.porridgeDays },
+          weather: { ...s.weather },
+        };
+      })(),
+      cheatPanel: {
+        enabled: gameConfig.devCheatsEnabled,
+        open: this.cheatPanelOpen,
+        hover: this.cheatHover,
+        labels: this.cheatLabels(),
+        pickedItem: pickedItem(this.cheatState(), CHEAT_RULES),
+        uses: this.cheatUses,
+        lastButton: this.lastCheatButton,
+        notice: this.cheatNotice,
+        status: this.cheatStatus(),
+      },
     };
+  }
+
+  /**
+   * T-041 (QA/test): tâm nút bảng Thử (toạ độ màn 1920×1080) theo chỉ số trong CHEAT_BUTTONS hoặc theo chữ gốc trong
+   * cheatPanel.json (vd 'Lv 5', '+100 quan'). null = không có nút đó.
+   */
+  debugCheatButtonCenter(which: number | string): { x: number; y: number } | null {
+    const i = typeof which === 'number' ? which : CHEAT_BUTTONS.findIndex((b) => b.label === which);
+    const s = CHEAT_SLOTS[i];
+    return s ? { x: s.rect.x + s.rect.w / 2, y: s.rect.y + s.rect.h / 2 } : null;
+  }
+
+  /** T-041 (QA/test): mở / đóng bảng Thử như bấm F2 (chỉ bản dev). Trả về bảng có đang mở không. */
+  debugSetCheatPanel(open: boolean): boolean {
+    if (open) this.openCheatPanel();
+    else this.closeCheatPanel();
+    return this.cheatPanelOpen;
+  }
+
+  /**
+   * T-041 (QA/test): bấm một nút bảng Thử (theo chỉ số hoặc chữ gốc) như click — không cần mở bảng. Chỉ bản dev. Trả về dòng
+   * báo của nút ('' = không có nút / bản build).
+   */
+  debugRunCheat(which: number | string): string {
+    if (!gameConfig.devCheatsEnabled) return '';
+    const i = typeof which === 'number' ? which : CHEAT_BUTTONS.findIndex((b) => b.label === which);
+    return i >= 0 ? this.runCheat(i) : '';
   }
 
   /** T-026: toạ độ màn của nút âm lượng trong cửa sổ Tạm dừng (QA bấm thử). */

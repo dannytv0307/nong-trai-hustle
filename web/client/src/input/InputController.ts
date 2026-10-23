@@ -20,7 +20,8 @@ export type Action =
   | 'accept' // Enter — "Có" ở hộp hỏi đi ngủ, "Ngày mới" ở màn tổng kết (T-007)
   | 'devNextDay' // G — phím thử "qua đêm" (chỉ bản dev, gameConfig.devCheatsEnabled)
   | 'devDrainStamina' // F8 — phím thử −20 Sức (chỉ bản dev)
-  | 'devAddHour'; // F9 — phím thử +1 giờ game (chỉ bản dev, T-005)
+  | 'devAddHour' // F9 — phím thử +1 giờ game (chỉ bản dev, T-005)
+  | 'devCheatPanel'; // F2 hoặc ` (phím dưới Esc) — mở / đóng bảng Thử (chỉ bản dev, T-041)
 
 const KC = Phaser.Input.Keyboard.KeyCodes;
 
@@ -39,6 +40,8 @@ const DEFAULT_BINDINGS: Record<Action, number[]> = {
   devNextDay: [KC.G],
   devDrainStamina: [KC.F8],
   devAddHour: [KC.F9],
+  // F2 không gắn việc gì trong Chrome / Edge / Firefox; ` là phím "bảng lệnh" quen thuộc ở nhiều game.
+  devCheatPanel: [KC.F2, KC.BACKTICK],
 };
 
 const HOTBAR_KEYS = [KC.ONE, KC.TWO, KC.THREE, KC.FOUR, KC.FIVE, KC.SIX, KC.SEVEN, KC.EIGHT, KC.NINE];

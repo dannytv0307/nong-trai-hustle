@@ -4,10 +4,12 @@
 // Sức / tiền / giờ kẹp hợp lệ — save cũ hoặc bị sửa tay cũng không làm game kẹt.
 // Cái KHÔNG lưu (cố ý): hàng chờ việc, nhát cuốc đang giơ chưa chạm, cửa sổ đang mở, bong bóng, nghỉ lầm bầm, chuỗi đêm.
 import { GAME_SAVE_VERSION, type GameSave, type SaveFacing, type SaveStack } from '@bph/shared';
+import { gameConfig } from '../config/gameConfig';
 import { normalizeMoney, type Wallet } from './economy';
 import type { FarmState } from './farm';
 import { addItem, countOf, type Inventory, type ItemStack } from './inventory';
 import type { Facing } from './movement';
+import { copyStage4, createStage4State, loadStage4, type Stage4State } from './progress';
 import { normalizeRecordValue, type DayRecords } from './records';
 import { setStamina, type StaminaState } from './stamina';
 import type { DayClockState } from './time';
@@ -33,6 +35,11 @@ export interface SaveWorld {
   seed?: number;
   /** T-027: kỷ lục (ngày bán nhiều tiền nhất). Thiếu = chưa có kỷ lục (test cũ) — lưu ra 0, nạp vào thì bỏ qua. */
   records?: DayRecords;
+  /**
+   * T-041: tiến trình, cờ, độ bền nông cụ, bậc đồ, gia đình, thời tiết (save version 5). Thiếu (test cũ) → lưu ra mặc định,
+   * nạp vào thì bỏ qua.
+   */
+  stage4?: Stage4State;
 }
 
 /** Luật game dùng khi nạp (lấy từ gameConfig / dữ liệu). */
@@ -56,6 +63,10 @@ export interface SaveRules {
    * thêm 1 cái vào ô trống đầu tiên của gùi. Không cần tăng version save: chỉ thêm đồ, không đổi cấu trúc.
    */
   requiredItems?: readonly string[];
+  /** T-041: số bậc ngoại hình (bậc trong save kẹp 1…số này). Thiếu = gameConfig.outfitTierCount. */
+  outfitTierCount?: number;
+  /** T-041: mã nông cụ có thật — độ bền của nông cụ lạ bị bỏ. Thiếu = giữ hết. */
+  isKnownTool?: (id: string) => boolean;
 }
 
 /** Kết quả nạp: khu + vị trí nhân vật (null = toạ độ hỏng → để scene đặt ở chỗ xuất phát của khu), tên, hướng mặt. */
@@ -97,7 +108,13 @@ export function captureSave(w: SaveWorld, now: Date): GameSave {
     chest: { slots: w.chest ? w.chest.slots.map(copyStack) : [] },
     seed: (w.seed ?? 0) >>> 0,
     records: { bestDaySale: normalizeRecordValue(w.records?.bestDaySale ?? 0) },
+    ...stage4Fields(w.stage4 ? copyStage4(w.stage4) : createStage4State()),
   };
+}
+
+/** Trạng thái chặng 4 → các trường save version 5. */
+function stage4Fields(s: Stage4State): Pick<GameSave, 'progress' | 'flags' | 'tools' | 'outfitTier' | 'family' | 'weather'> {
+  return { progress: s.progress, flags: s.flags, tools: s.tools, outfitTier: s.outfit.tier, family: s.family, weather: s.weather };
 }
 
 /**
@@ -132,6 +149,13 @@ export function applySave(save: GameSave, w: SaveWorld, rules: SaveRules): Appli
   // Tiền, kỷ lục, Sức (trần Sức theo game hiện tại, không theo save), đồng hồ.
   w.wallet.money = normalizeMoney(save.money);
   if (w.records) w.records.bestDaySale = normalizeRecordValue(save.records.bestDaySale);
+  if (w.stage4) {
+    const { progress, flags, tools, outfitTier, family, weather } = save;
+    loadStage4({ progress, flags, tools, outfit: { tier: outfitTier }, family, weather }, w.stage4, {
+      outfitTierCount: rules.outfitTierCount ?? gameConfig.outfitTierCount,
+      isKnownTool: rules.isKnownTool ?? (() => true),
+    });
+  }
   setStamina(w.stamina, save.stamina.current);
   w.clock.day = Math.max(1, Math.floor(save.clock.day));
   // Lưu đúng lúc 24:00 (hiếm) → lùi một chút để vào game đồng hồ chạm 24h như thường (ngủ gục), không kẹt ở 24:00.

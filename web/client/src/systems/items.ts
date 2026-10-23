@@ -7,7 +7,7 @@
 import itemsJson from '../data/items.json';
 import toolsJson from '../data/tools.json';
 import type { ItemData, ToolData, ToolUse } from '../data/types';
-import { cropById } from './crops';
+import { CROPS, cropById } from './crops';
 import { addItem, countOf, createInventory, findSlot, type Inventory } from './inventory';
 
 export type ItemKind = 'seed' | 'crop' | 'tool';
@@ -83,6 +83,14 @@ export function itemIconKey(id: string): string | null {
   if (tool) return tool.icon || null;
   if (isSeedItem(id)) return cropById(id.slice(SEED_PREFIX.length))?.seedIcon ?? null;
   return cropById(id)?.icon ?? null;
+}
+
+/**
+ * T-041: mã MỌI món có thật, theo thứ tự nông cụ → (hạt, nông sản) từng cây theo crops.json — bảng Thử chọn "cho món bất
+ * kỳ" từ danh sách này. Thêm món mới vào dữ liệu là tự có ở đây.
+ */
+export function allItemIds(): string[] {
+  return [...TOOL_DATA.keys(), ...CROPS.flatMap((c) => [seedItemId(c.id), cropItemId(c.id)])];
 }
 
 /** Cây sẽ mọc từ món hạt này (null nếu không phải hạt). */

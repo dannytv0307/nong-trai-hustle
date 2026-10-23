@@ -423,8 +423,14 @@ export const gameConfig = {
    * game là đang cầm cuốc). Save cũ chưa có món nào trong này → nạp xong tự thêm vào ô trống đầu tiên.
    */
   startTools: ['cuoc-go'] as readonly string[],
-  /** Phím thử (G: qua đêm, F8: −20 Sức…) chỉ bật khi chạy dev (`npm run dev`), tắt ở bản build. */
+  /** Phím thử (G: qua đêm, F8: −20 Sức, F2 bảng Thử…) chỉ bật khi chạy dev (`npm run dev`), tắt ở bản build. */
   devCheatsEnabled: import.meta.env.DEV,
+
+  // ---- Tiến trình chặng 4: chỗ lưu (T-041, GDD §7, §3.14) ----
+  /** Số bậc ngoại hình (Nghèo kiết xác → Người bình thường → Khá giả → Phú ông). Save có bậc ngoài 1…số này bị kẹp lại. */
+  outfitTierCount: 4,
+  /** Level cao nhất nút "Lv +1" của bảng Thử lên tới (GDD không có trần level — endless; đây chỉ là trần của nút thử). */
+  cheatMaxLevel: 30,
 
   // ---- Gieo, tưới, hái: hiệu ứng (T-003, GDD §8) ----
   /** Bong bóng chữ trên đầu nhân vật ("hết hạt rồi", "gùi đầy") hiện bao lâu (giây). */

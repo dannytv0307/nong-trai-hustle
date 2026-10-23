@@ -1,0 +1,85 @@
+{
+  "_note": "Bảng Thử (T-041, chỉ bản dev — phím F2 hoặc `). Mỗi hàng: nhãn + các nút; mỗi nút: chữ, việc (action) và bề rộng px tuỳ chọn (mặc định 170). Chữ nút có thể chứa {item} (món đang chọn để cho) và {on} (cờ của nút đang bật: có / không). Các loại việc: setLevel, addLevel, addMoney, setMoney, nextDay, nextSeason, setHour, pickItem, giveItem, toggleFlag, setOutfitTier, setWeather, gotoArea — xem systems/cheats.ts. Task sau thêm nút: thêm một dòng ở đây (việc mới thì thêm loại trong cheats.ts).",
+  "rows": [
+    {
+      "id": "level",
+      "label": "Level",
+      "buttons": [
+        { "label": "Lv 1", "w": 140, "action": { "kind": "setLevel", "level": 1 } },
+        { "label": "Lv 2", "w": 140, "action": { "kind": "setLevel", "level": 2 } },
+        { "label": "Lv 5", "w": 140, "action": { "kind": "setLevel", "level": 5 } },
+        { "label": "Lv 8", "w": 140, "action": { "kind": "setLevel", "level": 8 } },
+        { "label": "Lv 10", "w": 150, "action": { "kind": "setLevel", "level": 10 } },
+        { "label": "Lv +1", "w": 150, "action": { "kind": "addLevel", "delta": 1 } }
+      ]
+    },
+    {
+      "id": "money",
+      "label": "Tiền",
+      "buttons": [
+        { "label": "+100 quan", "w": 200, "action": { "kind": "addMoney", "amount": 100 } },
+        { "label": "+1000 quan", "w": 210, "action": { "kind": "addMoney", "amount": 1000 } },
+        { "label": "Đặt 500", "w": 170, "action": { "kind": "setMoney", "amount": 500 } },
+        { "label": "Đặt 0", "w": 150, "action": { "kind": "setMoney", "amount": 0 } }
+      ]
+    },
+    {
+      "id": "day",
+      "label": "Ngày, giờ",
+      "buttons": [
+        { "label": "+1 ngày", "w": 170, "action": { "kind": "nextDay" } },
+        { "label": "Sang mùa sau", "w": 240, "action": { "kind": "nextSeason" } },
+        { "label": "6:00", "w": 130, "action": { "kind": "setHour", "hour": 6 } },
+        { "label": "12:00", "w": 130, "action": { "kind": "setHour", "hour": 12 } },
+        { "label": "18:00", "w": 130, "action": { "kind": "setHour", "hour": 18 } },
+        { "label": "22:00", "w": 130, "action": { "kind": "setHour", "hour": 22 } }
+      ]
+    },
+    {
+      "id": "item",
+      "label": "Cho món",
+      "buttons": [
+        { "label": "◀", "w": 90, "action": { "kind": "pickItem", "delta": -1 } },
+        { "label": "{item}", "w": 330, "action": { "kind": "pickItem", "delta": 1 } },
+        { "label": "▶", "w": 90, "action": { "kind": "pickItem", "delta": 1 } },
+        { "label": "Cho 1", "w": 150, "action": { "kind": "giveItem", "count": 1 } },
+        { "label": "Cho 10", "w": 150, "action": { "kind": "giveItem", "count": 10 } }
+      ]
+    },
+    {
+      "id": "flags",
+      "label": "Cờ",
+      "buttons": [
+        { "label": "Đã cưới: {on}", "w": 290, "action": { "kind": "toggleFlag", "flag": "married" } },
+        { "label": "Bếp gạch: {on}", "w": 290, "action": { "kind": "toggleFlag", "flag": "brickKitchen" } },
+        { "label": "Chuồng: {on}", "w": 270, "action": { "kind": "toggleFlag", "flag": "penBuilt" } }
+      ]
+    },
+    {
+      "id": "outfit",
+      "label": "Bậc đồ",
+      "buttons": [
+        { "label": "Bậc 1", "w": 150, "action": { "kind": "setOutfitTier", "tier": 1 } },
+        { "label": "Bậc 2", "w": 150, "action": { "kind": "setOutfitTier", "tier": 2 } },
+        { "label": "Bậc 3", "w": 150, "action": { "kind": "setOutfitTier", "tier": 3 } },
+        { "label": "Bậc 4", "w": 150, "action": { "kind": "setOutfitTier", "tier": 4 } }
+      ]
+    },
+    {
+      "id": "weather",
+      "label": "Trời hôm nay",
+      "buttons": [
+        { "label": "Nắng", "w": 150, "action": { "kind": "setWeather", "weather": "sun" } },
+        { "label": "Mưa", "w": 150, "action": { "kind": "setWeather", "weather": "rain" } }
+      ]
+    },
+    {
+      "id": "area",
+      "label": "Đi tới khu",
+      "buttons": [
+        { "label": "Vườn", "w": 170, "action": { "kind": "gotoArea", "area": "garden" } },
+        { "label": "Trong nhà", "w": 200, "action": { "kind": "gotoArea", "area": "house" } }
+      ]
+    }
+  ]
+}

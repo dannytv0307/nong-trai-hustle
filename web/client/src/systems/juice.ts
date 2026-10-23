@@ -179,6 +179,17 @@ export function heldCoinMoney(s: CoinState): number {
   return n;
 }
 
+/**
+ * Bỏ ngay mọi mẻ xu "in" còn bay (BUG-018: bảng Thử đặt / cộng tiền thẳng vào ví — xu cũ mà bay tiếp thì ô tiền tụt rồi
+ * hiện "+N quan" dù ví không cộng). Đồng bị bỏ không tính là đã chạm (`landedIn` giữ nguyên → ô tiền không nảy). Mẻ "out"
+ * chỉ là hình (tiền đã trừ, không giữ số hiện) nên để bay nốt. Trả về số quan của các đồng bị bỏ.
+ */
+export function dropIncomingCoins(s: CoinState): number {
+  const dropped = heldCoinMoney(s);
+  for (let i = s.batches.length - 1; i >= 0; i--) if (s.batches[i].kind === 'in') s.batches.splice(i, 1);
+  return dropped;
+}
+
 /** Số đồng xu chưa chạm (gồm cả đồng chờ cất cánh) — QA. */
 export function coinsInFlight(s: CoinState): number {
   let n = 0;

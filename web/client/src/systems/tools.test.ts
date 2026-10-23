@@ -1,7 +1,7 @@
 // T-009 (D-026): cái cuốc là một món trong gùi/hotbar — phải chọn ô cuốc mới cuốc; không bán, không ăn, không mất;
 // save cũ chưa có cuốc → nạp xong tự thêm vào ô trống đầu tiên.
 import { describe, expect, it } from 'vitest';
-import { GAME_SAVE_VERSION, type GameSave } from '@bph/shared';
+import { defaultV5Fields, GAME_SAVE_VERSION, type GameSave } from '@bph/shared';
 import { gameConfig } from '../config/gameConfig';
 import { cropById } from './crops';
 import { canSellItem, createWallet, sellBoxContents, sellPriceOf } from './economy';
@@ -142,7 +142,7 @@ describe('ensureItem / nạp save cũ chưa có cuốc', () => {
 
   /** Save kiểu T-008 (trước khi có cuốc): hạt ở ô 1–2, đang chọn ô 1 (đã nâng lên version hiện tại: thêm rương trống). */
   const oldSave = (): GameSave => ({
-    version: GAME_SAVE_VERSION as 4,
+    version: GAME_SAVE_VERSION as 5,
     savedAt: '2026-10-12T08:30:00.000Z',
     player: { name: 'Tèo', area: 'garden', x: 500, y: 600, facing: 'left' },
     clock: { day: 3, elapsedSeconds: 120 },
@@ -158,6 +158,7 @@ describe('ensureItem / nạp save cũ chưa có cuốc', () => {
     chest: { slots: [] },
     seed: 12345,
     records: { bestDaySale: 0 },
+    ...defaultV5Fields(),
   });
 
   it('save cũ: cuốc vào ô trống đầu tiên (ô 3), đồ cũ và ô đang chọn giữ nguyên', () => {

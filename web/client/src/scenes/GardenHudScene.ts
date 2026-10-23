@@ -79,6 +79,8 @@ import { ensureGlowTexture, FX_GLOW, FX_GLOW_SIZE } from '../ui/fxTextures';
 import { drawItemIcon, itemIconTexture, showsItemCount } from '../ui/itemArt';
 import { itemTooltipText } from '../ui/itemText';
 import { addUiIcon, buildPaperWindow, setCloseHover, setUiIcon, UiButton, UiFrame, type PaperWindow } from '../ui/uiKit';
+import { CheatPanelView } from '../ui/CheatPanelView';
+import { CHEAT_ROWS } from '../systems/cheats';
 import { buttonLabelCenterY, buttonState, BUTTON_FRAME, fitNineSize, staminaBarGeometry, staminaFillColor, type NineSliceName } from '../ui/uiSpec';
 import type { GardenScene } from './GardenScene';
 
@@ -181,6 +183,11 @@ export interface HudDebugState {
   summaryRecord: string;
   summaryRecordAlpha: number;
   summaryRecordScale: number;
+  /** T-041: bảng Thử đang hiện (bản build không dựng → luôn false); chữ đang vẽ trên các nút; dòng trạng thái; dòng báo. */
+  cheatPanelVisible: boolean;
+  cheatButtonTexts: string[];
+  cheatStatusText: string;
+  cheatNoticeText: string;
 }
 
 /** Texture viền màn tối (vẽ một lần, độ phân giải thấp rồi phóng — gradient mượt nên không vỡ). */
@@ -267,7 +274,7 @@ export interface ItemGainedEvent {
 const HINT_MAIN = 'Click/chạm: đi tới & làm · WASD đi · 1–9 chọn';
 const HINT_MAIN_2 = 'E Gùi · Esc Menu · F dùng đồ gần · Shift+click: cả chồng';
 const HINT_SIDE = ['Chuột phải: ăn món đang chọn'];
-const HINT_DEV = ['Phím thử: G qua đêm', 'F8 −20 Sức · F9 +1 giờ'];
+const HINT_DEV = ['F2 bảng Thử · G qua đêm', 'F8 −20 Sức · F9 +1 giờ'];
 
 const FLY_POOL = gameConfig.actionQueueMax + 2;
 /** T-022: cỡ hiện (px màn) của icon ảnh 128×128 (có đệm 6 px) ở nút sạp hạt và icon bay — ngang cỡ icon vẽ bằng code. */
@@ -403,6 +410,8 @@ export class GardenHudScene extends Phaser.Scene {
   private summaryButton!: UiButton;
   /** Kết quả đêm đang hiện trên màn tổng kết (đổi → đặt lại chữ). */
   private summaryShownFor: unknown = null;
+  /** T-041: bảng Thử — chỉ dựng ở bản dev (gameConfig.devCheatsEnabled); bản build là null. */
+  private cheatView: CheatPanelView | null = null;
 
   constructor() {
     super('GardenHud');
@@ -471,6 +480,7 @@ export class GardenHudScene extends Phaser.Scene {
     this.buildAreaBanner();
     this.buildPauseWindow();
     this.buildNight();
+    this.cheatView = gameConfig.devCheatsEnabled ? new CheatPanelView(this, CHEAT_ROWS) : null;
 
     // T-027: quầng sáng (gradient vẽ bằng code một lần) cho vệt sáng sau icon bay — chế độ hoà màu ADD cho "sáng" thật.
     ensureGlowTexture(this);
@@ -1293,6 +1303,7 @@ export class GardenHudScene extends Phaser.Scene {
     this.updateStaminaBar();
     this.updateClock(dt);
     this.updatePauseWindow();
+    this.cheatView?.update(this.garden.cheatPanelModel);
     this.updateNight(dt);
     this.updateVignette(dt);
     this.updateTooltip();
@@ -1353,7 +1364,7 @@ export class GardenHudScene extends Phaser.Scene {
    */
   private updateTooltip(): void {
     const g = this.garden;
-    const busy = g.shopWindow !== null || g.pauseMenuOpen || g.nightPhase !== 'none';
+    const busy = g.shopWindow !== null || g.pauseMenuOpen || g.cheatPanelOpen || g.nightPhase !== 'none';
     const fromBag = g.bagOpen;
     const slot = busy ? -1 : fromBag ? g.bagHoverSlot : g.hotbarHoverSlot;
     const stack = slot >= 0 ? g.inventory.slots[slot] : null;
@@ -1574,6 +1585,10 @@ export class GardenHudScene extends Phaser.Scene {
       summaryRecord: this.summaryWindow?.visible && this.summaryRecordText.visible ? this.summaryRecordText.text : '',
       summaryRecordAlpha: this.summaryRecordText?.visible ? this.summaryRecordText.alpha : 0,
       summaryRecordScale: this.summaryRecordText?.visible ? this.summaryRecordText.scaleX : 0,
+      cheatPanelVisible: this.cheatView?.visible ?? false,
+      cheatButtonTexts: this.cheatView?.buttonTexts ?? [],
+      cheatStatusText: this.cheatView?.statusText ?? '',
+      cheatNoticeText: this.cheatView?.noticeText ?? '',
     };
   }
 }

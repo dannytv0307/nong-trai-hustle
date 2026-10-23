@@ -10,8 +10,10 @@
  * - 3 (T-026): thêm `seed` — số ngẫu nhiên cố định của MỘT lần chơi (chọn kiểu gà gáy theo ngày…): F5 / nạp lại cùng ngày
  *   ra cùng kết quả.
  * - 4 (T-027): thêm `records` — kỷ lục của lần chơi (ngày bán được nhiều tiền nhất → dòng "Kỷ lục mới!" ở tổng kết ngày).
+ * - 5 (T-041): chỗ lưu cho chặng 4 — `progress` (tiếng tăm, level, nhiệm vụ), `flags` (cờ: đã cưới, bếp gạch…), `tools`
+ *   (độ bền nông cụ), `outfitTier` (bậc ngoại hình), `family` (gia đình), `weather` (thời tiết hôm nay). Mặc định rỗng.
  */
-export const GAME_SAVE_VERSION = 4;
+export const GAME_SAVE_VERSION = 5;
 
 export type SaveFacing = 'up' | 'down' | 'left' | 'right';
 export type SaveSoil = 'untilled' | 'tilled';
@@ -100,8 +102,83 @@ export interface GameSaveV4 extends Omit<GameSaveV3, 'version'> {
   records: SaveRecords;
 }
 
+/** Trạng thái một nhiệm vụ (T-043): đang làm / đã xong + bộ đếm theo yêu cầu (vd `{ till: 2, plant: 3 }`). */
+export interface SaveQuest {
+  status: 'active' | 'done';
+  /** Đếm việc của nhiệm vụ: khoá = tên yêu cầu trong quests.json, giá trị = số nguyên ≥ 0. */
+  counters: Record<string, number>;
+}
+
+/**
+ * Tiến trình (T-042, T-043, GDD §7). `xp` = tiếng tăm đã gom TRONG level hiện tại (lên level thì trừ phần đã dùng — không
+ * phải tổng từ đầu), `level` ≥ 1. Nhiệm vụ nào chưa có trong `quests` = chưa mở / chưa bắt đầu.
+ */
+export interface SaveProgress {
+  xp: number;
+  level: number;
+  quests: Record<string, SaveQuest>;
+  /** Nhiệm vụ đang ghim ở HUD góc trên phải (null = không ghim). */
+  trackedQuest: string | null;
+}
+
+/** Độ bền một nông cụ (T-049, GDD §3.8). Nông cụ không có mục trong `tools` = còn nguyên (đầy độ bền). */
+export interface SaveToolState {
+  durability: number;
+}
+
+/**
+ * Một thành viên gia đình (T-086…, GDD §3.11): vợ, con, gà, lợn, trâu. `kind` là mã loại trong dữ liệu (vd 'wife',
+ * 'child', 'pig'), `id` riêng từng người / con (vợ: mã cô dâu trong brides.json), `days` = số ngày đã ở nhà (con lớn, lợn lớn).
+ */
+export interface SaveFamilyMember {
+  id: string;
+  kind: string;
+  days: number;
+}
+
+export interface SaveFamily {
+  members: SaveFamilyMember[];
+  /** Còn bao nhiêu ngày "ăn cháo trừ bữa" (thiếu tiền cơm — GDD §3.11), 0 = không. */
+  porridgeDays: number;
+}
+
+export type SaveWeatherKind = 'sun' | 'rain';
+const WEATHER_KINDS: readonly string[] = ['sun', 'rain'];
+
+/** Thời tiết đã chọn cho ngày `day` (T-047, GDD §3.1). `day` khác ngày hiện tại (vd 0 = chưa chọn) → sáng ra chọn lại. */
+export interface SaveWeather {
+  day: number;
+  kind: SaveWeatherKind;
+}
+
+/** Version 5 (T-041): như version 4 + chỗ lưu cho level, nhiệm vụ, cờ, nông cụ, bậc đồ, gia đình, thời tiết. */
+export interface GameSaveV5 extends Omit<GameSaveV4, 'version'> {
+  version: 5;
+  progress: SaveProgress;
+  /** Cờ bật / tắt theo tên (vd `married`, `brickKitchen`). Không có tên = tắt. */
+  flags: Record<string, boolean>;
+  /** Độ bền theo mã nông cụ (tools.json). */
+  tools: Record<string, SaveToolState>;
+  /** Bậc ngoại hình 1 … 4 (GDD §3.14); 1 = Nghèo kiết xác. */
+  outfitTier: number;
+  family: SaveFamily;
+  weather: SaveWeather;
+}
+
 /** Save ở định dạng hiện tại. */
-export type GameSave = GameSaveV4;
+export type GameSave = GameSaveV5;
+
+/** Giá trị mặc định của các trường thêm ở version 5 (save cũ nâng lên + game mới). Mỗi lần gọi trả object MỚI. */
+export function defaultV5Fields(): Pick<GameSaveV5, 'progress' | 'flags' | 'tools' | 'outfitTier' | 'family' | 'weather'> {
+  return {
+    progress: { xp: 0, level: 1, quests: {}, trackedQuest: null },
+    flags: {},
+    tools: {},
+    outfitTier: 1,
+    family: { members: [], porridgeDays: 0 },
+    weather: { day: 0, kind: 'sun' },
+  };
+}
 
 export type SaveParseResult =
   | { ok: true; save: GameSave; /** Phiên bản gốc trước khi nâng cấp (= GAME_SAVE_VERSION nếu không cần nâng). */ fromVersion: number }
@@ -112,11 +189,14 @@ export type SaveParseResult =
  * 1 → 2 (T-093): thêm rương trống; khu cũ ('garden') giữ nguyên — người chơi vẫn đứng ở Vườn như lúc lưu.
  * 2 → 3 (T-026): thêm `seed` suy ra từ `savedAt` (xác định — nạp lại bản cũ nhiều lần vẫn ra cùng seed).
  * 3 → 4 (T-027): thêm `records` trống (chưa có kỷ lục — save cũ không ghi tiền bán từng ngày nên không suy ra được).
+ * 4 → 5 (T-041): thêm progress (Lv 1, 0 tiếng tăm, chưa nhiệm vụ nào), cờ trống, nông cụ còn nguyên, bậc đồ 1, gia đình trống,
+ *   thời tiết "chưa chọn" (day 0). Không suy từ dữ liệu cũ: các hệ này chưa có trước version 5.
  */
 export const SAVE_MIGRATIONS: Readonly<Record<number, (old: Record<string, unknown>) => Record<string, unknown>>> = {
   1: (old) => ({ ...old, version: 2, chest: { slots: [] } }),
   2: (old) => ({ ...old, version: 3, seed: hashSeedText(typeof old.savedAt === 'string' ? old.savedAt : '') }),
   3: (old) => ({ ...old, version: 4, records: { bestDaySale: 0 } }),
+  4: (old) => ({ ...old, version: 5, ...defaultV5Fields() }),
 };
 
 /** Số nguyên hợp lệ làm seed (0 … 2³²−1). */
@@ -209,7 +289,42 @@ function checkPlot(p: unknown): boolean {
   );
 }
 
-/** Trả về mô tả trường sai đầu tiên, hoặc null nếu đúng hình dạng phiên bản hiện tại (4). */
+const isCount = (x: unknown): x is number => isInt(x) && x >= 0;
+
+function checkQuest(q: unknown): boolean {
+  return isObj(q) && (q.status === 'active' || q.status === 'done') && isObj(q.counters) && Object.values(q.counters).every(isCount);
+}
+
+function checkProgress(p: unknown): boolean {
+  return (
+    isObj(p) &&
+    isCount(p.xp) &&
+    isInt(p.level) &&
+    p.level >= 1 &&
+    isObj(p.quests) &&
+    Object.values(p.quests).every(checkQuest) &&
+    (p.trackedQuest === null || isStr(p.trackedQuest))
+  );
+}
+
+function checkMember(m: unknown): boolean {
+  return isObj(m) && isStr(m.id) && m.id.length > 0 && isStr(m.kind) && m.kind.length > 0 && isCount(m.days);
+}
+
+/** Phần thêm ở version 5 — trả về tên trường sai đầu tiên hoặc null. */
+function checkV5Fields(s: Record<string, unknown>): string | null {
+  if (!checkProgress(s.progress)) return 'progress';
+  if (!isObj(s.flags) || !Object.values(s.flags).every(isBool)) return 'flags';
+  if (!isObj(s.tools) || !Object.values(s.tools).every((t) => isObj(t) && isNum(t.durability) && t.durability >= 0)) return 'tools';
+  if (!isInt(s.outfitTier) || s.outfitTier < 1) return 'outfitTier';
+  const fam = s.family;
+  if (!isObj(fam) || !Array.isArray(fam.members) || !fam.members.every(checkMember) || !isCount(fam.porridgeDays)) return 'family';
+  const w = s.weather;
+  if (!isObj(w) || !isCount(w.day) || !isStr(w.kind) || !WEATHER_KINDS.includes(w.kind)) return 'weather';
+  return null;
+}
+
+/** Trả về mô tả trường sai đầu tiên, hoặc null nếu đúng hình dạng phiên bản hiện tại (5). */
 function checkCurrent(s: Record<string, unknown>): string | null {
   if (s.version !== GAME_SAVE_VERSION) return 'version';
   if (!isStr(s.savedAt)) return 'savedAt';
@@ -235,5 +350,5 @@ function checkCurrent(s: Record<string, unknown>): string | null {
   if (!isSaveSeed(s.seed)) return 'seed';
   const rec = s.records;
   if (!isObj(rec) || !isInt(rec.bestDaySale) || rec.bestDaySale < 0) return 'records';
-  return null;
+  return checkV5Fields(s);
 }

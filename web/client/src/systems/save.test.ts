@@ -1,14 +1,16 @@
 // T-008: save — lưu → đọc ra giống hệt, save hỏng / sai version / thiếu trường, nâng phiên bản, luật game khi nạp,
 // đọc/ghi localStorage (kho giả). Phần kiểm hình dạng nằm ở @bph/shared, phần luật game ở systems/save.ts.
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { GAME_SAVE_VERSION, hashSeedText, parseGameSave, serializeGameSave, validateGameSave, type GameSave } from '@bph/shared';
+import { defaultV5Fields, GAME_SAVE_VERSION, hashSeedText, parseGameSave, serializeGameSave, validateGameSave, type GameSave } from '@bph/shared';
+import protoV1 from './__fixtures__/save-v1-prototype.json';
+import { createStage4State } from './progress';
 import { gameConfig } from '../config/gameConfig';
 import { clearLocalSave, loadLocalSave, SAVE_BACKUP_KEY, SAVE_KEY, writeLocalSave, type SaveStorage } from '../net/saveLocal';
 import { cropById } from './crops';
 import { createWallet } from './economy';
 import { createFarm, plantSeed, plotAt, strikeTill, waterPlot, type FarmState } from './farm';
 import { createInventory, setSlot } from './inventory';
-import { HOE_ITEM_ID as HOE, itemInfo } from './items';
+import { HOE_ITEM_ID as HOE, isToolItem, itemInfo } from './items';
 import { applySave, captureSave, type SaveRules, type SaveWorld } from './save';
 import { createStamina } from './stamina';
 import { createDayClock } from './time';
@@ -486,5 +488,151 @@ describe('T-027: kỷ lục trong save (version 4)', () => {
     expect(s.records).toEqual({ bestDaySale: 0 });
     s.records.bestDaySale = 50;
     expect(() => applySave(s, freshWorld(), RULES)).not.toThrow();
+  });
+});
+
+describe('T-041: chỗ lưu chặng 4 (version 5)', () => {
+  const HOUSE_RULES: SaveRules = { ...RULES, otherAreas: { house: { width: 1280, height: 720 } }, requiredItems: [HOE], isKnownTool: isToolItem };
+  const withStage4 = (): SaveWorld => ({ ...freshWorld(), stage4: createStage4State() });
+  const ADDED_AFTER_V1 = ['version', 'chest', 'seed', 'records', 'progress', 'flags', 'tools', 'outfitTier', 'family', 'weather'];
+
+  /** Bỏ các trường thêm sau version 1 (để so phần của v1). */
+  const v1Part = (s: object): Record<string, unknown> =>
+    Object.fromEntries(Object.entries(s).filter(([k]) => !ADDED_AFTER_V1.includes(k)));
+
+  it('save version 1 THẬT của prototype (T-008) nạp lên version 5: mọi trường v1 còn nguyên, trường mới = mặc định', () => {
+    const original = JSON.parse(JSON.stringify(protoV1)) as Record<string, unknown>;
+    const r = validateGameSave(JSON.parse(JSON.stringify(protoV1)));
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.fromVersion).toBe(1);
+    expect(r.save.version).toBe(GAME_SAVE_VERSION);
+    expect(GAME_SAVE_VERSION).toBe(5);
+    // Không mất gì: phần v1 giống hệt file gốc.
+    expect(v1Part(r.save)).toEqual(v1Part(original));
+    expect(Object.keys(v1Part(original)).length).toBeGreaterThan(5);
+    expect(r.save.chest).toEqual({ slots: [] });
+    expect(r.save.seed).toBe(hashSeedText(protoV1.savedAt));
+    expect(r.save.records).toEqual({ bestDaySale: 0 });
+    expect(r.save.progress).toEqual({ xp: 0, level: 1, quests: {}, trackedQuest: null });
+    expect(r.save.flags).toEqual({});
+    expect(r.save.tools).toEqual({});
+    expect(r.save.outfitTier).toBe(1);
+    expect(r.save.family).toEqual({ members: [], porridgeDays: 0 });
+    expect(r.save.weather).toEqual({ day: 0, kind: 'sun' });
+
+    // Nạp vào game: ruộng, gùi, thùng, tiền, giờ, chỗ đứng y nguyên; cuốc (chưa có ở prototype) tự thêm vào ô trống đầu.
+    const w = withStage4();
+    w.chest = createInventory(gameConfig.chestSlots, gameConfig.chestSlots, gameConfig.stackMax);
+    const applied = applySave(r.save, w, HOUSE_RULES);
+    expect(applied.area).toBe('garden');
+    expect(applied.position).toEqual({ x: 812.5, y: 1003.33 });
+    expect(applied.playerName).toBe('Khoác');
+    expect(applied.addedItems).toEqual([HOE]);
+    expect(w.inventory.slots[3]).toEqual({ id: HOE, count: 1 });
+    expect(w.inventory.slots[2]).toEqual({ id: 'rau-cai', count: 5 });
+    expect(w.sellBox.slots[0]).toEqual({ id: 'rau-cai', count: 4 });
+    expect(w.wallet.money).toBe(47);
+    expect(w.clock).toEqual({ day: 3, elapsedSeconds: 274.583 });
+    expect(plotAt(w.farm, 13, 13)).toMatchObject({ soil: 'untilled', tillStrikes: 4 });
+    expect(plotAt(w.farm, 12, 14)!.crop!.withered).toBe(true);
+    expect(w.stage4!.progress.level).toBe(1);
+  });
+
+  it('save version 4 (T-027) nâng lên version 5: kỷ lục, seed, rương giữ nguyên; trường mới mặc định', () => {
+    const w: SaveWorld = { ...richWorld(), records: { bestDaySale: 88 }, seed: 777 };
+    const v4 = JSON.parse(serializeGameSave(captureSave(w, NOW))) as Record<string, unknown>;
+    v4.version = 4;
+    for (const k of ['progress', 'flags', 'tools', 'outfitTier', 'family', 'weather']) delete v4[k];
+    const r = validateGameSave(v4);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.fromVersion).toBe(4);
+    expect(r.save.version).toBe(5);
+    expect(r.save.records).toEqual({ bestDaySale: 88 });
+    expect(r.save.seed).toBe(777);
+    expect(r.save.money).toBe(137);
+    expect(r.save).toMatchObject(defaultV5Fields());
+  });
+
+  it('level, cờ, nhiệm vụ, độ bền, bậc đồ, gia đình, thời tiết: lưu → JSON → nạp ra y nguyên', () => {
+    const w = withStage4();
+    const s4 = w.stage4!;
+    s4.progress.level = 5;
+    s4.progress.xp = 37;
+    s4.progress.quests['ruong-dau-tay'] = { status: 'done', counters: { till: 3, plant: 3, water: 3 } };
+    s4.progress.quests['rao-vuon'] = { status: 'active', counters: { plots: 0 } };
+    s4.progress.trackedQuest = 'rao-vuon';
+    s4.flags.married = true;
+    s4.flags.brickKitchen = true;
+    s4.tools[HOE] = { durability: 12 };
+    s4.outfit.tier = 3;
+    s4.family.members.push({ id: 'co-ti', kind: 'wife', days: 4 }, { id: 'ga-1', kind: 'chicken', days: 1 });
+    s4.family.porridgeDays = 1;
+    s4.weather.day = 6;
+    s4.weather.kind = 'rain';
+    const first = captureSave(w, NOW);
+    const parsed = parseGameSave(serializeGameSave(first));
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    const target = withStage4();
+    applySave(parsed.save, target, { ...HOUSE_RULES, requiredItems: [] });
+    expect(target.stage4).toEqual(s4);
+    expect(captureSave(target, NOW)).toEqual(first);
+    // Save là bản sao: sửa game sau khi lưu không đổi save.
+    s4.flags.penBuilt = true;
+    s4.progress.quests['rao-vuon'].counters.plots = 3;
+    expect(first.flags.penBuilt).toBeUndefined();
+    expect(first.progress.quests['rao-vuon'].counters.plots).toBe(0);
+  });
+
+  it('luật khi nạp: bậc đồ kẹp 1…4, nông cụ lạ bỏ, cờ lạ giữ', () => {
+    const s = captureSave(withStage4(), NOW);
+    s.outfitTier = 9;
+    s.tools = { [HOE]: { durability: 5 }, 'riu-vang': { durability: 99 } };
+    s.flags = { tuongLai: true };
+    const w = withStage4();
+    w.stage4!.flags.married = true; // rác trong game mới phải bị thay theo save
+    applySave(s, w, HOUSE_RULES);
+    expect(w.stage4!.outfit.tier).toBe(gameConfig.outfitTierCount);
+    expect(w.stage4!.tools).toEqual({ [HOE]: { durability: 5 } });
+    expect(w.stage4!.flags).toEqual({ tuongLai: true });
+  });
+
+  it('thế giới không có stage4 (kiểu cũ) lưu ra mặc định; nạp vào thì bỏ qua', () => {
+    const s = captureSave(freshWorld(), NOW);
+    expect(s).toMatchObject(defaultV5Fields());
+    expect(() => applySave(s, freshWorld(), RULES)).not.toThrow();
+  });
+
+  it('version 5 thiếu / sai trường mới → hỏng (không nạp nửa vời)', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const breakers: ((s: Record<string, any>) => void)[] = [
+      (s) => delete s.progress,
+      (s) => (s.progress.level = 0),
+      (s) => (s.progress.level = 2.5),
+      (s) => (s.progress.xp = -1),
+      (s) => (s.progress.quests = []),
+      (s) => (s.progress.quests.q1 = { status: 'maybe', counters: {} }),
+      (s) => (s.progress.quests.q1 = { status: 'active', counters: { till: -2 } }),
+      (s) => (s.progress.trackedQuest = 3),
+      (s) => delete s.flags,
+      (s) => (s.flags = { married: 'yes' }),
+      (s) => (s.tools = { [HOE]: { durability: -1 } }),
+      (s) => (s.tools = { [HOE]: 30 }),
+      (s) => (s.outfitTier = 0),
+      (s) => (s.outfitTier = '2'),
+      (s) => delete s.family,
+      (s) => (s.family.members = [{ id: '', kind: 'wife', days: 0 }]),
+      (s) => (s.family.porridgeDays = -1),
+      (s) => (s.weather = { day: 1, kind: 'snow' }),
+      (s) => (s.weather = { day: -1, kind: 'sun' }),
+      (s) => delete s.weather,
+    ];
+    breakers.forEach((breakIt, i) => {
+      const s = JSON.parse(serializeGameSave(captureSave(withStage4(), NOW))) as Record<string, unknown>;
+      breakIt(s);
+      expect(validateGameSave(s).ok, `ca ${i}`).toBe(false);
+    });
   });
 });

@@ -7,6 +7,7 @@ import {
   coinSpawnOffset,
   coinsInFlight,
   createCoinState,
+  dropIncomingCoins,
   flightPoint,
   hasIncomingCoins,
   heldCoinMoney,
@@ -132,6 +133,23 @@ describe('xu bay', () => {
     expect(s.started).toBe(2);
     expect(heldCoinMoney(s)).toBe(3);
     expect(coinsInFlight(s)).toBe(5);
+  });
+
+  it('BUG-018: dropIncomingCoins bỏ mẻ "in" đang bay (số hiện = ví ngay, không còn "+N" sau đó); mẻ "out" bay nốt', () => {
+    const s = createCoinState();
+    startCoinBatch(s, 'in', 60, FROM, TO, P);
+    startCoinBatch(s, 'out', 4, TO, FROM, P);
+    const out: CoinLanding[] = [];
+    stepCoins(s, 0.61, P, out); // đồng "in" đầu đã chạm (10 quan)
+    expect(heldCoinMoney(s)).toBe(50);
+    expect(dropIncomingCoins(s)).toBe(50);
+    expect(heldCoinMoney(s)).toBe(0);
+    expect(hasIncomingCoins(s)).toBe(false);
+    expect(s.landedIn).toBe(1); // đồng bị bỏ không tính là đã chạm
+    expect(s.batches.map((b) => b.kind)).toEqual(['out']);
+    stepCoins(s, 2, P, out);
+    expect(out.some((l) => l.kind === 'in')).toBe(false);
+    expect(dropIncomingCoins(createCoinState())).toBe(0);
   });
 
   it('dt 0 (đang tạm dừng) → không đồng nào bay thêm', () => {

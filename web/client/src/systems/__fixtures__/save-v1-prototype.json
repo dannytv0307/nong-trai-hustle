@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "savedAt": "2026-10-12T09:41:27.512Z",
+  "player": { "name": "Khoác", "area": "garden", "x": 812.5, "y": 1003.33, "facing": "up" },
+  "clock": { "day": 3, "elapsedSeconds": 274.583 },
+  "stamina": { "current": 61, "max": 100, "exhausted": false },
+  "money": 47,
+  "farm": {
+    "plots": [
+      { "x": 12, "y": 12, "soil": "tilled", "tillStrikes": 6, "crop": { "cropId": "rau-cai", "age": 2, "dryDays": 0, "withered": false }, "watered": true },
+      { "x": 13, "y": 12, "soil": "tilled", "tillStrikes": 6, "crop": { "cropId": "rau-cai", "age": 2, "dryDays": 0, "withered": false }, "watered": false },
+      { "x": 14, "y": 12, "soil": "tilled", "tillStrikes": 6, "crop": { "cropId": "khoai-lang", "age": 1, "dryDays": 1, "withered": false }, "watered": false },
+      { "x": 12, "y": 13, "soil": "tilled", "tillStrikes": 6, "crop": null, "watered": false },
+      { "x": 13, "y": 13, "soil": "untilled", "tillStrikes": 4, "crop": null, "watered": false },
+      { "x": 14, "y": 13, "soil": "untilled", "tillStrikes": 0, "crop": null, "watered": false },
+      { "x": 12, "y": 14, "soil": "tilled", "tillStrikes": 6, "crop": { "cropId": "rau-cai", "age": 0, "dryDays": 2, "withered": true }, "watered": false },
+      { "x": 13, "y": 14, "soil": "untilled", "tillStrikes": 0, "crop": null, "watered": false },
+      { "x": 14, "y": 14, "soil": "untilled", "tillStrikes": 0, "crop": null, "watered": false }
+    ]
+  },
+  "inventory": {
+    "slots": [
+      { "id": "hat-rau-cai", "count": 3 },
+      { "id": "hat-khoai-lang", "count": 2 },
+      { "id": "rau-cai", "count": 5 },
+      null,
+      { "id": "khoai-lang", "count": 1 },
+      null, null, null, null,
+      null, null, null, null, null, null, null, null, null
+    ],
+    "selected": 0,
+    "lastSeedId": "hat-rau-cai"
+  },
+  "sellBox": {
+    "slots": [
+      { "id": "rau-cai", "count": 4 },
+      null, null, null, null, null, null, null, null,
+      null, null, null, null, null, null, null, null, null
+    ]
+  }
+}
